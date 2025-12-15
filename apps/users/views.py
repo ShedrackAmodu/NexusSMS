@@ -115,7 +115,7 @@ def login_history(request):
             return redirect('users:user_list')
 
     # Apply form filters
-    form = LoginHistorySearchForm(request.GET)
+    form = LoginHistorySearchForm(request.GET, user=request.user)
     if form.is_valid():
         # User filter - ensure user belongs to same institution
         if form.cleaned_data['user']:
@@ -2057,7 +2057,13 @@ def user_detail(request, user_id):
     """
     User detail view with all related information.
     """
-    user = get_object_or_404(User, id=user_id, current_institution=request.user.current_institution)
+    user = get_object_or_404(
+        User.objects.filter(
+            institution_memberships__institution=request.user.current_institution,
+            institution_memberships__is_primary=True
+        ),
+        id=user_id
+    )
 
     # Security check - staff can only view, superuser can edit
     can_edit = request.user.is_superuser
@@ -3649,7 +3655,15 @@ def staff_detail(request, user_id):
     """
     Staff member detail view with profile and role management.
     """
-    staff_member = get_object_or_404(User, id=user_id, current_institution=request.user.current_institution)
+    # First check if user exists and belongs to same institution for security
+    user_obj = get_object_or_404(
+        User.objects.filter(
+            institution_memberships__institution=request.user.current_institution,
+            institution_memberships__is_primary=True
+        ),
+        id=user_id
+    )
+    staff_member = user_obj
 
     # Ensure the user is actually a staff member
     if not staff_member.user_roles.filter(role__role_type__in=Role.STAFF_ROLES).exists():

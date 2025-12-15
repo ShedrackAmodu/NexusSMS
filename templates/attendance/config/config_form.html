@@ -71,6 +71,7 @@
 
     <form method="post" id="configForm">
         {% csrf_token %}
+        <input type="hidden" name="academic_session" value="{{ form.academic_session.value }}">
         
         <div class="row">
             <!-- Main Configuration -->

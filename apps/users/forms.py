@@ -586,7 +586,7 @@ class ParentStudentRelationshipForm(forms.ModelForm):
                 user_roles__role=parent_role,
                 user_roles__status='active',
                 is_active=True,
-                institution_user__institution__in=accessible_institutions
+                institution_memberships__institution__in=accessible_institutions
             ).distinct()
 
         if student_role:
@@ -594,7 +594,7 @@ class ParentStudentRelationshipForm(forms.ModelForm):
                 user_roles__role=student_role,
                 user_roles__status='active',
                 is_active=True,
-                institution_user__institution__in=accessible_institutions
+                institution_memberships__institution__in=accessible_institutions
             ).distinct()
 
     def clean(self):
@@ -650,7 +650,7 @@ class LoginHistorySearchForm(forms.Form):
 
         self.fields['user'].queryset = User.objects.filter(
             is_active=True,
-            institution_user__institution__in=accessible_institutions
+            institution_memberships__institution__in=accessible_institutions
         ).distinct()
 
     user = forms.ModelChoiceField(
@@ -742,7 +742,7 @@ class UserBulkActionForm(forms.Form):
         accessible_institutions = get_user_accessible_institutions(user) if user else Institution.objects.none()
 
         self.fields['users'].queryset = User.objects.filter(
-            institution_user__institution__in=accessible_institutions
+            institution_memberships__institution__in=accessible_institutions
         ).distinct()
 
     users = forms.ModelMultipleChoiceField(

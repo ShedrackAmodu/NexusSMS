@@ -19,6 +19,9 @@ from .models import (
     LeaveType, LeaveApplication, AttendanceSummary, BulkAttendanceSession,
     AttendanceException
 )
+from .forms import (
+    AttendanceConfigForm
+)
 from apps.academics.models import BehaviorRecord, Student, Class, AcademicSession
 from apps.users.models import User
 
@@ -60,15 +63,10 @@ class TeacherRequiredMixin:
 class AttendanceConfigUpdateView(UpdateView):
     """View for updating attendance configuration"""
     model = AttendanceConfig
+    form_class = AttendanceConfigForm
     template_name = 'attendance/config/config_form.html'
-    fields = [
-        'school_start_time', 'school_end_time', 'late_threshold_minutes',
-        'half_day_threshold_hours', 'auto_mark_absent_after_days',
-        'enable_biometric', 'enable_geo_fencing', 'notify_parents_on_absence',
-        'notify_after_consecutive_absences'
-    ]
     success_url = reverse_lazy('config')
-    
+
     def get_object(self):
         # Get or create config for current academic session
         current_session = AcademicSession.objects.filter(is_current=True).first()
@@ -87,7 +85,21 @@ class AttendanceConfigUpdateView(UpdateView):
             )
             return obj
         return None
-    
+
+    def get_initial(self):
+        initial = super().get_initial()
+        current_session = AcademicSession.objects.filter(is_current=True).first()
+        if current_session:
+            initial['academic_session'] = current_session
+        return initial
+
+    def form_valid(self, form):
+        # Ensure academic_session is set correctly to prevent tampering
+        current_session = AcademicSession.objects.filter(is_current=True).first()
+        if current_session:
+            form.instance.academic_session = current_session
+        return super().form_valid(form)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['current_session'] = AcademicSession.objects.filter(is_current=True).first()

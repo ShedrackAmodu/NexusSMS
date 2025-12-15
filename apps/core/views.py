@@ -1506,7 +1506,166 @@ class SuperAdminEntityView(MultiInstitutionMixin, LoginRequiredMixin, Permission
                     Q(profile__phone__icontains=search_query)
                 )[:50]
 
-            # Similar search logic can be applied to other entities as needed
+            # Finance entities
+            if invoices and search_query:
+                invoices = invoices.filter(
+                    Q(invoice_number__icontains=search_query) |
+                    Q(description__icontains=search_query) |
+                    Q(student__user__first_name__icontains=search_query) |
+                    Q(student__user__last_name__icontains=search_query) |
+                    Q(student__student_id__icontains=search_query)
+                )[:50]
+
+            if payments and search_query:
+                payments = payments.filter(
+                    Q(payment_number__icontains=search_query) |
+                    Q(reference_number__icontains=search_query) |
+                    Q(description__icontains=search_query) |
+                    Q(student__user__first_name__icontains=search_query) |
+                    Q(student__user__last_name__icontains=search_query) |
+                    Q(student__student_id__icontains=search_query)
+                )[:50]
+
+            if expenses and search_query:
+                expenses = expenses.filter(
+                    Q(description__icontains=search_query) |
+                    Q(category__icontains=search_query) |
+                    Q(vendor__icontains=search_query)
+                )[:50]
+
+            # Library entities
+            if books and search_query:
+                books = books.filter(
+                    Q(title__icontains=search_query) |
+                    Q(isbn__icontains=search_query) |
+                    Q(authors__first_name__icontains=search_query) |
+                    Q(authors__last_name__icontains=search_query) |
+                    Q(publisher__icontains=search_query)
+                )[:50]
+
+            if authors and search_query:
+                authors = authors.filter(
+                    Q(first_name__icontains=search_query) |
+                    Q(last_name__icontains=search_query) |
+                    Q(email__icontains=search_query)
+                )[:50]
+
+            if borrow_records and search_query:
+                borrow_records = borrow_records.filter(
+                    Q(student__user__first_name__icontains=search_query) |
+                    Q(student__user__last_name__icontains=search_query) |
+                    Q(student__student_id__icontains=search_query) |
+                    Q(book__title__icontains=search_query) |
+                    Q(book__isbn__icontains=search_query)
+                )[:50]
+
+            if reservations and search_query:
+                reservations = reservations.filter(
+                    Q(student__user__first_name__icontains=search_query) |
+                    Q(student__user__last_name__icontains=search_query) |
+                    Q(student__student_id__icontains=search_query) |
+                    Q(book__title__icontains=search_query) |
+                    Q(book__isbn__icontains=search_query)
+                )[:50]
+
+            # Transport entities
+            if vehicles and search_query:
+                vehicles = vehicles.filter(
+                    Q(license_plate__icontains=search_query) |
+                    Q(make__icontains=search_query) |
+                    Q(model__icontains=search_query) |
+                    Q(vehicle_type__icontains=search_query)
+                )[:50]
+
+            if drivers and search_query:
+                drivers = drivers.filter(
+                    Q(user__first_name__icontains=search_query) |
+                    Q(user__last_name__icontains=search_query) |
+                    Q(user__email__icontains=search_query) |
+                    Q(employee_id__icontains=search_query) |
+                    Q(license_number__icontains=search_query)
+                )[:50]
+
+            if routes and search_query:
+                routes = routes.filter(
+                    Q(name__icontains=search_query) |
+                    Q(code__icontains=search_query) |
+                    Q(description__icontains=search_query)
+                )[:50]
+
+            if allocations and search_query:
+                allocations = allocations.filter(
+                    Q(student__user__first_name__icontains=search_query) |
+                    Q(student__user__last_name__icontains=search_query) |
+                    Q(student__student_id__icontains=search_query) |
+                    Q(vehicle__license_plate__icontains=search_query) |
+                    Q(route__name__icontains=search_query)
+                )[:50]
+
+            # Activities
+            if activities and search_query:
+                activities = activities.filter(
+                    Q(name__icontains=search_query) |
+                    Q(description__icontains=search_query) |
+                    Q(activity_type__icontains=search_query)
+                )[:50]
+
+            # Communication
+            if announcements and search_query:
+                announcements = announcements.filter(
+                    Q(title__icontains=search_query) |
+                    Q(content__icontains=search_query) |
+                    Q(author__first_name__icontains=search_query) |
+                    Q(author__last_name__icontains=search_query)
+                )[:50]
+
+            # Audit
+            if audit_logs and search_query:
+                audit_logs = audit_logs.filter(
+                    Q(action__icontains=search_query) |
+                    Q(description__icontains=search_query) |
+                    Q(user__first_name__icontains=search_query) |
+                    Q(user__last_name__icontains=search_query) |
+                    Q(user__email__icontains=search_query)
+                )[:50]
+
+            # Assessment
+            if exams and search_query:
+                exams = exams.filter(
+                    Q(name__icontains=search_query) |
+                    Q(code__icontains=search_query) |
+                    Q(description__icontains=search_query) |
+                    Q(subject__name__icontains=search_query) |
+                    Q(exam_type__name__icontains=search_query)
+                )[:50]
+
+            if assignments and search_query:
+                assignments = assignments.filter(
+                    Q(title__icontains=search_query) |
+                    Q(description__icontains=search_query) |
+                    Q(subject__name__icontains=search_query) |
+                    Q(teacher__user__first_name__icontains=search_query) |
+                    Q(teacher__user__last_name__icontains=search_query)
+                )[:50]
+
+            # Applications
+            if student_applications and search_query:
+                student_applications = student_applications.filter(
+                    Q(user__first_name__icontains=search_query) |
+                    Q(user__last_name__icontains=search_query) |
+                    Q(user__email__icontains=search_query) |
+                    Q(phone__icontains=search_query) |
+                    Q(application_number__icontains=search_query)
+                )[:50]
+
+            if staff_applications and search_query:
+                staff_applications = staff_applications.filter(
+                    Q(user__first_name__icontains=search_query) |
+                    Q(user__last_name__icontains=search_query) |
+                    Q(user__email__icontains=search_query) |
+                    Q(phone__icontains=search_query) |
+                    Q(application_number__icontains=search_query)
+                )[:50]
 
         # Get entity counts for all entities
         entity_counts = self._get_entity_counts(view_all_institutions, selected_institution)

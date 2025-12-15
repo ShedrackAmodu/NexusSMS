@@ -15,7 +15,7 @@ from .models import (
 
 class AttendanceConfigForm(forms.ModelForm):
     """Form for AttendanceConfig model with validation."""
-    
+
     class Meta:
         model = AttendanceConfig
         fields = [
@@ -23,7 +23,7 @@ class AttendanceConfigForm(forms.ModelForm):
             'late_threshold_minutes', 'half_day_threshold_hours',
             'auto_mark_absent_after_days', 'enable_biometric',
             'enable_geo_fencing', 'notify_parents_on_absence',
-            'notify_after_consecutive_absences', 'status'
+            'notify_after_consecutive_absences'
         ]
         widgets = {
             'school_start_time': forms.TimeInput(attrs={'type': 'time'}),
@@ -594,12 +594,12 @@ class BulkAttendanceSessionForm(forms.ModelForm):
 
 class AttendanceExceptionForm(forms.ModelForm):
     """Form for AttendanceException model."""
-    
+
     class Meta:
         model = AttendanceException
         fields = [
             'daily_attendance', 'exception_type', 'original_status',
-            'new_status', 'reason', 'approved_by', 'effective_date', 'status'
+            'new_status', 'reason', 'approved_by', 'status'
         ]
         widgets = {
             'reason': forms.Textarea(attrs={'rows': 4}),

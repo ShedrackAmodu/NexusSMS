@@ -17,7 +17,15 @@
                     </h1>
                     <p class="text-muted">{% trans "System-wide monitoring and management" %}</p>
                 </div>
-                <div>
+            <div>
+                {% if user.is_superuser %}
+                    <a href="{% url 'core:super_admin_entities' %}" class="btn btn-success mr-2">
+                        <i class="fas fa-cogs"></i> {% trans "System Management" %}
+                    </a>
+                    <a href="{% url 'core:config_list' %}" class="btn btn-info">
+                        <i class="fas fa-cogs"></i> {% trans "System Config" %}
+                    </a>
+                {% else %}
                     <a href="{% url 'core:super_admin_entities' %}" class="btn btn-success mr-2">
                         <i class="fas fa-cogs"></i> {% trans "System Management" %}
                     </a>
@@ -27,7 +35,8 @@
                     <a href="{% url 'core:config_list' %}" class="btn btn-info">
                         <i class="fas fa-cogs"></i> {% trans "System Config" %}
                     </a>
-                </div>
+                {% endif %}
+            </div>
             </div>
         </div>
     </div>
