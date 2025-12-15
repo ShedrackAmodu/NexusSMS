@@ -11,6 +11,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.contrib import messages
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.utils.translation import gettext_lazy as _
 from django.urls import reverse, reverse_lazy
 from django.views.generic import FormView
@@ -37,7 +38,7 @@ from apps.academics.models import (
 from .models import (
     User, UserProfile, Role, UserRole, LoginHistory,
     PasswordHistory, UserSession, ParentStudentRelationship,
-    StudentApplication, StaffApplication, UserRoleActivity,
+    StudentApplication, StaffApplication, ApplicationStatus, UserRoleActivity,
     get_student_guardians, notify_guardians_profile_update
 )
 from .forms import (
@@ -88,16 +89,27 @@ def login_history(request):
     from django.core.paginator import Paginator
 
     # Get login history queryset filtered by institution
-    login_entries = LoginHistory.objects.filter(
-        user__current_institution=request.user.current_institution
-    ).select_related('user').order_by('-created_at')
+    current_user_institution = request.user.current_institution
+    if current_user_institution:
+        login_entries = LoginHistory.objects.filter(
+            user__institution_memberships__institution=current_user_institution,
+            user__institution_memberships__is_primary=True
+        ).select_related('user').order_by('-created_at').distinct()
+    else:
+        # Fallback for users without primary institution (like during setup)
+        login_entries = LoginHistory.objects.none()
 
     # Filter by user if specified (for user detail page link)
     user_id = request.GET.get('user')
     if user_id:
         try:
-            user = User.objects.get(id=user_id, current_institution=request.user.current_institution)
-            login_entries = login_entries.filter(user=user)
+            user = User.objects.get(id=user_id)
+            # Check if user belongs to same institution
+            if user.current_institution == current_user_institution:
+                login_entries = login_entries.filter(user=user)
+            else:
+                messages.error(request, _('Access denied: User not in your institution.'))
+                return redirect('users:user_list')
         except User.DoesNotExist:
             messages.error(request, _('User not found.'))
             return redirect('users:user_list')
@@ -613,9 +625,24 @@ def send_rejection_email(application, review_notes):
     else:
         logger.error(f"Failed to send rejection email to {application.email}")
 
-def send_interview_email(application, interview_date, review_notes):
+def send_interview_email(application, interview_date, review_notes, approving_staff=None):
     """Send interview scheduling email to applicant."""
     subject = _('Interview Scheduled - {}').format(application.application_number)
+
+    # Get staff information
+    staff_name = None
+    staff_role = None
+    staff_email = None
+    staff_phone = None
+
+    if approving_staff:
+        staff_name = approving_staff.get_full_name() if approving_staff.get_full_name() else approving_staff.email
+        # Get primary role
+        primary_role = approving_staff.user_roles.filter(is_primary=True).first()
+        if primary_role:
+            staff_role = primary_role.role.name
+            staff_email = approving_staff.email
+            staff_phone = approving_staff.mobile if approving_staff.mobile else None
 
     context = {
         'application': application,
@@ -623,6 +650,10 @@ def send_interview_email(application, interview_date, review_notes):
         'review_notes': review_notes,
         'contact_email': settings.DEFAULT_FROM_EMAIL,
         'school_name': getattr(settings, 'SCHOOL_NAME', 'Our School'),
+        'staff_name': staff_name,
+        'staff_role': staff_role,
+        'staff_email': staff_email,
+        'staff_phone': staff_phone,
     }
 
     html_message = render_to_string('users/emails/interview_scheduled.html', context)
@@ -773,7 +804,7 @@ class StudentApplicationView(FormView):
             application = form.save(commit=False)
             
             # Set additional fields
-            application.application_status = StudentApplication.ApplicationStatus.PENDING
+            application.application_status = ApplicationStatus.PENDING
             
             # Handle academic_session - it's now required in the form
             academic_session = form.cleaned_data.get('academic_session')
@@ -966,7 +997,7 @@ class StaffApplicationView(FormView):
             application = form.save(commit=False)
 
             # Set additional fields
-            application.application_status = StaffApplication.ApplicationStatus.PENDING
+            application.application_status = ApplicationStatus.PENDING
 
             # Save the application
             application.save()
@@ -1755,9 +1786,15 @@ def user_list(request):
     List all users with filtering and search capabilities.
     """
     # Filter users by institution for multitenancy
-    users = User.objects.filter(
-        current_institution=request.user.current_institution
-    ).select_related('profile').prefetch_related('user_roles__role')
+    current_user_institution = request.user.current_institution
+    if current_user_institution:
+        users = User.objects.filter(
+            institution_memberships__institution=current_user_institution,
+            institution_memberships__is_primary=True
+        ).select_related('profile').prefetch_related('user_roles__role').distinct()
+    else:
+        # Fallback for users without primary institution (like during setup)
+        users = User.objects.none()
 
     # Filtering
     role_filter = request.GET.get('role')
@@ -2451,52 +2488,67 @@ def schedule_interview(request, application_id):
     """
     Schedule interview for a staff application.
     """
+    application = get_object_or_404(StaffApplication, id=application_id)
+
     if request.method == 'POST':
-        interview_date = request.POST.get('interview_date')
-        review_notes = request.POST.get('review_notes', '')
+        from .forms import InterviewScheduleForm
+        form = InterviewScheduleForm(request.POST)
 
-        try:
-            with transaction.atomic():
-                application = get_object_or_404(StaffApplication, id=application_id)
+        if form.is_valid():
+            interview_date = form.cleaned_data['interview_date']
+            review_notes = form.cleaned_data['review_notes']
 
-                # Validate interview_date
-                if not interview_date:
-                    messages.error(request, _('Interview date is required.'))
+            try:
+                with transaction.atomic():
+                    # Update application with interview details
+                    application.interview_date = interview_date
+                    application.review_notes = review_notes
+                    application.reviewed_by = request.user
+                    application.reviewed_at = timezone.now()
+                    application.save()
+
+                    # Log the interview scheduling
+                    AuditLog.objects.create(
+                        user=request.user,
+                        action=AuditLog.ActionType.UPDATE,
+                        model_name='users.StaffApplication',
+                        object_id=str(application.id),
+                        ip_address=get_client_ip(request),
+                        details={
+                            'action': 'Interview scheduled',
+                            'application_number': application.application_number,
+                            'interview_date': str(interview_date),
+                            'review_notes': review_notes[:100] if review_notes else ''  # First 100 chars
+                        }
+                    )
+
+                    # Send interview scheduling email
+                    send_interview_email(application, interview_date, review_notes, request.user)
+
+                    messages.success(request, _('Interview scheduled successfully.'))
                     return redirect('users:pending_applications')
 
-                # Update application status and interview details
-                application.application_status = StaffApplication.ApplicationStatus.INTERVIEW_SCHEDULED
-                application.interview_date = interview_date
-                application.review_notes = review_notes
-                application.reviewed_by = request.user
-                application.reviewed_at = timezone.now()
-                application.save()
+            except Exception as e:
+                logger.error(f"Error scheduling interview for application {application_id}: {e}")
+                messages.error(request, _('Error scheduling interview. Please try again.'))
 
-                # Log the interview scheduling
-                AuditLog.objects.create(
-                    user=request.user,
-                    action=AuditLog.ActionType.UPDATE,
-                    model_name='users.StaffApplication',
-                    object_id=str(application.id),
-                    ip_address=get_client_ip(request),
-                    details={
-                        'action': 'Interview scheduled',
-                        'application_number': application.application_number,
-                        'interview_date': interview_date,
-                        'review_notes': review_notes[:100]  # First 100 chars
-                    }
-                )
+        else:
+            # Form has errors, fall through to show form again
+            pass
 
-                # Send interview scheduling email
-                send_interview_email(application, interview_date, review_notes)
+    else:
+        from .forms import InterviewScheduleForm
+        form = InterviewScheduleForm()
 
-                messages.success(request, _('Interview scheduled successfully.'))
+    # For GET request or invalid form, show the form
+    context = {
+        'title': _('Schedule Interview'),
+        'form': form,
+        'application': application,
+        'active_tab': 'applications',
+    }
 
-        except Exception as e:
-            logger.error(f"Error scheduling interview for application {application_id}: {e}")
-            messages.error(request, _('Error scheduling interview. Please try again.'))
-
-    return redirect('users:pending_applications')
+    return render(request, 'users/admin/applications/schedule_interview.html', context)
 
 # =============================================================================
 # ROLE MANAGEMENT VIEWS
@@ -3360,11 +3412,20 @@ def staff_list(request):
     Staff members are users with any role other than 'student' or 'parent'.
     """
     staff_roles = Role.objects.exclude(role_type__in=['student', 'parent']).values_list('id', flat=True)
-    staff_users = User.objects.filter(
-        current_institution=request.user.current_institution,  # Filter by institution for multitenancy
-        user_roles__role__id__in=staff_roles,
-        is_active=True
-    ).distinct().select_related('profile').prefetch_related('user_roles__role')
+    current_user_institution = request.user.current_institution
+    if current_user_institution:
+        staff_users = User.objects.filter(
+            institution_memberships__institution=current_user_institution,
+            institution_memberships__is_primary=True,
+            user_roles__role__id__in=staff_roles,
+            is_active=True
+        ).distinct().select_related('profile').prefetch_related('user_roles__role')
+    else:
+        # Fallback for users without primary institution (like during setup)
+        staff_users = User.objects.filter(
+            user_roles__role__id__in=staff_roles,
+            is_active=True
+        ).distinct().select_related('profile').prefetch_related('user_roles__role')
 
     # Filtering
     role_filter = request.GET.get('role')

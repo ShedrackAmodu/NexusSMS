@@ -11,7 +11,7 @@ from django import forms
 from .models import (
     User, UserProfile, Role, UserRole, LoginHistory,
     PasswordHistory, UserSession, ParentStudentRelationship, StudentApplication, StaffApplication,
-    InstitutionTransferRequest
+    InstitutionTransferRequest, ApplicationStatus
 )
 from apps.core.models import Institution
 
@@ -102,16 +102,16 @@ class StudentApplicationAdmin(admin.ModelAdmin):
         approved_count = 0
         skipped_count = 0
         for application in queryset:
-            if application.application_status == StudentApplication.ApplicationStatus.APPROVED:
+            if application.application_status == ApplicationStatus.APPROVED:
                 skipped_count += 1
                 continue
-            elif application.application_status == StudentApplication.ApplicationStatus.PENDING:
+            elif application.application_status == ApplicationStatus.PENDING:
                 try:
                     # Create user account
                     user, temp_password = self.create_user_from_application(application, request.user)
 
                     # Update application
-                    application.application_status = StudentApplication.ApplicationStatus.APPROVED
+                    application.application_status = ApplicationStatus.APPROVED
                     application.reviewed_by = request.user
                     application.reviewed_at = timezone.now()
                     application.user_account = user
@@ -146,7 +146,7 @@ class StudentApplicationAdmin(admin.ModelAdmin):
     def reject_applications(self, request, queryset):
         """Admin action to reject selected applications."""
         updated = queryset.update(
-            application_status=StudentApplication.ApplicationStatus.REJECTED,
+            application_status=ApplicationStatus.REJECTED,
             reviewed_by=request.user,
             reviewed_at=timezone.now()
         )
@@ -160,7 +160,7 @@ class StudentApplicationAdmin(admin.ModelAdmin):
     def mark_under_review(self, request, queryset):
         """Admin action to mark applications as under review."""
         updated = queryset.update(
-            application_status=StudentApplication.ApplicationStatus.UNDER_REVIEW
+            application_status=ApplicationStatus.UNDER_REVIEW
         )
         self.message_user(
             request, 
@@ -304,10 +304,10 @@ class StaffApplicationAdmin(admin.ModelAdmin):
             errors = []
 
             for application in queryset:
-                if application.application_status == StaffApplication.ApplicationStatus.APPROVED:
+                if application.application_status == ApplicationStatus.APPROVED:
                     skipped_count += 1
                     continue
-                elif application.application_status == StaffApplication.ApplicationStatus.PENDING:
+                elif application.application_status == ApplicationStatus.PENDING:
                     try:
                         # Create user account and assign to applicant's chosen institution
                         user, temp_password = self.create_user_from_application(
@@ -315,7 +315,7 @@ class StaffApplicationAdmin(admin.ModelAdmin):
                         )
 
                         # Update application
-                        application.application_status = StaffApplication.ApplicationStatus.APPROVED
+                        application.application_status = ApplicationStatus.APPROVED
                         application.reviewed_by = request.user
                         application.reviewed_at = timezone.now()
                         application.user_account = user
@@ -383,7 +383,7 @@ class StaffApplicationAdmin(admin.ModelAdmin):
                 )
 
                 # Update application
-                application.application_status = StaffApplication.ApplicationStatus.APPROVED
+                application.application_status = ApplicationStatus.APPROVED
                 application.reviewed_by = request.user
                 application.reviewed_at = timezone.now()
                 application.user_account = user
@@ -414,12 +414,12 @@ class StaffApplicationAdmin(admin.ModelAdmin):
     def schedule_interview(self, request, queryset):
         """Admin action to schedule interviews."""
         for application in queryset:
-            application.application_status = StaffApplication.ApplicationStatus.INTERVIEW_SCHEDULED
+            application.application_status = ApplicationStatus.INTERVIEW_SCHEDULED
             application.save()
-        
+
         self.message_user(
-            request, 
-            f'{queryset.count()} application(s) marked for interview.', 
+            request,
+            f'{queryset.count()} application(s) marked for interview.',
             messages.INFO
         )
     schedule_interview.short_description = _('Schedule interview for selected')
@@ -427,7 +427,7 @@ class StaffApplicationAdmin(admin.ModelAdmin):
     def reject_applications(self, request, queryset):
         """Admin action to reject selected staff applications."""
         updated = queryset.update(
-            application_status=StaffApplication.ApplicationStatus.REJECTED,
+            application_status=ApplicationStatus.REJECTED,
             reviewed_by=request.user,
             reviewed_at=timezone.now()
         )

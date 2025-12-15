@@ -197,6 +197,15 @@ class User(AbstractUser):
         """Return display name (full name)."""
         return self.full_name
 
+    @property
+    def current_institution(self):
+        """Get the user's primary institution."""
+        try:
+            primary_membership = self.institution_memberships.filter(is_primary=True).select_related('institution').first()
+            return primary_membership.institution if primary_membership else None
+        except:
+            return None
+
     def verify_email(self):
         """Mark user's email as verified."""
         self.is_verified = True
@@ -1025,7 +1034,7 @@ class StudentApplication(CoreBaseModel, AddressModel):
     # Personal Information
     first_name = models.CharField(_('first name'), max_length=50)
     last_name = models.CharField(_('last name'), max_length=50)
-    email = models.EmailField(_('email address'), unique=True)
+    email = models.EmailField(_('email address'))
     phone = models.CharField(_('phone number'), max_length=20, blank=True)
     date_of_birth = models.DateField(_('date of birth'))
     gender = models.CharField(
@@ -1175,7 +1184,7 @@ class StaffApplication(CoreBaseModel, AddressModel):
     # Personal Information
     first_name = models.CharField(_('first name'), max_length=50)
     last_name = models.CharField(_('last name'), max_length=50)
-    email = models.EmailField(_('email address'), unique=True)
+    email = models.EmailField(_('email address'))
     phone = models.CharField(_('phone number'), max_length=20, blank=True)
     date_of_birth = models.DateField(_('date of birth'))
     gender = models.CharField(

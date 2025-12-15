@@ -1,3 +1,5 @@
+{% comment %} templates/users/email/interview_schedule.html {% endcomment %}
+
 <!DOCTYPE html>
 {% load i18n %}
 
@@ -99,7 +101,7 @@
 
                 <div class="detail-item">
                     <strong>{% trans "Date & Time:" %}</strong>
-                    {{ interview_date|date:"l, F j, Y \a\t g:i A T" }}
+                    {{ interview_date|date:"l, F j, Y at g:i A T" }}
                 </div>
 
                 <div class="detail-item">
@@ -139,16 +141,38 @@
                 {% trans "We look forward to meeting you and discussing how your skills and experience align with our organization's needs." %}
             </p>
 
+            {% if staff_name %}
+            <p>{% trans "Best regards," %}<br>
+            <strong>{{ staff_name }}{% if staff_role %} ({{ staff_role }}){% endif %}</strong><br>
+            {{ school_name }}<br>
+            {% trans "Recruitment Team" %}</p>
+            {% else %}
             <p>{% trans "Best regards," %}<br>
             {{ school_name }}<br>
             {% trans "Recruitment Team" %}</p>
+            {% endif %}
         </div>
 
+        {% if staff_name %}
         <div class="contact-info">
-            <h4>{% trans "Contact Information" %}</h4>
+            <h4>{% trans "Interview Scheduling Contact" %}</h4>
+            <p>
+                <strong>{% trans "Scheduled by:" %}</strong> {{ staff_name }}{% if staff_role %} ({{ staff_role }}){% endif %}<br>
+                {% if staff_email %}
+                <strong>{% trans "Email:" %}</strong> <a href="mailto:{{ staff_email }}">{{ staff_email }}</a><br>
+                {% endif %}
+                {% if staff_phone %}
+                <strong>{% trans "Phone:" %}</strong> <a href="tel:{{ staff_phone }}">{{ staff_phone }}</a><br>
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
+
+        <div class="contact-info">
+            <h4>{% trans "General Contact Information" %}</h4>
             <p>
                 {% if contact_email %}
-                <strong>{% trans "Email:" %}</strong> <a href="mailto:{{ contact_email }}">{{ contact_email }}</a><br>
+                <strong>{% trans "School Email:" %}</strong> <a href="mailto:{{ contact_email }}">{{ contact_email }}</a><br>
                 {% endif %}
                 <strong>{% trans "Application Reference:" %}</strong> {{ application.application_number }}<br>
                 <strong>{% trans "Interview Date:" %}</strong> {{ interview_date|date:"M j, Y g:i A" }}

@@ -1146,14 +1146,13 @@ class StudentApplicationForm(forms.ModelForm):
             if age > 25:
                 self.add_error('date_of_birth', _('Please contact admissions for applicants over 25 years old.'))
 
-        # Check for duplicate applications
+        # Check for duplicate applications - prevent if any non-rejected applications exist
         if email and not self.instance.pk:
-            existing_app = StudentApplication.objects.filter(
-                email=email,
-                application_status__in=['pending', 'under_review']
-            ).exists()
-            if existing_app:
-                self.add_error('email', _('An application with this email is already pending review.'))
+            non_rejected_apps = StudentApplication.objects.filter(
+                email=email
+            ).exclude(application_status='rejected').exists()
+            if non_rejected_apps:
+                self.add_error('email', _('You have an active application with this email. You can only reapply if your previous application was rejected.'))
 
         # Validate parent names don't look like email addresses
         if parent_first_name and "@" in parent_first_name:
@@ -1530,14 +1529,13 @@ class StaffApplicationForm(forms.ModelForm):
         if years_of_experience and years_of_experience > 50:
             self.add_error('years_of_experience', _('Please enter a reasonable number of years of experience.'))
 
-        # Check for duplicate applications
+        # Check for duplicate applications - prevent if any non-rejected applications exist
         if email and not self.instance.pk:
-            existing_app = StaffApplication.objects.filter(
-                email=email,
-                application_status__in=['pending', 'under_review']
-            ).exists()
-            if existing_app:
-                self.add_error('email', _('An application with this email is already pending review.'))
+            non_rejected_apps = StaffApplication.objects.filter(
+                email=email
+            ).exclude(application_status='rejected').exists()
+            if non_rejected_apps:
+                self.add_error('email', _('You have an active application with this email. You can only reapply if your previous application was rejected.'))
 
         return cleaned_data
 
@@ -1743,3 +1741,36 @@ class InstitutionTransferRequestForm(forms.ModelForm):
 
         transfer_request.save()
         return transfer_request
+
+
+# Interview Scheduling Form
+class InterviewScheduleForm(forms.Form):
+    """
+    Form for scheduling interviews for staff applications.
+    """
+    interview_date = forms.DateTimeField(
+        label=_('Interview Date & Time'),
+        help_text=_('Select the date and time for the interview'),
+        widget=forms.DateTimeInput(attrs={
+            'class': 'form-control',
+            'type': 'datetime-local'
+        })
+    )
+    review_notes = forms.CharField(
+        required=False,
+        label=_('Notes'),
+        help_text=_('Optional notes about the interview scheduling'),
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': _('Additional notes for the candidate...')
+        })
+    )
+
+    def clean_interview_date(self):
+        """Validate that interview date is in the future."""
+        interview_date = self.cleaned_data.get('interview_date')
+        if interview_date:
+            if interview_date <= timezone.now():
+                raise forms.ValidationError(_('Interview date must be in the future.'))
+        return interview_date
