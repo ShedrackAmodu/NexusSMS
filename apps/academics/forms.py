@@ -276,9 +276,9 @@ class StudentForm(forms.ModelForm):
         if self.instance.pk:
             self.fields['user'].queryset = User.objects.filter(
                 Q(student_profile=self.instance) | Q(student_profile__isnull=True)
-            ).filter(status='active')
+            ).filter(is_active=True)
         else:
-            self.fields['user'].queryset = User.objects.filter(student_profile__isnull=True, status='active')
+            self.fields['user'].queryset = User.objects.filter(student_profile__isnull=True, is_active=True)
         self.fields['user'].empty_label = _("Select User Account")
 
 class TeacherForm(forms.ModelForm):
@@ -331,9 +331,9 @@ class TeacherForm(forms.ModelForm):
         if self.instance.pk:
             self.fields['user'].queryset = User.objects.filter(
                 Q(teacher_profile=self.instance) | Q(teacher_profile__isnull=True)
-            ).filter(status='active')
+            ).filter(is_active=True)
         else:
-            self.fields['user'].queryset = User.objects.filter(teacher_profile__isnull=True, status='active')
+            self.fields['user'].queryset = User.objects.filter(teacher_profile__isnull=True, is_active=True)
         self.fields['user'].empty_label = _("Select User Account")
         self.fields['department'].queryset = Department.objects.filter(status='active')
         self.fields['department'].empty_label = _("Select Department (Optional)")
@@ -760,7 +760,7 @@ class BehaviorRecordForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['student'].queryset = Student.objects.filter(status='active').select_related('user')
         self.fields['reported_by'].queryset = Teacher.objects.filter(status='active').select_related('user')
-        self.fields['escalated_to'].queryset = User.objects.filter(is_staff=True, status='active')
+        self.fields['escalated_to'].queryset = User.objects.filter(is_staff=True, is_active=True)
 
         self.fields['student'].empty_label = _("Select Student")
         self.fields['reported_by'].empty_label = _("Select Reporter")
@@ -862,9 +862,9 @@ class ParentGuardianForm(forms.ModelForm):
         if self.instance.pk:
             self.fields['user'].queryset = User.objects.filter(
                 Q(parent_profile=self.instance) | Q(parent_profile__isnull=True)
-            ).filter(status='active')
+            ).filter(is_active=True)
         else:
-            self.fields['user'].queryset = User.objects.filter(parent_profile__isnull=True, status='active')
+            self.fields['user'].queryset = User.objects.filter(parent_profile__isnull=True, is_active=True)
         self.fields['user'].empty_label = _("Select User Account (Optional)")
 
 class StudentParentRelationshipForm(forms.ModelForm):
@@ -943,8 +943,8 @@ class ClassTransferHistoryForm(forms.ModelForm):
         self.fields['from_class'].queryset = Class.objects.filter(status='active')
         self.fields['to_class'].queryset = Class.objects.filter(status='active')
         self.fields['academic_session'].queryset = AcademicSession.objects.filter(status='active')
-        self.fields['initiated_by'].queryset = User.objects.filter(is_staff=True, status='active')
-        self.fields['approved_by'].queryset = User.objects.filter(is_staff=True, status='active')
+        self.fields['initiated_by'].queryset = User.objects.filter(is_staff=True, is_active=True)
+        self.fields['approved_by'].queryset = User.objects.filter(is_staff=True, is_active=True)
 
         self.fields['student'].empty_label = _("Select Student")
         self.fields['from_class'].empty_label = _("Select From Class")
@@ -1071,7 +1071,7 @@ class FileAttachmentForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['uploaded_by'].queryset = User.objects.filter(status='active')
+        self.fields['uploaded_by'].queryset = User.objects.filter(is_active=True)
         self.fields['uploaded_by'].empty_label = _("Select Uploader")
 
 

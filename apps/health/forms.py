@@ -107,7 +107,7 @@ class MedicalAppointmentForm(forms.ModelForm):
         from apps.academics.models import Student
         from apps.users.models import User
         self.fields['student'].queryset = Student.objects.filter(status='active').select_related('user')
-        self.fields['referred_by'].queryset = User.objects.filter(status='active')
+        self.fields['referred_by'].queryset = User.objects.filter(is_active=True)
         self.fields['student'].empty_label = _("Select Student")
         self.fields['referred_by'].empty_label = _("Select Referrer (Optional)")
 
@@ -160,7 +160,7 @@ class MedicationForm(forms.ModelForm):
         from apps.academics.models import Student
         from apps.users.models import User
         self.fields['student'].queryset = Student.objects.filter(status='active').select_related('user')
-        self.fields['administered_by'].queryset = User.objects.filter(status='active')
+        self.fields['administered_by'].queryset = User.objects.filter(is_active=True)
         self.fields['student'].empty_label = _("Select Student")
         self.fields['administered_by'].empty_label = _("Select Administrator (Optional)")
 
@@ -201,7 +201,7 @@ class HealthScreeningForm(forms.ModelForm):
         from apps.academics.models import Student
         from apps.users.models import User
         self.fields['student'].queryset = Student.objects.filter(status='active').select_related('user')
-        self.fields['conducted_by'].queryset = User.objects.filter(status='active')
+        self.fields['conducted_by'].queryset = User.objects.filter(is_active=True)
         self.fields['student'].empty_label = _("Select Student")
         self.fields['conducted_by'].empty_label = _("Select Conductor (Optional)")
 

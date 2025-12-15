@@ -30,10 +30,14 @@ from .forms import (
 class ActivityCoordinatorRequiredMixin(UserPassesTestMixin):
     """Mixin to ensure user is an activity coordinator or admin"""
     def test_func(self):
+        user = self.request.user
+        # Teachers are not allowed to create activities, even if they coordinate them
+        if hasattr(user, 'teacher_profile'):
+            return False
         return (
-            self.request.user.is_staff or
-            self.request.user.is_superuser or
-            Activity.objects.filter(coordinator=self.request.user).exists()
+            user.is_staff or
+            user.is_superuser or
+            Activity.objects.filter(coordinator=user).exists()
         )
 
 

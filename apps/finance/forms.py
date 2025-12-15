@@ -166,7 +166,7 @@ class InvoiceForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['student'].queryset = User.objects.filter(user_roles__role__role_type='student', status='active').distinct()
+        self.fields['student'].queryset = User.objects.filter(user_roles__role__role_type='student', is_active=True).distinct()
         self.fields['academic_session'].queryset = AcademicSession.objects.filter(status='active')
 
         self.fields['student'].empty_label = _("Select Student")
@@ -264,8 +264,8 @@ class PaymentForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['invoice'].queryset = Invoice.objects.filter(status__in=['issued', 'partial'])
-        self.fields['student'].queryset = User.objects.filter(user_roles__role__role_type='student', status='active').distinct()
-        self.fields['received_by'].queryset = User.objects.filter(is_staff=True, status='active')
+        self.fields['student'].queryset = User.objects.filter(user_roles__role__role_type='student', is_active=True).distinct()
+        self.fields['received_by'].queryset = User.objects.filter(is_staff=True, is_active=True)
 
         self.fields['invoice'].empty_label = _("Select Invoice")
         self.fields['student'].empty_label = _("Select Student")
@@ -316,8 +316,8 @@ class ExpenseForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['approved_by'].queryset = User.objects.filter(is_staff=True, status='active')
-        self.fields['paid_by'].queryset = User.objects.filter(is_staff=True, status='active')
+        self.fields['approved_by'].queryset = User.objects.filter(is_staff=True, is_active=True)
+        self.fields['paid_by'].queryset = User.objects.filter(is_staff=True, is_active=True)
         # Assuming FileAttachment is in academics app, adjust import if needed
         from apps.academics.models import FileAttachment
         self.fields['receipt_attachment'].queryset = FileAttachment.objects.filter(status='active')
@@ -367,7 +367,7 @@ class FinancialReportForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['academic_session'].queryset = AcademicSession.objects.filter(status='active')
-        self.fields['generated_by'].queryset = User.objects.filter(is_staff=True, status='active')
+        self.fields['generated_by'].queryset = User.objects.filter(is_staff=True, is_active=True)
 
         self.fields['academic_session'].empty_label = _("Select Academic Session")
         self.fields['generated_by'].empty_label = _("Select Generator")
