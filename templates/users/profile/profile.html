@@ -97,6 +97,60 @@
                                 <i class="bi bi-gear me-2"></i>
                                 {% trans "Preferences" %}
                             </button>
+                            {% if has_academic_data or has_assessment_data %}
+                            <button class="nav-link" id="academic-tab" data-bs-toggle="pill" data-bs-target="#academic" type="button">
+                                <i class="bi bi-book me-2"></i>
+                                {% trans "Academic Records" %}
+                            </button>
+                            {% endif %}
+                            {% if has_assessment_data %}
+                            <button class="nav-link" id="assessment-tab" data-bs-toggle="pill" data-bs-target="#assessment" type="button">
+                                <i class="bi bi-graph-up me-2"></i>
+                                {% trans "Assessment Results" %}
+                            </button>
+                            {% endif %}
+                            {% if has_attendance_data %}
+                            <button class="nav-link" id="attendance-tab" data-bs-toggle="pill" data-bs-target="#attendance" type="button">
+                                <i class="bi bi-calendar-check me-2"></i>
+                                {% trans "Attendance History" %}
+                            </button>
+                            {% endif %}
+                            {% if has_finance_data %}
+                            <button class="nav-link" id="finance-tab" data-bs-toggle="pill" data-bs-target="#finance" type="button">
+                                <i class="bi bi-cash me-2"></i>
+                                {% trans "Financial Records" %}
+                            </button>
+                            {% endif %}
+                            {% if has_library_data %}
+                            <button class="nav-link" id="library-tab" data-bs-toggle="pill" data-bs-target="#library" type="button">
+                                <i class="bi bi-bookmark me-2"></i>
+                                {% trans "Library Records" %}
+                            </button>
+                            {% endif %}
+                            {% if has_health_data %}
+                            <button class="nav-link" id="health-tab" data-bs-toggle="pill" data-bs-target="#health" type="button">
+                                <i class="bi bi-heart me-2"></i>
+                                {% trans "Health Records" %}
+                            </button>
+                            {% endif %}
+                            {% if has_transport_data %}
+                            <button class="nav-link" id="transport-tab" data-bs-toggle="pill" data-bs-target="#transport" type="button">
+                                <i class="bi bi-bus-front me-2"></i>
+                                {% trans "Transport Info" %}
+                            </button>
+                            {% endif %}
+                            {% if has_activity_data %}
+                            <button class="nav-link" id="activity-tab" data-bs-toggle="pill" data-bs-target="#activity" type="button">
+                                <i class="bi bi-activity me-2"></i>
+                                {% trans "Activity Log" %}
+                            </button>
+                            {% endif %}
+                            {% if has_parent_data or has_student_data %}
+                            <button class="nav-link" id="relationships-tab" data-bs-toggle="pill" data-bs-target="#relationships" type="button">
+                                <i class="bi bi-people me-2"></i>
+                                {% trans "Relationships" %}
+                            </button>
+                            {% endif %}
                             {% if student_application or staff_application %}
                             <button class="nav-link" id="application-tab" data-bs-toggle="pill" data-bs-target="#application" type="button">
                                 <i class="bi bi-file-earmark-person me-2"></i>
@@ -1014,90 +1068,90 @@
                             </div>
                         </div>
                         {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Profile Picture Modal -->
-<div class="modal fade" id="profilePictureModal" tabindex="-1" aria-labelledby="profilePictureModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="profilePictureModalLabel">{% trans "Update Profile Picture" %}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="profilePictureForm" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    <div class="text-center mb-4">
-                        <div class="profile-picture-preview mx-auto mb-3">
-                            {% if user.profile.profile_picture %}
-                            <img src="{{ user.profile.profile_picture.url }}" alt="Preview" class="rounded-circle" id="picturePreview" style="width: 150px; height: 150px; object-fit: cover;">
-                            {% else %}
-                            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center mx-auto" id="picturePreviewPlaceholder" style="width: 150px; height: 150px;">
-                                <span class="fw-bold fs-1">{{ user.get_initials }}</span>
-                            </div>
-                            {% endif %}
-                        </div>
-                        <input type="file" class="form-control" id="profile_picture" name="profile_picture" accept="image/*" style="display: none;">
-                        <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('profile_picture').click()">
-                            <i class="bi bi-upload me-1"></i>
-                            {% trans "Choose Image" %}
-                        </button>
-                    </div>
-                    <div class="form-text text-center">
-                        {% trans "Recommended: Square image, 500x500 pixels, JPG or PNG format" %}
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
-                <button type="button" class="btn btn-primary" onclick="uploadProfilePicture()">{% trans "Save Picture" %}</button>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
+                        <!-- Academic Records Tab -->
+                        {% if has_academic_data or has_assessment_data %}
+                        <div class="tab-pane fade" id="academic" role="tabpanel">
+                            <h4 class="fw-bold mb-4">{% trans "Academic Records" %}</h4>
 
-{% block extra_css %}
-<style>
-.profile-page {
-    background-color: #f8f9fa;
-}
+                            <div class="row g-4">
+                                <!-- Student Profile Info -->
+                                {% if academic_data.student_profile %}
+                                <div class="col-12">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body">
+                                            <h5 class="fw-bold mb-3">
+                                                <i class="bi bi-person-badge text-primary me-2"></i>
+                                                {% trans "Student Information" %}
+                                            </h5>
+                                            <div class="row g-3">
+                                                <div class="col-md-3">
+                                                    <small class="text-muted d-block">{% trans "Admission Number" %}</small>
+                                                    <strong>{{ academic_data.student_profile.admission_number }}</strong>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <small class="text-muted d-block">{% trans "Admission Date" %}</small>
+                                                    <strong>{{ academic_data.student_profile.admission_date|date:"M j, Y" }}</strong>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <small class="text-muted d-block">{% trans "Date of Birth" %}</small>
+                                                    <strong>{{ academic_data.student_profile.date_of_birth|date:"M j, Y" }}</strong>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <small class="text-muted d-block">{% trans "Gender" %}</small>
+                                                    <strong>{% if academic_data.student_profile.get_gender_display %}{{ academic_data.student_profile.get_gender_display }}{% else %}N/A{% endif %}</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
 
-.profile-sidebar {
-    position: sticky;
-    top: 1rem;
-}
+                                <!-- Current Enrollment -->
+                                {% if academic_data.current_enrollment %}
+                                <div class="col-md-6">
+                                    <div class="card border-0 shadow-sm h-100">
+                                        <div class="card-body">
+                                            <h6 class="fw-bold mb-3">
+                                                <i class="bi bi-book-half text-success me-2"></i>
+                                                {% trans "Current Enrollment" %}
+                                            </h6>
+                                            <div class="row g-2">
+                                                <div class="col-12">
+                                                    <small class="text-muted d-block">{% trans "Class" %}</small>
+                                                    <strong>{{ academic_data.current_enrollment.class_enrolled.name }}</strong>
+                                                </div>
+                                                <div class="col-12">
+                                                    <small class="text-muted d-block">{% trans "Academic Session" %}</small>
+                                                    <strong>{{ academic_data.current_enrollment.academic_session.name }}</strong>
+                                                </div>
+                                                <div class="col-6">
+                                                    <small class="text-muted d-block">{% trans "Enrollment Date" %}</small>
+                                                    <strong>{{ academic_data.current_enrollment.enrollment_date|date:"M j, Y" }}</strong>
+                                                </div>
+                                                <div class="col-6">
+                                                    <small class="text-muted d-block">{% trans "Status" %}</small>
+                                                    <span class="badge bg-success">{{ academic_data.current_enrollment.get_enrollment_status_display }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
 
-.profile-picture-wrapper {
-    width: 120px;
-    height: 120px;
-}
-
-.profile-picture,
-.profile-picture-placeholder {
-    width: 120px;
-    height: 120px;
-    object-fit: cover;
-}
-
-.profile-picture-upload {
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.profile-navigation .nav-link {
-    text-align: left;
-    padding: 0.75rem 1rem;
-    border-radius: 0.5rem;
-    margin-bottom: 0.5rem;
+                                <!-- Teacher Information -->
+                                {% if academic_data.teacher_profile %}
+                                <div class="col-md-6">
+                                    <div class="card border-0 shadow-sm h-100">
+                                        <div class="card-body">
+                                            <h6 class="fw-bold mb-3">
+                                                <i class="bi bi-mortarboard text-info me-2"></i>
+                                                {% trans "Teaching Profile" %}
+                                            </h6>
+                                            <div class="row g-2">
+                                                <div class="col-12">
+                                                    <small class="text-muted d-block">{% trans "Employee ID" %}</small>
+                                                    <strong>{{ academic_data.teacher_profile.teacher_id }}</strong>
     color: #495057;
     border: none;
     transition: all 0.3s ease;

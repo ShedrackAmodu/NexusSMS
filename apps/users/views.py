@@ -202,7 +202,8 @@ def create_user_from_student_application(application, reviewed_by):
             profile.date_of_birth = application.date_of_birth
             profile.gender = application.gender
             profile.nationality = application.nationality
-            profile.address_line_1 = application.address
+            profile.address_line_1 = application.address_line_1
+            profile.address_line_2 = application.address_line_2
             profile.city = application.city
             profile.state = application.state
             profile.postal_code = application.postal_code
@@ -372,7 +373,8 @@ def create_user_from_staff_application(application, reviewed_by):
             profile.date_of_birth = application.date_of_birth
             profile.gender = application.gender
             profile.nationality = application.nationality
-            profile.address_line_1 = application.address
+            profile.address_line_1 = application.address_line_1
+            profile.address_line_2 = application.address_line_2
             profile.city = application.city
             profile.state = application.state
             profile.postal_code = application.postal_code
@@ -1629,7 +1631,7 @@ def user_dashboard(request):
 @login_required
 def profile_view(request):
     """
-    User profile view and update.
+    Comprehensive user profile view showing all collected information across the system.
     """
     user = request.user
     profile = user.profile
@@ -1645,6 +1647,168 @@ def profile_view(request):
     except User.staff_application.RelatedObjectDoesNotExist:
         staff_application = None
 
+    # Initialize all data collections
+    academic_data = {}
+    assessment_data = {}
+    attendance_data = {}
+    activity_data = {}
+    relationships_data = {}
+
+    # ===== STUDENT-SPECIFIC DATA =====
+    if hasattr(user, 'student_profile') and user.student_profile:
+        student = user.student_profile
+
+        # Academic Information
+        academic_data = {
+            'student_profile': student,
+            'current_enrollment': student.enrollments.filter(
+                status='active',
+                academic_session__is_current=True
+            ).select_related('class_enrolled', 'academic_session').first(),
+            'academic_records': student.academic_records.select_related(
+                'class_enrolled', 'academic_session'
+            ).order_by('-academic_session__start_date')[:10],  # Last 10 records
+            'behavior_records': student.behavior_records.select_related(
+                'reported_by'
+            ).order_by('-incident_date')[:5],  # Recent behavior records
+            'achievements': student.achievements.order_by('-achievement_date')[:10],  # Recent achievements
+            'timetable_entries': [],  # Will be populated below
+        }
+
+        # Current timetable
+        current_session = academic_data.get('current_enrollment')
+        if current_session:
+            from apps.academics.models import Timetable
+            academic_data['timetable_entries'] = Timetable.objects.filter(
+                class_assigned=current_session.class_enrolled,
+                academic_session=current_session.academic_session,
+                is_published=True
+            ).select_related('subject', 'teacher').order_by('day_of_week', 'start_time')[:20]
+
+        # Assessment Data (Marks, Results)
+        from apps.assessment.models import Mark, Result, Assignment
+        assessment_data = {
+            'exam_marks': Mark.objects.filter(student=student).select_related(
+                'exam', 'exam__subject', 'exam__exam_type'
+            ).order_by('-exam__exam_date')[:20],  # Recent marks
+            'results': Result.objects.filter(student=student).select_related(
+                'academic_class', 'exam_type', 'grade'
+            ).order_by('-exam_type__order')[:10],  # Results by exam type
+            'assignment_submissions': Assignment.objects.filter(
+                student=student,
+                student__isnull=False
+            ).select_related('subject', 'graded_by').order_by('-submission_date')[:15],  # Recent assignments
+        }
+
+        # Attendance Data
+        from apps.attendance.models import DailyAttendance, AttendanceSummary, LeaveApplication
+        attendance_data = {
+            'daily_attendance': DailyAttendance.objects.filter(
+                student=student
+            ).order_by('-date')[:30],  # Last 30 days
+            'attendance_summaries': AttendanceSummary.objects.filter(
+                student=student
+            ).order_by('-year', '-month')[:12],  # Last 12 months
+            'leave_applications': LeaveApplication.objects.filter(
+                applicant=user
+            ).order_by('-created_at')[:5],  # Recent leave applications
+        }
+
+    # ===== TEACHER-SPECIFIC DATA =====
+    elif hasattr(user, 'teacher_profile') and user.teacher_profile:
+        teacher = user.teacher_profile
+
+        # Academic Information for Teachers
+        academic_data = {
+            'teacher_profile': teacher,
+            'subjects_taught': teacher.subjects_taught,
+            'current_classes': teacher.current_classes,
+            'counseling_sessions': [],  # Will populate below
+            'career_guidance': [],  # Will populate below
+        }
+
+        # Counseling and Career Guidance
+        from apps.academics.models import CounselingSession, CareerGuidance
+        academic_data['counseling_sessions'] = CounselingSession.objects.filter(
+            counselor=teacher
+        ).select_related('student').order_by('-scheduled_date')[:10]
+
+        academic_data['career_guidance'] = CareerGuidance.objects.filter(
+            counselor=teacher
+        ).select_related('student').order_by('-session_date')[:10]
+
+    # ===== PARENT-SPECIFIC DATA =====
+    if user.user_roles.filter(role__role_type='parent').exists():
+        from apps.users.models import ParentStudentRelationship
+        relationships_data = {
+            'children': ParentStudentRelationship.objects.filter(
+                parent=user,
+                status='active'
+            ).select_related('student__user'),
+        }
+
+    # ===== SYSTEM ACTIVITY DATA (All Users) =====
+    activity_data = {
+        'login_history': LoginHistory.objects.filter(user=user).order_by('-created_at')[:10],
+        'password_history': user.password_history.order_by('-created_at')[:5],
+        'transfer_requests': InstitutionTransferRequest.objects.filter(
+            requesting_user=user
+        ).order_by('-created_at')[:5],
+        'role_activities': user.role_activities.all().order_by('-created_at')[:10],
+    }
+
+    # ===== ADDITIONAL APP DATA =====
+    try:
+        # Finance data
+        from apps.finance.models import Invoice, Payment
+        finance_data = {
+            'pending_invoices': Invoice.objects.filter(
+                student__user=user,
+                status__in=['issued', 'overdue']
+            ).order_by('-issue_date')[:5],
+            'recent_payments': Payment.objects.filter(
+                student__user=user
+            ).select_related('invoice').order_by('-payment_date')[:5],
+        }
+    except ImportError:
+        finance_data = {}
+
+    try:
+        # Library data
+        from apps.library.models import BookBorrow
+        library_data = {
+            'current_borrows': BookBorrow.objects.filter(
+                student__user=user,
+                return_date__isnull=True
+            ).select_related('book').order_by('-borrow_date')[:10],
+        }
+    except ImportError:
+        library_data = {}
+
+    try:
+        # Health data
+        from apps.health.models import MedicalRecord
+        health_data = {
+            'medical_records': MedicalRecord.objects.filter(
+                student__user=user
+            ).order_by('-visit_date')[:5],
+        }
+    except ImportError:
+        health_data = {}
+
+    try:
+        # Transport data
+        from apps.transport.models import TransportEnrollment
+        transport_data = {
+            'transport_enrollment': TransportEnrollment.objects.filter(
+                student__user=user,
+                is_active=True
+            ).first(),
+        }
+    except ImportError:
+        transport_data = {}
+
+    # ===== FORM HANDLING =====
     if request.method == 'POST':
         user_form = UserUpdateForm(request.POST, instance=user)
         profile_form = UserProfileForm(request.POST, request.FILES, instance=profile)
@@ -1671,8 +1835,6 @@ def profile_view(request):
 
     # Determine status badge for application
     application_status_badge = 'secondary'
-    application_status = None
-
     if student_application:
         application_status = student_application.get_application_status_display()
         if student_application.application_status == 'approved':
@@ -1681,8 +1843,6 @@ def profile_view(request):
             application_status_badge = 'warning'
         elif student_application.application_status == 'rejected':
             application_status_badge = 'danger'
-        else:
-            application_status_badge = 'secondary'
     elif staff_application:
         application_status = staff_application.get_application_status_display()
         if staff_application.application_status == 'approved':
@@ -1691,8 +1851,6 @@ def profile_view(request):
             application_status_badge = 'warning'
         elif staff_application.application_status == 'rejected':
             application_status_badge = 'danger'
-        else:
-            application_status_badge = 'secondary'
 
     context = {
         'title': _('My Profile'),
@@ -1702,6 +1860,28 @@ def profile_view(request):
         'student_application': student_application,
         'staff_application': staff_application,
         'application_status_badge': application_status_badge,
+        # New comprehensive data
+        'academic_data': academic_data,
+        'assessment_data': assessment_data,
+        'attendance_data': attendance_data,
+        'activity_data': activity_data,
+        'relationships_data': relationships_data,
+        'finance_data': finance_data,
+        'library_data': library_data,
+        'health_data': health_data,
+        'transport_data': transport_data,
+        # Helper flags for template rendering
+        'has_student_data': bool(academic_data.get('student_profile')),
+        'has_teacher_data': bool(academic_data.get('teacher_profile')),
+        'has_parent_data': bool(relationships_data.get('children')),
+        'has_academic_data': bool(academic_data),
+        'has_assessment_data': any(assessment_data.values()),
+        'has_attendance_data': any(attendance_data.values()),
+        'has_activity_data': any(activity_data.values()),
+        'has_finance_data': any(finance_data.values()),
+        'has_library_data': any(library_data.values()),
+        'has_health_data': any(health_data.values()),
+        'has_transport_data': any(transport_data.values()),
     }
     return render(request, 'users/profile/profile.html', context)
 
