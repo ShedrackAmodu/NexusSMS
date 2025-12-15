@@ -16,7 +16,7 @@ from django.utils.translation import gettext_lazy as _
 from django.urls import reverse, reverse_lazy
 from django.views.generic import FormView
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.core.mail import send_mail, get_connection, EmailMessage
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
@@ -39,7 +39,7 @@ from .models import (
     User, UserProfile, Role, UserRole, LoginHistory,
     PasswordHistory, UserSession, ParentStudentRelationship,
     StudentApplication, StaffApplication, ApplicationStatus, UserRoleActivity,
-    get_student_guardians, notify_guardians_profile_update
+    InstitutionTransferRequest, get_student_guardians, notify_guardians_profile_update
 )
 from .forms import (
     UserCreationForm, UserUpdateForm, UserProfileForm, RoleForm,
@@ -1761,14 +1761,16 @@ def profile_view(request):
     try:
         # Finance data
         from apps.finance.models import Invoice, Payment
+        pending_invoices = Invoice.objects.filter(
+            student__user=user,
+            status__in=['issued', 'overdue']
+        ).order_by('-issue_date')[:5]
         finance_data = {
-            'pending_invoices': Invoice.objects.filter(
-                student__user=user,
-                status__in=['issued', 'overdue']
-            ).order_by('-issue_date')[:5],
+            'pending_invoices': pending_invoices,
             'recent_payments': Payment.objects.filter(
                 student__user=user
             ).select_related('invoice').order_by('-payment_date')[:5],
+            'total_outstanding': pending_invoices.aggregate(total=Sum('balance_due'))['total'] or 0,
         }
     except ImportError:
         finance_data = {}
@@ -1776,11 +1778,21 @@ def profile_view(request):
     try:
         # Library data
         from apps.library.models import BookBorrow
+        current_borrows = BookBorrow.objects.filter(
+            student__user=user,
+            return_date__isnull=True
+        ).select_related('book').order_by('-borrow_date')[:10]
+
+        # Calculate overdue books count
+        overdue_count = BookBorrow.objects.filter(
+            student__user=user,
+            return_date__isnull=True,
+            due_date__lt=timezone.now()
+        ).count()
+
         library_data = {
-            'current_borrows': BookBorrow.objects.filter(
-                student__user=user,
-                return_date__isnull=True
-            ).select_related('book').order_by('-borrow_date')[:10],
+            'current_borrows': current_borrows,
+            'overdue_books': overdue_count,
         }
     except ImportError:
         library_data = {}

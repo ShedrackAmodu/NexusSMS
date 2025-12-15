@@ -90,6 +90,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 'apps.communication.context_processors.notification_count',
                 'apps.users.context_processors.user_roles',
+                'apps.core.context_processors.sidebar_menu_context',
             ],
         },
     },

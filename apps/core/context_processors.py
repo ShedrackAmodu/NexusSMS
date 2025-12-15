@@ -51,3 +51,33 @@ def current_institution(request):
             'institution_name': None,
             'institution_theme': None,
         }
+
+
+def sidebar_menu_context(request):
+    """
+    Context processor to add sidebar menu expansion states to all template contexts.
+    """
+    try:
+        app_name = request.resolver_match.app_name if request.resolver_match else ''
+        url_name = request.resolver_match.url_name if request.resolver_match else ''
+
+        # Administration menu expansion logic
+        administration_expanded = (
+            'users' in app_name or
+            'audit' in app_name or
+            ('analytics' in app_name and url_name == 'settings') or
+            ('core' in app_name and (
+                url_name == 'super_admin_dashboard' or
+                url_name == 'super_admin_entities' or
+                url_name == 'institution_list'
+            ))
+        )
+
+        return {
+            'sidebar_administration_expanded': administration_expanded,
+        }
+    except Exception as e:
+        logger.warning(f"Error in sidebar_menu_context context processor: {e}")
+        return {
+            'sidebar_administration_expanded': False,
+        }

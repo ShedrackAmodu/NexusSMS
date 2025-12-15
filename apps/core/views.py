@@ -627,6 +627,9 @@ class SuperAdminDashboardView(MultiInstitutionMixin, LoginRequiredMixin, Permiss
         total_configs = SystemConfig.objects.count()
         active_configs = SystemConfig.objects.filter(status='active').count()
 
+        # Academic overview statistics (aggregated across all institutions)
+        academic_stats = self._get_academic_overview_stats()
+
         # Recent institution changes
         recent_institutions = Institution.objects.order_by('-updated_at')[:5]
 
@@ -650,6 +653,7 @@ class SuperAdminDashboardView(MultiInstitutionMixin, LoginRequiredMixin, Permiss
             'total_users': total_users,
             'total_configs': total_configs,
             'active_configs': active_configs,
+            'academic_stats': academic_stats,
             'recent_institutions': recent_institutions,
             'system_kpis': system_kpis,
             'kpi_data': kpi_data,
@@ -658,6 +662,30 @@ class SuperAdminDashboardView(MultiInstitutionMixin, LoginRequiredMixin, Permiss
         }
 
         return render(request, 'core/dashboard/super_admin.html', context)
+
+    def _get_academic_overview_stats(self):
+        """Get aggregated academic statistics across all institutions."""
+        from apps.academics.models import Student, Teacher, Class, Department, AcademicSession, Enrollment
+
+        try:
+            return {
+                'total_students': Student.objects.filter(status='active').count(),
+                'total_teachers': Teacher.objects.filter(status='active').count(),
+                'total_classes': Class.objects.filter(status='active').count(),
+                'total_departments': Department.objects.filter(status='active').count(),
+                'total_sessions': AcademicSession.objects.filter(status='active').count(),
+                'total_enrollments': Enrollment.objects.filter(status='active').count(),
+            }
+        except Exception:
+            # Fallback if tables don't exist yet or there are issues
+            return {
+                'total_students': 0,
+                'total_teachers': 0,
+                'total_classes': 0,
+                'total_departments': 0,
+                'total_sessions': 0,
+                'total_enrollments': 0,
+            }
 
 
 class SchoolAdminDashboardView(LoginRequiredMixin, View):
@@ -1199,7 +1227,7 @@ class SuperAdminEntityView(MultiInstitutionMixin, LoginRequiredMixin, Permission
     """
     Super Administrator view for comprehensive entity management across institutions.
     Displays teachers, students, classes, departments, sessions, and enrollments
-    with institution-based filtering.
+    with institution-based filtering. Now includes "All Institutions" option for cross-institution views.
     """
     permission_required = 'core.view_institution'  # Could be more specific
 
@@ -1215,10 +1243,12 @@ class SuperAdminEntityView(MultiInstitutionMixin, LoginRequiredMixin, Permission
             AcademicSession, Department, Class, Student, Teacher, Enrollment
         )
         from apps.users.models import User, Role
+        from django.db.models import Count, Avg
 
-        # Get institution filter from request, remove default 'all'
-        institution_filter = request.GET.get('institution')
+        # Get institution filter from request, allow 'all' for cross-institution view
+        institution_filter = request.GET.get('institution', 'all')  # Default to 'all'
         selected_institution = None
+        view_all_institutions = (institution_filter == 'all')
 
         # Get accessible institutions for this user
         if user.is_superuser:
@@ -1237,44 +1267,48 @@ class SuperAdminEntityView(MultiInstitutionMixin, LoginRequiredMixin, Permission
 
         institutions = accessible_institutions.order_by('name')
 
-        # Default to first institution if none selected
-        if not institution_filter and institutions.exists():
-            selected_institution = institutions.first()
-            institution_filter = str(selected_institution.id)
-        elif institution_filter:
-            try:
-                selected_institution = institutions.get(id=institution_filter, is_active=True)
-            except Institution.DoesNotExist:
+        # Handle institution selection or "all institutions" view
+        if not view_all_institutions:
+            if not institution_filter or institution_filter == 'all':
+                # If no specific institution selected and not explicitly 'all', default to first institution
                 if institutions.exists():
                     selected_institution = institutions.first()
                     institution_filter = str(selected_institution.id)
-                    messages.warning(request, _("Selected institution not found or access denied. Defaulting to first accessible institution."))
                 else:
                     messages.error(request, _("No accessible institutions found."))
                     return redirect('users:dashboard')
+            else:
+                try:
+                    selected_institution = institutions.get(id=institution_filter, is_active=True)
+                except Institution.DoesNotExist:
+                    # If selected institution not found, fall back to "all institutions" view
+                    view_all_institutions = True
+                    institution_filter = 'all'
+                    messages.info(request, _("Selected institution not found. Showing data from all institutions."))
 
-        # Filter querysets by selected institution
-        if selected_institution:
-            student_qs = Student.objects.filter(institution=selected_institution)
-            teacher_qs = Teacher.objects.filter(institution=selected_institution)
-            class_qs = Class.objects.filter(institution=selected_institution)
-            department_qs = Department.objects.filter(institution=selected_institution)
-            session_qs = AcademicSession.objects.filter(institution=selected_institution)
-            enrollment_qs = Enrollment.objects.filter(institution=selected_institution)
+        # Filter querysets based on selection
+        if view_all_institutions:
+            # Cross-institution view - no institution filtering
+            student_qs = Student.objects.filter(status='active')
+            teacher_qs = Teacher.objects.filter(status='active')
+            class_qs = Class.objects.filter(status='active')
+            department_qs = Department.objects.filter(status='active')
+            session_qs = AcademicSession.objects.filter(status='active')
+            enrollment_qs = Enrollment.objects.filter(status='active')
         else:
-            # Fallback if no institutions
-            student_qs = Student.objects.none()
-            teacher_qs = Teacher.objects.none()
-            class_qs = Class.objects.none()
-            department_qs = Department.objects.none()
-            session_qs = AcademicSession.objects.none()
-            enrollment_qs = Enrollment.objects.none()
+            # Single institution view
+            student_qs = Student.objects.filter(institution=selected_institution, status='active')
+            teacher_qs = Teacher.objects.filter(institution=selected_institution, status='active')
+            class_qs = Class.objects.filter(institution=selected_institution, status='active')
+            department_qs = Department.objects.filter(institution=selected_institution, status='active')
+            session_qs = AcademicSession.objects.filter(institution=selected_institution, status='active')
+            enrollment_qs = Enrollment.objects.filter(institution=selected_institution, status='active')
 
         # Apply additional filters if present
         search_query = request.GET.get('search', '')
 
         # Students
-        students = student_qs.filter(status='active').select_related('user', 'student_profile')
+        students = student_qs.filter(status='active').select_related('user')
         if search_query:
             students = students.filter(
                 Q(user__first_name__icontains=search_query) |
@@ -1331,25 +1365,199 @@ class SuperAdminEntityView(MultiInstitutionMixin, LoginRequiredMixin, Permission
             )
         enrollments = enrollments.order_by('class_enrolled__name', 'roll_number')[:100]
 
-        # Get entity counts
-        entity_counts = {
-            'students': student_qs.filter(status='active').count(),
-            'teachers': teacher_qs.filter(status='active').count(),
-            'classes': class_qs.filter(status='active').count(),
-            'departments': department_qs.filter(status='active').count(),
-            'sessions': session_qs.filter(status='active').count(),
-            'enrollments': enrollment_qs.filter(status='active').count(),
-        }
+        # Fetch data for all entities - Users & Applications
+        users_list = User.objects.filter(is_active=True).select_related('profile')
+        student_applications = []
+        staff_applications = []
 
-        # The institutions variable is already set above as accessible institutions
+        try:
+            from apps.users.models import StudentApplication, StaffApplication
+            if view_all_institutions:
+                student_applications = StudentApplication.objects.filter(status='active')[:50]
+                staff_applications = StaffApplication.objects.filter(status='active')[:50]
+            else:
+                student_applications = StudentApplication.objects.filter(institution=selected_institution, status='active')[:50]
+                staff_applications = StaffApplication.objects.filter(institution=selected_institution, status='active')[:50]
+        except ImportError:
+            pass
+
+        # Finance entities
+        invoices = []
+        payments = []
+        expenses = []
+
+        try:
+            if view_all_institutions:
+                from apps.finance.models import Invoice, Payment, Expense
+                invoices = Invoice.objects.filter(is_deleted=False)[:50]
+                payments = Payment.objects.filter(is_deleted=False)[:50]
+                expenses = Expense.objects.filter(is_deleted=False)[:50]
+            else:
+                from apps.finance.models import Invoice, Payment, Expense
+                invoices = Invoice.objects.filter(institution=selected_institution, is_deleted=False)[:50]
+                payments = Payment.objects.filter(institution=selected_institution, is_deleted=False)[:50]
+                expenses = Expense.objects.filter(institution=selected_institution, is_deleted=False)[:50]
+        except ImportError:
+            pass
+
+        # Library entities
+        books = []
+        authors = []
+        borrow_records = []
+        reservations = []
+
+        try:
+            if view_all_institutions:
+                from apps.library.models import Book, BookAuthor, BookBorrowRecord, BookReservation
+                books = Book.objects.filter(is_deleted=False)[:50]
+                authors = BookAuthor.objects.filter(is_deleted=False)[:50]
+                borrow_records = BookBorrowRecord.objects.filter(is_deleted=False)[:50]
+                reservations = BookReservation.objects.filter(is_deleted=False)[:50]
+            else:
+                from apps.library.models import Book, BookAuthor, BookBorrowRecord, BookReservation
+                books = Book.objects.filter(institution=selected_institution, is_deleted=False)[:50]
+                authors = BookAuthor.objects.filter(is_deleted=False)[:50]  # Authors cross-institution
+                borrow_records = BookBorrowRecord.objects.filter(institution=selected_institution, is_deleted=False)[:50]
+                reservations = BookReservation.objects.filter(institution=selected_institution, is_deleted=False)[:50]
+        except ImportError:
+            pass
+
+        # Transport entities
+        vehicles = []
+        drivers = []
+        routes = []
+        allocations = []
+
+        try:
+            if view_all_institutions:
+                from apps.transport.models import Vehicle, Driver, Route, TransportAllocation
+                vehicles = Vehicle.objects.filter(is_deleted=False)[:50]
+                drivers = Driver.objects.filter(is_deleted=False)[:50]
+                routes = Route.objects.filter(is_deleted=False)[:50]
+                allocations = TransportAllocation.objects.filter(is_deleted=False)[:50]
+            else:
+                from apps.transport.models import Vehicle, Driver, Route, TransportAllocation
+                vehicles = Vehicle.objects.filter(institution=selected_institution, is_deleted=False)[:50]
+                drivers = Driver.objects.filter(institution=selected_institution, is_deleted=False)[:50]
+                routes = Route.objects.filter(institution=selected_institution, is_deleted=False)[:50]
+                allocations = TransportAllocation.objects.filter(institution=selected_institution, is_deleted=False)[:50]
+        except ImportError:
+            pass
+
+        # Activities
+        activities = []
+        try:
+            if view_all_institutions:
+                from apps.activities.models import Activity
+                activities = Activity.objects.filter(is_deleted=False)[:50]
+            else:
+                from apps.activities.models import Activity
+                activities = Activity.objects.filter(institution=selected_institution, is_deleted=False)[:50]
+        except ImportError:
+            pass
+
+        # Communication
+        announcements = []
+        try:
+            if view_all_institutions:
+                from apps.communication.models import Announcement
+                announcements = Announcement.objects.filter(is_published=True, is_deleted=False)[:50]
+            else:
+                from apps.communication.models import Announcement
+                announcements = Announcement.objects.filter(institution=selected_institution, is_published=True, is_deleted=False)[:50]
+        except ImportError:
+            pass
+
+        # Audit
+        audit_logs = []
+        try:
+            if view_all_institutions:
+                from apps.audit.models import AuditLog
+                audit_logs = AuditLog.objects.all().order_by('-timestamp')[:50]
+            else:
+                from apps.audit.models import AuditLog
+                audit_logs = AuditLog.objects.filter(institution=selected_institution).order_by('-timestamp')[:50]
+        except ImportError:
+            pass
+
+        # Assessment
+        exams = []
+        assignments = []
+
+        try:
+            if view_all_institutions:
+                from apps.assessment.models import Exam, Assignment
+                exams = Exam.objects.filter(is_deleted=False)[:50]
+                assignments = Assignment.objects.filter(is_deleted=False)[:50]
+            else:
+                from apps.assessment.models import Exam, Assignment
+                exams = Exam.objects.filter(institution=selected_institution, is_deleted=False)[:50]
+                assignments = Assignment.objects.filter(institution=selected_institution, is_deleted=False)[:50]
+        except ImportError:
+            pass
+
+        # Apply search filters to new entities
+        if search_query:
+            if users_list and search_query:
+                users_list = users_list.filter(
+                    Q(first_name__icontains=search_query) |
+                    Q(last_name__icontains=search_query) |
+                    Q(email__icontains=search_query) |
+                    Q(profile__phone__icontains=search_query)
+                )[:50]
+
+            # Similar search logic can be applied to other entities as needed
+
+        # Get entity counts for all entities
+        entity_counts = self._get_entity_counts(view_all_institutions, selected_institution)
+
+        # Add cross-institution aggregate statistics if viewing all institutions
+        aggregate_stats = {}
+        if view_all_institutions:
+            aggregate_stats = {
+                'total_institutions': institutions.count(),
+                'institution_breakdown': {},
+                'top_performing_institutions': [],
+            }
+
+            # Get breakdown by institution
+            inst_stats = []
+            for institution in institutions:
+                inst_students = Student.objects.filter(institution=institution, status='active').count()
+                inst_teachers = Teacher.objects.filter(institution=institution, status='active').count()
+                inst_classes = Class.objects.filter(institution=institution, status='active').count()
+
+                inst_stats.append({
+                    'institution': institution,
+                    'students': inst_students,
+                    'teachers': inst_teachers,
+                    'classes': inst_classes,
+                    'student_teacher_ratio': round(inst_students / inst_teachers, 1) if inst_teachers > 0 else 0,
+                    'class_utilization': round((inst_students / (inst_classes * 30)) * 100, 1) if inst_classes > 0 else 0,
+                })
+
+            # Sort by student count for top performers
+            aggregate_stats['institution_breakdown'] = sorted(inst_stats, key=lambda x: x['students'], reverse=True)
+            aggregate_stats['top_performing_institutions'] = inst_stats[:5]  # Top 5 by student count
+
+            # Overall system statistics
+            aggregate_stats['system_totals'] = {
+                'total_students': sum(inst['students'] for inst in inst_stats),
+                'total_teachers': sum(inst['teachers'] for inst in inst_stats),
+                'total_classes': sum(inst['classes'] for inst in inst_stats),
+                'avg_students_per_institution': round(sum(inst['students'] for inst in inst_stats) / len(inst_stats), 1) if inst_stats else 0,
+                'avg_teachers_per_institution': round(sum(inst['teachers'] for inst in inst_stats) / len(inst_stats), 1) if inst_stats else 0,
+                'avg_classes_per_institution': round(sum(inst['classes'] for inst in inst_stats) / len(inst_stats), 1) if inst_stats else 0,
+            }
 
         context = {
             'selected_institution': selected_institution,
             'institutions': institutions,
             'institution_filter': institution_filter,
             'search_query': search_query,
+            'view_all_institutions': view_all_institutions,
 
-            # Data
+            # Existing Academic Data
             'students': students,
             'teachers': teachers,
             'classes': classes,
@@ -1357,13 +1565,234 @@ class SuperAdminEntityView(MultiInstitutionMixin, LoginRequiredMixin, Permission
             'sessions': sessions,
             'enrollments': enrollments,
 
+            # Users & Applications
+            'users_list': users_list,
+            'student_applications': student_applications,
+            'staff_applications': staff_applications,
+
+            # Finance
+            'invoices': invoices,
+            'payments': payments,
+            'expenses': expenses,
+
+            # Library
+            'books': books,
+            'authors': authors,
+            'borrow_records': borrow_records,
+            'reservations': reservations,
+
+            # Transport
+            'vehicles': vehicles,
+            'drivers': drivers,
+            'routes': routes,
+            'allocations': allocations,
+
+            # Activities
+            'activities': activities,
+
+            # Communication
+            'announcements': announcements,
+
+            # Audit
+            'audit_logs': audit_logs,
+
+            # Assessment
+            'exams': exams,
+            'assignments': assignments,
+
             # Counts
             'entity_counts': entity_counts,
+            'aggregate_stats': aggregate_stats,
 
             'page_title': _('Super Admin Entity Management'),
         }
 
         return render(request, 'core/dashboard/super_admin_entities.html', context)
+
+    def _get_entity_counts(self, view_all_institutions, selected_institution):
+        """Helper method to get counts for all system entities."""
+        from apps.users.models import User
+
+        # Academic entities
+        student_count = 0
+        teacher_count = 0
+        class_count = 0
+        department_count = 0
+        session_count = 0
+        enrollment_count = 0
+
+        try:
+            from apps.academics.models import Student, Teacher, Class, Department, AcademicSession, Enrollment
+
+            if view_all_institutions:
+                student_count = Student.objects.filter(status='active').count()
+                teacher_count = Teacher.objects.filter(status='active').count()
+                class_count = Class.objects.filter(status='active').count()
+                department_count = Department.objects.filter(status='active').count()
+                session_count = AcademicSession.objects.filter(status='active').count()
+                enrollment_count = Enrollment.objects.filter(status='active').count()
+            else:
+                student_count = Student.objects.filter(institution=selected_institution, status='active').count()
+                teacher_count = Teacher.objects.filter(institution=selected_institution, status='active').count()
+                class_count = Class.objects.filter(institution=selected_institution, status='active').count()
+                department_count = Department.objects.filter(institution=selected_institution, status='active').count()
+                session_count = AcademicSession.objects.filter(institution=selected_institution, status='active').count()
+                enrollment_count = Enrollment.objects.filter(institution=selected_institution, status='active').count()
+        except ImportError:
+            pass
+
+        # Users and Applications
+        user_count = User.objects.filter(is_active=True).count()
+        student_app_count = 0
+        staff_app_count = 0
+
+        try:
+            from apps.users.models import StudentApplication, StaffApplication
+            if view_all_institutions:
+                student_app_count = StudentApplication.objects.filter(status='active').count()
+                staff_app_count = StaffApplication.objects.filter(status='active').count()
+            else:
+                student_app_count = StudentApplication.objects.filter(institution=selected_institution, status='active').count()
+                staff_app_count = StaffApplication.objects.filter(institution=selected_institution, status='active').count()
+        except ImportError:
+            pass
+
+        # Finance entities
+        invoice_count = 0
+        payment_count = 0
+        expense_count = 0
+
+        try:
+            from apps.finance.models import Invoice, Payment, Expense
+            if view_all_institutions:
+                invoice_count = Invoice.objects.filter(is_deleted=False).count()
+                payment_count = Payment.objects.filter(is_deleted=False).count()
+                expense_count = Expense.objects.filter(is_deleted=False).count()
+            else:
+                invoice_count = Invoice.objects.filter(institution=selected_institution, is_deleted=False).count()
+                payment_count = Payment.objects.filter(institution=selected_institution, is_deleted=False).count()
+                expense_count = Expense.objects.filter(institution=selected_institution, is_deleted=False).count()
+        except ImportError:
+            pass
+
+        # Library entities
+        book_count = 0
+        author_count = 0
+        borrow_count = 0
+        reservation_count = 0
+
+        try:
+            from apps.library.models import Book, BookAuthor, BookBorrowRecord, BookReservation
+            if view_all_institutions:
+                book_count = Book.objects.filter(is_deleted=False).count()
+                author_count = BookAuthor.objects.filter(is_deleted=False).count()
+                borrow_count = BookBorrowRecord.objects.filter(is_deleted=False).count()
+                reservation_count = BookReservation.objects.filter(is_deleted=False).count()
+            else:
+                book_count = Book.objects.filter(institution=selected_institution, is_deleted=False).count()
+                author_count = BookAuthor.objects.filter(is_deleted=False).count()  # Cross-institution
+                borrow_count = BookBorrowRecord.objects.filter(institution=selected_institution, is_deleted=False).count()
+                reservation_count = BookReservation.objects.filter(institution=selected_institution, is_deleted=False).count()
+        except ImportError:
+            pass
+
+        # Transport entities
+        vehicle_count = 0
+        driver_count = 0
+        route_count = 0
+        allocation_count = 0
+
+        try:
+            from apps.transport.models import Vehicle, Driver, Route, TransportAllocation
+            if view_all_institutions:
+                vehicle_count = Vehicle.objects.filter(is_deleted=False).count()
+                driver_count = Driver.objects.filter(is_deleted=False).count()
+                route_count = Route.objects.filter(is_deleted=False).count()
+                allocation_count = TransportAllocation.objects.filter(is_deleted=False).count()
+            else:
+                vehicle_count = Vehicle.objects.filter(institution=selected_institution, is_deleted=False).count()
+                driver_count = Driver.objects.filter(institution=selected_institution, is_deleted=False).count()
+                route_count = Route.objects.filter(institution=selected_institution, is_deleted=False).count()
+                allocation_count = TransportAllocation.objects.filter(institution=selected_institution, is_deleted=False).count()
+        except ImportError:
+            pass
+
+        # Activities
+        activity_count = 0
+        try:
+            from apps.activities.models import Activity
+            if view_all_institutions:
+                activity_count = Activity.objects.filter(is_deleted=False).count()
+            else:
+                activity_count = Activity.objects.filter(institution=selected_institution, is_deleted=False).count()
+        except ImportError:
+            pass
+
+        # Communication
+        announcement_count = 0
+        try:
+            from apps.communication.models import Announcement
+            if view_all_institutions:
+                announcement_count = Announcement.objects.filter(is_published=True, status='active').count()
+            else:
+                announcement_count = Announcement.objects.filter(institution=selected_institution, is_published=True, status='active').count()
+        except ImportError:
+            pass
+
+        # Audit
+        audit_count = 0
+        try:
+            from apps.audit.models import AuditLog
+            if view_all_institutions:
+                audit_count = AuditLog.objects.all().count()
+            else:
+                audit_count = AuditLog.objects.filter(institution=selected_institution).count()
+        except ImportError:
+            pass
+
+        # Assessment
+        exam_count = 0
+        assignment_count = 0
+
+        try:
+            from apps.assessment.models import Exam, Assignment
+            if view_all_institutions:
+                exam_count = Exam.objects.filter(is_deleted=False).count()
+                assignment_count = Assignment.objects.filter(is_deleted=False).count()
+            else:
+                exam_count = Exam.objects.filter(institution=selected_institution, is_deleted=False).count()
+                assignment_count = Assignment.objects.filter(institution=selected_institution, is_deleted=False).count()
+        except ImportError:
+            pass
+
+        # Return comprehensive counts
+        return {
+            'students': student_count,
+            'teachers': teacher_count,
+            'classes': class_count,
+            'departments': department_count,
+            'sessions': session_count,
+            'enrollments': enrollment_count,
+            'users': user_count,
+            'student_applications': student_app_count,
+            'staff_applications': staff_app_count,
+            'invoices': invoice_count,
+            'payments': payment_count,
+            'expenses': expense_count,
+            'books': book_count,
+            'authors': author_count,
+            'borrow_records': borrow_count,
+            'reservations': reservation_count,
+            'vehicles': vehicle_count,
+            'drivers': driver_count,
+            'routes': route_count,
+            'transport_allocations': allocation_count,
+            'activities': activity_count,
+            'announcements': announcement_count,
+            'audit_logs': audit_count,
+            'exams': exam_count,
+            'assignments': assignment_count,
+        }
 
 
 # API endpoints for institutions

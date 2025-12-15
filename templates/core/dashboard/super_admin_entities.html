@@ -3,7 +3,7 @@
 {% load i18n %}
 {% load academics_filters %}
 
-{% block title %}{% trans "Super Admin Entity Management" %} - {{ block.super }}{% endblock %}
+{% block title %}{% trans "System Entity Management" %} - {{ block.super }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -13,9 +13,9 @@
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="h3 mb-0">
-                        <i class="fas fa-users-cog text-warning"></i> {% trans "Super Admin Entity Management" %}
+                        <i class="fas fa-cogs text-warning"></i> {% trans "System Entity Management" %}
                     </h1>
-                    <p class="text-muted">{% trans "Comprehensive view of teachers, students, classes, departments, sessions, and enrollments" %}</p>
+                    <p class="text-muted">{% trans "Comprehensive view of all system entities across institutions" %}</p>
                 </div>
                 <div>
                     <a href="{% url 'core:institution_list' %}" class="btn btn-primary">
@@ -30,7 +30,18 @@
     </div>
 
     <!-- Selected Institution Indicator -->
-    {% if selected_institution %}
+    {% if view_all_institutions %}
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="alert alert-success d-flex align-items-center">
+                <i class="fas fa-globe fa-lg mr-3"></i>
+                <div>
+                    <strong>{% trans "Cross-Institution View:" %}</strong> {% trans "Viewing data from all institutions across the system" %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% elif selected_institution %}
     <div class="row mb-3">
         <div class="col-12">
             <div class="alert alert-info d-flex align-items-center">
@@ -46,15 +57,185 @@
     </div>
     {% endif %}
 
+    <!-- Aggregate Statistics Section (for Cross-Institution View) -->
+    {% if view_all_institutions and aggregate_stats.system_totals %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-bar"></i> {% trans "System-Wide Aggregate Statistics" %}
+                    </h6>
+                    <span class="badge badge-primary">{{ aggregate_stats.total_institutions }} {% trans "Institutions" %}</span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-xl-3 col-lg-6">
+                            <div class="card border-left-primary shadow h-100 py-2 mb-3">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                {% trans "Total Students" %}
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                {{ aggregate_stats.system_totals.total_students|default:0 }}
+                                                <small class="text-muted">
+                                                    ({{ aggregate_stats.system_totals.avg_students_per_institution|floatformat:0 }} {% trans "avg per institution" %})
+                                                </small>
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-user-graduate fa-2x text-primary"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-3 col-lg-6">
+                            <div class="card border-left-success shadow h-100 py-2 mb-3">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                                {% trans "Total Teachers" %}
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                {{ aggregate_stats.system_totals.total_teachers|default:0 }}
+                                                <small class="text-muted">
+                                                    ({{ aggregate_stats.system_totals.avg_teachers_per_institution|floatformat:0 }} {% trans "avg per institution" %})
+                                                </small>
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-chalkboard-teacher fa-2x text-success"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-3 col-lg-6">
+                            <div class="card border-left-info shadow h-100 py-2 mb-3">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                                {% trans "Total Classes" %}
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                {{ aggregate_stats.system_totals.total_classes|default:0 }}
+                                                <small class="text-muted">
+                                                    ({{ aggregate_stats.system_totals.avg_classes_per_institution|floatformat:0 }} {% trans "avg per institution" %})
+                                                </small>
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-users fa-2x text-info"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-3 col-lg-6">
+                            <div class="card border-left-warning shadow h-100 py-2 mb-3">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                                {% trans "Institution Performance" %}
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                {% trans "Top 5 Institutions" %}
+                                            </div>
+                                            <div class="text-xs text-muted mt-1">
+                                                {% trans "Ranked by student count" %}
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-trophy fa-2x text-warning"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Institution Breakdown Table -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h6 class="font-weight-bold text-primary mb-3">
+                                <i class="fas fa-list-ol"></i> {% trans "Institution Breakdown" %}
+                            </h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>{% trans "Institution" %}</th>
+                                            <th class="text-center">{% trans "Students" %}</th>
+                                            <th class="text-center">{% trans "Teachers" %}</th>
+                                            <th class="text-center">{% trans "Classes" %}</th>
+                                            <th class="text-center">{% trans "S/T Ratio" %}</th>
+                                            <th class="text-center">{% trans "Class Utilization %" %}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for inst_stat in aggregate_stats.institution_breakdown %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ inst_stat.institution.code }}</strong><br>
+                                                <small class="text-muted">{{ inst_stat.institution.name|truncatechars:40 }}</small>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge badge-primary badge-pill">{{ inst_stat.students }}</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge badge-success badge-pill">{{ inst_stat.teachers }}</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge badge-info badge-pill">{{ inst_stat.classes }}</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge badge-secondary badge-pill">{{ inst_stat.student_teacher_ratio }}</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge badge-{% if inst_stat.class_utilization > 100 %}danger{% elif inst_stat.class_utilization > 80 %}warning{% else %}success{% endif %} badge-pill">
+                                                    {{ inst_stat.class_utilization }}%
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Filters Section -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-filter"></i> {% trans "Filter Options" %}
+                    </h6>
+                    <span class="badge badge-info">{% trans "Click Filter to Apply" %}</span>
+                </div>
                 <div class="card-body">
                     <form method="get" class="form-inline">
-                        <div class="form-group mr-3">
-                            <label for="institution" class="mr-2">{% trans "Select Institution:" %}</label>
-                            <select name="institution" id="institution" class="form-control" onchange="this.form.submit()">
+                        <div class="form-group mr-4">
+                            <label for="institution" class="mr-2 font-weight-bold">{% trans "Institution View:" %}</label>
+                            <select name="institution" id="institution" class="form-control form-control-lg">
+                                <option value="all" {% if view_all_institutions %}selected{% endif %}>
+                                    <i class="fas fa-globe mr-1"></i>{% trans "All Institutions (Cross-Institution View)" %}
+                                </option>
                                 {% for institution in institutions %}
                                 <option value="{{ institution.id }}" {% if selected_institution and selected_institution.id == institution.id %}selected{% endif %}>
                                     {{ institution.name }} ({{ institution.code }})
@@ -62,27 +243,51 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="form-group mr-3">
-                            <label for="search" class="mr-2">{% trans "Search:" %}</label>
-                            <input type="text" name="search" id="search" value="{{ search_query }}" class="form-control" placeholder="{% trans 'Search entities...' %}">
+                        <div class="form-group mr-4">
+                            <label for="search" class="mr-2 font-weight-bold">{% trans "Search:" %}</label>
+                            <input type="text" name="search" id="search" value="{{ search_query }}" class="form-control" placeholder="{% trans 'Search by name, ID, etc.' %}">
                         </div>
-                        <button type="submit" class="btn btn-primary mr-2">
-                            <i class="fas fa-search"></i> {% trans "Search" %}
-                        </button>
-                        {% if search_query %}
-                        <a href="{% url 'core:super_admin_entities' %}" class="btn btn-secondary">
-                            <i class="fas fa-times"></i> {% trans "Clear Filters" %}
-                        </a>
-                        {% endif %}
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary btn-lg mr-2">
+                                <i class="fas fa-filter"></i> {% trans "Apply Filters" %}
+                            </button>
+                            {% if search_query or institution_filter %}
+                            <a href="{% url 'core:super_admin_entities' %}" class="btn btn-outline-secondary btn-lg">
+                                <i class="fas fa-undo"></i> {% trans "Clear All" %}
+                            </a>
+                            {% endif %}
+                        </div>
                     </form>
+
+                    <!-- Current Filters Display -->
+                    {% if search_query or institution_filter %}
+                    <div class="mt-3">
+                        <small class="text-muted">{% trans "Current filters applied:" %}</small>
+                        {% if institution_filter != "all" and selected_institution %}
+                            <span class="badge badge-info mr-2">
+                                <i class="fas fa-school"></i> {{ selected_institution.name }} ({{ selected_institution.code }})
+                            </span>
+                        {% elif view_all_institutions %}
+                            <span class="badge badge-success mr-2">
+                                <i class="fas fa-globe"></i> {% trans "All Institutions" %}
+                            </span>
+                        {% endif %}
+                        {% if search_query %}
+                            <span class="badge badge-warning">
+                                <i class="fas fa-search"></i> "{{ search_query }}"
+                            </span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Statistics Cards -->
+    <!-- Statistics Cards - Row 1: Academics -->
     <div class="row mb-4">
-        <div class="col-xl-2 col-md-4">
+        <!-- Academics -->
+        <div class="col-xl-2 col-md-3 col-sm-6 mb-3">
             <div class="card border-left-primary shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -90,7 +295,7 @@
                             <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
                                 {% trans "Students" %}
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ entity_counts.students }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ entity_counts.students|default:0 }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-user-graduate fa-2x text-primary"></i>
@@ -100,7 +305,7 @@
             </div>
         </div>
 
-        <div class="col-xl-2 col-md-4">
+        <div class="col-xl-2 col-md-3 col-sm-6 mb-3">
             <div class="card border-left-success shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -108,7 +313,7 @@
                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
                                 {% trans "Teachers" %}
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ entity_counts.teachers }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ entity_counts.teachers|default:0 }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-chalkboard-teacher fa-2x text-success"></i>
@@ -118,7 +323,7 @@
             </div>
         </div>
 
-        <div class="col-xl-2 col-md-4">
+        <div class="col-xl-2 col-md-3 col-sm-6 mb-3">
             <div class="card border-left-info shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -126,7 +331,7 @@
                             <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
                                 {% trans "Classes" %}
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ entity_counts.classes }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ entity_counts.classes|default:0 }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-users fa-2x text-info"></i>
@@ -136,7 +341,7 @@
             </div>
         </div>
 
-        <div class="col-xl-2 col-md-4">
+        <div class="col-xl-2 col-md-3 col-sm-6 mb-3">
             <div class="card border-left-warning shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -144,7 +349,7 @@
                             <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
                                 {% trans "Departments" %}
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ entity_counts.departments }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ entity_counts.departments|default:0 }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-building fa-2x text-warning"></i>
@@ -154,7 +359,7 @@
             </div>
         </div>
 
-        <div class="col-xl-2 col-md-4">
+        <div class="col-xl-2 col-md-3 col-sm-6 mb-3">
             <div class="card border-left-secondary shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -162,7 +367,7 @@
                             <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
                                 {% trans "Sessions" %}
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ entity_counts.sessions }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ entity_counts.sessions|default:0 }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-calendar-alt fa-2x text-secondary"></i>
@@ -172,7 +377,7 @@
             </div>
         </div>
 
-        <div class="col-xl-2 col-md-4">
+        <div class="col-xl-2 col-md-3 col-sm-6 mb-3">
             <div class="card border-left-danger shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -180,10 +385,240 @@
                             <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
                                 {% trans "Enrollments" %}
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ entity_counts.enrollments }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ entity_counts.enrollments|default:0 }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-id-card fa-2x text-danger"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards - Row 2: Users & Finance -->
+    <div class="row mb-4">
+        <!-- Users & Applications -->
+        <div class="col-xl-2 col-md-3 col-sm-6 mb-3">
+            <div class="card border-left-dark shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">
+                                {% trans "Users" %}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ entity_counts.users|default:0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-dark"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-md-3 col-sm-6 mb-3">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                {% trans "Applications" %}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ entity_counts.applications|default:0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-file-alt fa-2x text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Finance -->
+        <div class="col-xl-2 col-md-3 col-sm-6 mb-3">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                {% trans "Invoices" %}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ entity_counts.invoices|default:0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-receipt fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-md-3 col-sm-6 mb-3">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                {% trans "Payments" %}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ entity_counts.payments|default:0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-credit-card fa-2x text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-md-3 col-sm-6 mb-3">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                {% trans "Expenses" %}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ entity_counts.expenses|default:0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-wallet fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Library -->
+        <div class="col-xl-2 col-md-3 col-sm-6 mb-3">
+            <div class="card border-left-secondary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
+                                {% trans "Books" %}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ entity_counts.books|default:0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-book fa-2x text-secondary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards - Row 3: Transport & Activities -->
+    <div class="row mb-4">
+        <!-- Transport -->
+        <div class="col-xl-2 col-md-3 col-sm-6 mb-3">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                {% trans "Vehicles" %}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ entity_counts.vehicles|default:0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-bus fa-2x text-danger"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-md-3 col-sm-6 mb-3">
+            <div class="card border-left-dark shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">
+                                {% trans "Routes" %}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ entity_counts.routes|default:0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-route fa-2x text-dark"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activities -->
+        <div class="col-xl-2 col-md-3 col-sm-6 mb-3">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                {% trans "Activities" %}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ entity_counts.activities|default:0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-trophy fa-2x text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Communication -->
+        <div class="col-xl-2 col-md-3 col-sm-6 mb-3">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                {% trans "Announcements" %}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ entity_counts.announcements|default:0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-bullhorn fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Audit -->
+        <div class="col-xl-2 col-md-3 col-sm-6 mb-3">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                {% trans "Audit Logs" %}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ entity_counts.audit_logs|default:0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-shield-alt fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Assessment -->
+        <div class="col-xl-2 col-md-3 col-sm-6 mb-3">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                {% trans "Exams" %}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ entity_counts.exams|default:0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-file-alt fa-2x text-info"></i>
                         </div>
                     </div>
                 </div>
@@ -196,7 +631,34 @@
         <div class="col-12">
             <div class="card shadow">
                 <div class="card-header py-3">
-                    <ul class="nav nav-tabs card-header-tabs" id="entity-tabs" role="tablist">
+                    <div class="row">
+                        <div class="col-12">
+                            <!-- Tab Categories -->
+                            <div class="btn-group btn-group-toggle mb-3" data-toggle="buttons">
+                                <label class="btn btn-outline-primary btn-sm active">
+                                    <input type="radio" name="tab-category" value="academics" checked> {% trans "Academics" %}
+                                </label>
+                                <label class="btn btn-outline-success btn-sm">
+                                    <input type="radio" name="tab-category" value="users"> {% trans "Users & Apps" %}
+                                </label>
+                                <label class="btn btn-outline-info btn-sm">
+                                    <input type="radio" name="tab-category" value="finance"> {% trans "Finance" %}
+                                </label>
+                                <label class="btn btn-outline-warning btn-sm">
+                                    <input type="radio" name="tab-category" value="library"> {% trans "Library" %}
+                                </label>
+                                <label class="btn btn-outline-danger btn-sm">
+                                    <input type="radio" name="tab-category" value="transport"> {% trans "Transport" %}
+                                </label>
+                                <label class="btn btn-outline-secondary btn-sm">
+                                    <input type="radio" name="tab-category" value="other"> {% trans "Other" %}
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Academics Tabs -->
+                    <ul class="nav nav-tabs card-header-tabs academics-tabs" id="entity-tabs" role="tablist">
                         <li class="nav-item">
                             <a class="nav-link active" id="students-tab" data-toggle="tab" href="#students" role="tab" aria-controls="students" aria-selected="true">
                                 <i class="fas fa-user-graduate"></i> {% trans "Students" %}
@@ -231,6 +693,170 @@
                             <a class="nav-link" id="enrollments-tab" data-toggle="tab" href="#enrollments" role="tab" aria-controls="enrollments" aria-selected="false">
                                 <i class="fas fa-id-card"></i> {% trans "Enrollments" %}
                                 <span class="badge badge-pill badge-danger ml-1">{{ enrollments|length }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="exams-tab" data-toggle="tab" href="#exams" role="tab" aria-controls="exams" aria-selected="false">
+                                <i class="fas fa-file-alt"></i> {% trans "Exams" %}
+                                <span class="badge badge-pill badge-info ml-1">{{ exams|length|default:0 }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="assignments-tab" data-toggle="tab" href="#assignments" role="tab" aria-controls="assignments" aria-selected="false">
+                                <i class="fas fa-pencil-square"></i> {% trans "Assignments" %}
+                                <span class="badge badge-pill badge-warning ml-1">{{ assignments|length|default:0 }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="results-tab" data-toggle="tab" href="#results" role="tab" aria-controls="results" aria-selected="false">
+                                <i class="fas fa-chart-line"></i> {% trans "Results" %}
+                                <span class="badge badge-pill badge-info ml-1">{{ results|length|default:0 }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="reportcards-tab" data-toggle="tab" href="#reportcards" role="tab" aria-controls="reportcards" aria-selected="false">
+                                <i class="fas fa-card-list"></i> {% trans "Report Cards" %}
+                                <span class="badge badge-pill badge-success ml-1">{{ reportcards|length|default:0 }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="subjects-tab" data-toggle="tab" href="#subjects" role="tab" aria-controls="subjects" aria-selected="false">
+                                <i class="fas fa-book-open"></i> {% trans "Subjects" %}
+                                <span class="badge badge-pill badge-dark ml-1">{{ subjects|length|default:0 }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="timetables-tab" data-toggle="tab" href="#timetables" role="tab" aria-controls="timetables" aria-selected="false">
+                                <i class="fas fa-calendar-week"></i> {% trans "Timetables" %}
+                                <span class="badge badge-pill badge-primary ml-1">{{ timetables|length|default:0 }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="materials-tab" data-toggle="tab" href="#materials" role="tab" aria-controls="materials" aria-selected="false">
+                                <i class="fas fa-folder-open"></i> {% trans "Materials" %}
+                                <span class="badge badge-pill badge-secondary ml-1">{{ materials|length|default:0 }}</span>
+                            </a>
+                        </li>
+                    </ul>
+
+                    <!-- Users & Applications Tabs -->
+                    <ul class="nav nav-tabs card-header-tabs users-tabs d-none" id="users-tabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="users-tab" data-toggle="tab" href="#users" role="tab" aria-controls="users" aria-selected="true">
+                                <i class="fas fa-users"></i> {% trans "Users" %}
+                                <span class="badge badge-pill badge-dark ml-1">{{ users_list|length|default:0 }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="student-apps-tab" data-toggle="tab" href="#student-apps" role="tab" aria-controls="student-apps" aria-selected="false">
+                                <i class="fas fa-user-graduate"></i> {% trans "Student Apps" %}
+                                <span class="badge badge-pill badge-primary ml-1">{{ student_applications|length|default:0 }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="staff-apps-tab" data-toggle="tab" href="#staff-apps" role="tab" aria-controls="staff-apps" aria-selected="false">
+                                <i class="fas fa-briefcase"></i> {% trans "Staff Apps" %}
+                                <span class="badge badge-pill badge-success ml-1">{{ staff_applications|length|default:0 }}</span>
+                            </a>
+                        </li>
+                    </ul>
+
+                    <!-- Finance Tabs -->
+                    <ul class="nav nav-tabs card-header-tabs finance-tabs d-none" id="finance-tabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="invoices-tab" data-toggle="tab" href="#invoices" role="tab" aria-controls="invoices" aria-selected="true">
+                                <i class="fas fa-receipt"></i> {% trans "Invoices" %}
+                                <span class="badge badge-pill badge-success ml-1">{{ invoices|length|default:0 }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="payments-tab" data-toggle="tab" href="#payments" role="tab" aria-controls="payments" aria-selected="false">
+                                <i class="fas fa-credit-card"></i> {% trans "Payments" %}
+                                <span class="badge badge-pill badge-info ml-1">{{ payments|length|default:0 }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="expenses-tab" data-toggle="tab" href="#expenses" role="tab" aria-controls="expenses" aria-selected="false">
+                                <i class="fas fa-wallet"></i> {% trans "Expenses" %}
+                                <span class="badge badge-pill badge-warning ml-1">{{ expenses|length|default:0 }}</span>
+                            </a>
+                        </li>
+                    </ul>
+
+                    <!-- Library Tabs -->
+                    <ul class="nav nav-tabs card-header-tabs library-tabs d-none" id="library-tabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="books-tab" data-toggle="tab" href="#books" role="tab" aria-controls="books" aria-selected="true">
+                                <i class="fas fa-book"></i> {% trans "Books" %}
+                                <span class="badge badge-pill badge-secondary ml-1">{{ books|length|default:0 }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="authors-tab" data-toggle="tab" href="#authors" role="tab" aria-controls="authors" aria-selected="false">
+                                <i class="fas fa-user-edit"></i> {% trans "Authors" %}
+                                <span class="badge badge-pill badge-info ml-1">{{ authors|length|default:0 }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="borrow-records-tab" data-toggle="tab" href="#borrow-records" role="tab" aria-controls="borrow-records" aria-selected="false">
+                                <i class="fas fa-arrow-left-right"></i> {% trans "Borrow Records" %}
+                                <span class="badge badge-pill badge-primary ml-1">{{ borrow_records|length|default:0 }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="reservations-tab" data-toggle="tab" href="#reservations" role="tab" aria-controls="reservations" aria-selected="false">
+                                <i class="fas fa-bookmark-check"></i> {% trans "Reservations" %}
+                                <span class="badge badge-pill badge-success ml-1">{{ reservations|length|default:0 }}</span>
+                            </a>
+                        </li>
+                    </ul>
+
+                    <!-- Transport Tabs -->
+                    <ul class="nav nav-tabs card-header-tabs transport-tabs d-none" id="transport-tabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="vehicles-tab" data-toggle="tab" href="#vehicles" role="tab" aria-controls="vehicles" aria-selected="true">
+                                <i class="fas fa-bus"></i> {% trans "Vehicles" %}
+                                <span class="badge badge-pill badge-danger ml-1">{{ vehicles|length|default:0 }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="drivers-tab" data-toggle="tab" href="#drivers" role="tab" aria-controls="drivers" aria-selected="false">
+                                <i class="fas fa-id-card"></i> {% trans "Drivers" %}
+                                <span class="badge badge-pill badge-warning ml-1">{{ drivers|length|default:0 }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="routes-tab" data-toggle="tab" href="#routes" role="tab" aria-controls="routes" aria-selected="false">
+                                <i class="fas fa-route"></i> {% trans "Routes" %}
+                                <span class="badge badge-pill badge-dark ml-1">{{ routes|length|default:0 }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="allocations-tab" data-toggle="tab" href="#allocations" role="tab" aria-controls="allocations" aria-selected="false">
+                                <i class="fas fa-user-check"></i> {% trans "Allocations" %}
+                                <span class="badge badge-pill badge-secondary ml-1">{{ allocations|length|default:0 }}</span>
+                            </a>
+                        </li>
+                    </ul>
+
+                    <!-- Other Tabs -->
+                    <ul class="nav nav-tabs card-header-tabs other-tabs d-none" id="other-tabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="activities-tab" data-toggle="tab" href="#activities" role="tab" aria-controls="activities" aria-selected="true">
+                                <i class="fas fa-trophy"></i> {% trans "Activities" %}
+                                <span class="badge badge-pill badge-primary ml-1">{{ activities|length|default:0 }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="announcements-tab" data-toggle="tab" href="#announcements" role="tab" aria-controls="announcements" aria-selected="false">
+                                <i class="fas fa-bullhorn"></i> {% trans "Announcements" %}
+                                <span class="badge badge-pill badge-success ml-1">{{ announcements|length|default:0 }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="audit-logs-tab" data-toggle="tab" href="#audit-logs" role="tab" aria-controls="audit-logs" aria-selected="false">
+                                <i class="fas fa-shield-alt"></i> {% trans "Audit Logs" %}
+                                <span class="badge badge-pill badge-warning ml-1">{{ audit_logs|length|default:0 }}</span>
                             </a>
                         </li>
                     </ul>
@@ -584,14 +1210,20 @@
 <script>
 $(document).ready(function() {
     // Initialize Bootstrap tabs
-    $('#entity-tabs a').on('click', function (e) {
+    $('#entity-tabs a, #users-tabs a, #finance-tabs a, #library-tabs a, #transport-tabs a, #other-tabs a').on('click', function (e) {
         e.preventDefault();
         $(this).tab('show');
     });
 
-    // Auto-submit institution filter on change
-    $('#institution').change(function() {
-        $(this).closest('form').submit();
+    // Tab category switching
+    $('input[name="tab-category"]').on('change', function() {
+        var category = $(this).val();
+        $('.academics-tabs, .users-tabs, .finance-tabs, .library-tabs, .transport-tabs, .other-tabs').addClass('d-none');
+        $('.' + category + '-tabs').removeClass('d-none');
+
+        // Show first tab content for the selected category
+        $('.tab-pane').removeClass('show active');
+        $('.' + category + '-tabs .nav-link').first().tab('show');
     });
 
     // Search on enter key

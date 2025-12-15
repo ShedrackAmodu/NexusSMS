@@ -405,19 +405,19 @@
                             
                             <div class="row g-4">
                                 <!-- Email Verification -->
-                                <div class="col-12">
-                                    <div class="card border-0 bg-light">
-                                        <div class="card-body">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <h6 class="fw-semibold mb-1">{% trans "Email Verification" %}</h6>
-                                                    <p class="text-muted mb-0 small">
-                                                        {% if user.is_verified %}
-                                                        {% trans "Your email address has been verified" %}
-                                                        {% else %}
-                                                        {% trans "Please verify your email address to access all features" %}
-                                                        {% endif %}
-                                                    </p>
+                                                <div class="col-12">
+                                                    <div class="alert alert-info mb-0">
+                                                        <small>
+                                                            {% trans "Total outstanding amount" %}:
+                                                            <strong>${{ finance_data.total_outstanding }}</strong><br>
+                                                            {% trans "Last payment" %}:
+                                                            {% if finance_data.recent_payments %}
+                                                            <strong>{{ finance_data.recent_payments.0.payment_date|date:"M j, Y" }}</strong>
+                                                            {% else %}
+                                                            <em>{% trans "No recent payments" %}</em>
+                                                            {% endif %}
+                                                        </small>
+                                                    </div>
                                                 </div>
                                                 <div>
                                                     {% if user.is_verified %}
@@ -625,6 +625,863 @@
                                 </div>
                             </form>
                         </div>
+
+                        {% if has_academic_data or has_assessment_data %}
+                        <!-- Academic Records Tab -->
+                        <div class="tab-pane fade" id="academic" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="fw-bold mb-0">{% trans "Academic Records" %}</h4>
+                                <small class="text-muted">{% trans "Academic information from your school records" %}</small>
+                            </div>
+
+                            <div class="row g-4">
+                                {% if academic_data.student_profile %}
+                                <!-- Student Academic Profile -->
+                                <div class="col-12">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body">
+                                            <h6 class="fw-bold mb-3">
+                                                <i class="bi bi-person-vcard text-primary me-2"></i>
+                                                {% trans "Student Profile" %}
+                                            </h6>
+                                            <div class="row g-3">
+                                                <div class="col-md-3">
+                                                    <small class="text-muted">{% trans "Student ID" %}</small><br>
+                                                    <strong>{{ academic_data.student_profile.student_id|default:"N/A" }}</strong>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <small class="text-muted">{% trans "Admission Date" %}</small><br>
+                                                    <strong>{{ academic_data.student_profile.admission_date|date:"M j, Y"|default:"N/A" }}</strong>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <small class="text-muted">{% trans "Enrollment Status" %}</small><br>
+                                                    <span class="badge bg-{% if academic_data.student_profile.status == 'active' %}success{% else %}warning{% endif %}">
+                                                        {{ academic_data.student_profile.get_status_display|default:"Active" }}
+                                                    </span>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <small class="text-muted">{% trans "Previous School" %}</small><br>
+                                                    <strong>{{ academic_data.student_profile.previous_school|default:"Not specified" }}</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Current Enrollment -->
+                                {% if academic_data.current_enrollment %}
+                                <div class="col-12">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body">
+                                            <h6 class="fw-bold mb-3">
+                                                <i class="bi bi-book-open text-success me-2"></i>
+                                                {% trans "Current Enrollment" %}
+                                            </h6>
+                                            <div class="row g-3">
+                                                <div class="col-md-4">
+                                                    <small class="text-muted">{% trans "Academic Session" %}</small><br>
+                                                    <strong>{{ academic_data.current_enrollment.academic_session.name }}</strong>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <small class="text-muted">{% trans "Class" %}</small><br>
+                                                    <strong>{{ academic_data.current_enrollment.class_enrolled.name }}</strong>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <small class="text-muted">{% trans "Enrollment Date" %}</small><br>
+                                                    <strong>{{ academic_data.current_enrollment.enrollment_date|date:"M j, Y" }}</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <!-- Timetable -->
+                                {% if academic_data.timetable_entries %}
+                                <div class="col-12">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body">
+                                            <h6 class="fw-bold mb-3">
+                                                <i class="bi bi-calendar-week text-info me-2"></i>
+                                                {% trans "Class Timetable" %}
+                                            </h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-hover">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>{% trans "Day" %}</th>
+                                                            <th>{% trans "Period" %}</th>
+                                                            <th>{% trans "Subject" %}</th>
+                                                            <th>{% trans "Teacher" %}</th>
+                                                            <th>{% trans "Time" %}</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for entry in academic_data.timetable_entries %}
+                                                        <tr>
+                                                            <td class="fw-semibold">{{ entry.get_day_of_week_display }}</td>
+                                                            <td>{{ entry.period_number }}</td>
+                                                            <td>{{ entry.subject.name }}</td>
+                                                            <td>{{ entry.teacher.user.get_full_name }}</td>
+                                                            <td>{{ entry.start_time }} - {{ entry.end_time }}</td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                {% elif academic_data.teacher_profile %}
+                                <!-- Teacher Academic Profile -->
+                                <div class="col-12">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body">
+                                            <h6 class="fw-bold mb-3">
+                                                <i class="bi bi-person-workspace text-primary me-2"></i>
+                                                {% trans "Teacher Profile" %}
+                                            </h6>
+                                            <div class="row g-3">
+                                                <div class="col-md-3">
+                                                    <small class="text-muted">{% trans "Employee ID" %}</small><br>
+                                                    <strong>{{ academic_data.teacher_profile.employee_id|default:"N/A" }}</strong>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <small class="text-muted">{% trans "Joining Date" %}</small><br>
+                                                    <strong>{{ academic_data.teacher_profile.joining_date|date:"M j, Y"|default:"N/A" }}</strong>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <small class="text-muted">{% trans "Qualification" %}</small><br>
+                                                    <strong>{{ academic_data.teacher_profile.qualification|default:"N/A" }}</strong>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <small class="text-muted">{% trans "Specialization" %}</small><br>
+                                                    <strong>{{ academic_data.teacher_profile.specialization|default:"N/A" }}</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if has_assessment_data %}
+                        <!-- Assessment Results Tab -->
+                        <div class="tab-pane fade" id="assessment" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="fw-bold mb-0">{% trans "Assessment Results" %}</h4>
+                                <small class="text-muted">{% trans "Exam marks, grades, and performance records" %}</small>
+                            </div>
+
+                            <div class="row g-4">
+                                {% if assessment_data.exam_marks %}
+                                <!-- Recent Exam Marks -->
+                                <div class="col-12">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body">
+                                            <h6 class="fw-bold mb-3">
+                                                <i class="bi bi-graph-up-arrow text-success me-2"></i>
+                                                {% trans "Recent Exam Marks" %}
+                                            </h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-hover">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>{% trans "Subject" %}</th>
+                                                            <th>{% trans "Exam Type" %}</th>
+                                                            <th>{% trans "Marks" %}</th>
+                                                            <th>{% trans "Percentage" %}</th>
+                                                            <th>{% trans "Grade" %}</th>
+                                                            <th>{% trans "Date" %}</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for mark in assessment_data.exam_marks %}
+                                                        <tr>
+                                                            <td>{{ mark.exam.subject.name }}</td>
+                                                            <td>{{ mark.exam.exam_type.name }}</td>
+                                                            <td>{{ mark.marks_obtained }}/{{ mark.exam.total_marks }}</td>
+                                                            <td>
+                                                                <span class="badge bg-{% if mark.percentage >= 80 %}success{% elif mark.percentage >= 60 %}warning{% else %}danger{% endif %}">
+                                                                    {{ mark.percentage }}%
+                                                                </span>
+                                                            </td>
+                                                            <td>
+                                                                {% if mark.grade %}
+                                                                    <span class="badge bg-{% if mark.grade.grade in 'ABC' %}success{% elif mark.grade.grade in 'DEF' %}warning{% else %}danger{% endif %}">
+                                                                        {{ mark.grade.grade }}
+                                                                    </span>
+                                                                {% else %}
+                                                                N/A
+                                                                {% endif %}
+                                                            </td>
+                                                            <td>{{ mark.exam.exam_date|date:"M j, Y" }}</td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                {% if assessment_data.results %}
+                                <!-- Results Summary -->
+                                <div class="col-12">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body">
+                                            <h6 class="fw-bold mb-3">
+                                                <i class="bi bi-trophy text-warning me-2"></i>
+                                                {% trans "Results Summary" %}
+                                            </h6>
+                                            <div class="row g-3">
+                                                {% for result in assessment_data.results %}
+                                                <div class="col-md-6">
+                                                    <div class="card bg-light border-0">
+                                                        <div class="card-body">
+                                                            <h6 class="mb-2">{{ result.exam_type.name }}</h6>
+                                                            {% if result.grade %}
+                                                            <div class="d-flex justify-content-between">
+                                                                <span>{% trans "Grade" %}:</span>
+                                                                <strong>{{ result.grade.grade }}</strong>
+                                                            </div>
+                                                            {% endif %}
+                                                            {% if result.percentage %}
+                                                            <div class="d-flex justify-content-between">
+                                                                <span>{% trans "Percentage" %}:</span>
+                                                                <strong>{{ result.percentage }}%</strong>
+                                                            </div>
+                                                            {% endif %}
+                                                            <small class="text-muted">{{ result.created_at|date:"M j, Y" }}</small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if has_attendance_data %}
+                        <!-- Attendance History Tab -->
+                        <div class="tab-pane fade" id="attendance" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="fw-bold mb-0">{% trans "Attendance History" %}</h4>
+                                <small class="text-muted">{% trans "Your attendance records and leave history" %}</small>
+                            </div>
+
+                            <div class="row g-4">
+                                {% if attendance_data.daily_attendance %}
+                                <!-- Recent Daily Attendance -->
+                                <div class="col-12">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body">
+                                            <h6 class="fw-bold mb-3">
+                                                <i class="bi bi-calendar-check text-primary me-2"></i>
+                                                {% trans "Recent Daily Attendance" %}
+                                            </h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-hover">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>{% trans "Date" %}</th>
+                                                            <th>{% trans "Status" %}</th>
+                                                            <th>{% trans "Check In" %}</th>
+                                                            <th>{% trans "Check Out" %}</th>
+                                                            <th>{% trans "Remarks" %}</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for attendance in attendance_data.daily_attendance %}
+                                                        <tr>
+                                                            <td>{{ attendance.date|date:"M j, Y" }}</td>
+                                                            <td>
+                                                                <span class="badge bg-{{ attendance.get_status_badge }}">
+                                                                    {{ attendance.get_status_display }}
+                                                                </span>
+                                                            </td>
+                                                            <td>{{ attendance.check_in_time|time:"H:i"|default:"-" }}</td>
+                                                            <td>{{ attendance.check_out_time|time:"H:i"|default:"-" }}</td>
+                                                            <td>{{ attendance.remarks|default:"-" }}</td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                {% if attendance_data.attendance_summaries %}
+                                <!-- Monthly Summaries -->
+                                <div class="col-12">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body">
+                                            <h6 class="fw-bold mb-3">
+                                                <i class="bi bi-bar-chart text-info me-2"></i>
+                                                {% trans "Monthly Attendance Summaries" %}
+                                            </h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-hover">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>{% trans "Month" %}</th>
+                                                            <th>{% trans "Total Days" %}</th>
+                                                            <th>{% trans "Present" %}</th>
+                                                            <th>{% trans "Absent" %}</th>
+                                                            <th>{% trans "Percentage" %}</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for summary in attendance_data.attendance_summaries %}
+                                                        <tr>
+                                                            <td>{{ summary.get_month_display }} {{ summary.year }}</td>
+                                                            <td>{{ summary.total_working_days }}</td>
+                                                            <td><span class="text-success">{{ summary.days_present }}</span></td>
+                                                            <td><span class="text-danger">{{ summary.days_absent }}</span></td>
+                                                            <td>
+                                                                <span class="badge bg-{% if summary.attendance_percentage >= 80 %}success{% elif summary.attendance_percentage >= 60 %}warning{% else %}danger{% endif %}">
+                                                                    {{ summary.attendance_percentage|floatformat:1 }}%
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                {% if attendance_data.leave_applications %}
+                                <!-- Leave Applications -->
+                                <div class="col-12">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body">
+                                            <h6 class="fw-bold mb-3">
+                                                <i class="bi bi-calendar-minus text-danger me-2"></i>
+                                                {% trans "Leave Applications" %}
+                                            </h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-hover">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>{% trans "Type" %}</th>
+                                                            <th>{% trans "Days" %}</th>
+                                                            <th>{% trans "From" %}</th>
+                                                            <th>{% trans "To" %}</th>
+                                                            <th>{% trans "Status" %}</th>
+                                                            <th>{% trans "Applied On" %}</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for leave in attendance_data.leave_applications %}
+                                                        <tr>
+                                                            <td>{{ leave.get_leave_type_display }}</td>
+                                                            <td>{{ leave.days_applied }}</td>
+                                                            <td>{{ leave.start_date|date:"M j, Y" }}</td>
+                                                            <td>{{ leave.end_date|date:"M j, Y" }}</td>
+                                                            <td>
+                                                                <span class="badge bg-{% if leave.status == 'approved' %}success{% elif leave.status == 'rejected' %}danger{% else %}warning{% endif %}">
+                                                                    {{ leave.get_status_display }}
+                                                                </span>
+                                                            </td>
+                                                            <td>{{ leave.created_at|date:"M j, Y" }}</td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if has_finance_data %}
+                        <!-- Financial Records Tab -->
+                        <div class="tab-pane fade" id="finance" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="fw-bold mb-0">{% trans "Financial Records" %}</h4>
+                                <small class="text-muted">{% trans "Invoices, payments, and financial history" %}</small>
+                            </div>
+
+                            <div class="row g-4">
+                                {% if finance_data.pending_invoices %}
+                                <!-- Pending Invoices -->
+                                <div class="col-md-6">
+                                    <div class="card border-0 shadow-sm h-100">
+                                        <div class="card-body">
+                                            <h6 class="fw-bold mb-3 text-warning">
+                                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                                {% trans "Pending Invoices" %}
+                                            </h6>
+                                            {% for invoice in finance_data.pending_invoices %}
+                                            <div class="d-flex justify-content-between border-bottom py-2">
+                                                <div>
+                                                    <strong>{{ invoice.invoice_number }}</strong><br>
+                                                    <small class="text-muted">{{ invoice.issue_date|date:"M j, Y" }}</small>
+                                                </div>
+                                                <div class="text-end">
+                                                    <span class="text-danger fw-bold">${{ invoice.balance_due }}</span><br>
+                                                    <small class="text-muted">{{ invoice.get_status_display }}</small>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                {% if finance_data.recent_payments %}
+                                <!-- Recent Payments -->
+                                <div class="col-md-6">
+                                    <div class="card border-0 shadow-sm h-100">
+                                        <div class="card-body">
+                                            <h6 class="fw-bold mb-3 text-success">
+                                                <i class="bi bi-check-circle me-2"></i>
+                                                {% trans "Recent Payments" %}
+                                            </h6>
+                                            {% for payment in finance_data.recent_payments %}
+                                            <div class="d-flex justify-content-between border-bottom py-2">
+                                                <div>
+                                                    <strong>{{ payment.invoice.invoice_number }}</strong><br>
+                                                    <small class="text-muted">{{ payment.payment_date|date:"M j, Y" }}</small>
+                                                </div>
+                                                <div class="text-end">
+                                                    <span class="text-success fw-bold">${{ payment.amount }}</span><br>
+                                                    <small class="text-muted">{{ payment.get_payment_method_display }}</small>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <!-- Fee Balance Summary -->
+                                <div class="col-12">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body">
+                                            <h6 class="fw-bold mb-3">
+                                                <i class="bi bi-cash-stack text-primary me-2"></i>
+                                                {% trans "Fee Status Summary" %}
+                                            </h6>
+                                            <div class="row g-3">
+                                                {% with total_outstanding=finance_data.pending_invoices|length %}
+                                                <div class="col-md-3">
+                                                    <div class="text-center p-3 bg-light rounded">
+                                                        <h4 class="text-warning mb-1">{{ total_outstanding }}</h4>
+                                                        <small class="text-muted">{% trans "Outstanding Invoices" %}</small>
+                                                    </div>
+                                                </div>
+                                                {% endwith %}
+                                                {% with total_paid=finance_data.recent_payments|length %}
+                                                <div class="col-md-3">
+                                                    <div class="text-center p-3 bg-light rounded">
+                                                        <h4 class="text-success mb-1">{{ total_paid }}</h4>
+                                                        <small class="text-muted">{% trans "Recent Payments" %}</small>
+                                                    </div>
+                                                </div>
+                                                {% endwith %}
+                                                <div class="col-md-6">
+                                                    <div class="alert alert-info mb-0">
+                                                        <small>
+                                                            {% trans "Total outstanding amount" %}:
+                                                            <strong>${{ finance_data.total_outstanding }}</strong><br>
+                                                            {% trans "Last payment" %}:
+                                                            {% if finance_data.recent_payments %}
+                                                            <strong>{{ finance_data.recent_payments.0.payment_date|date:"M j, Y" }}</strong>
+                                                            {% else %}
+                                                            <em>{% trans "No recent payments" %}</em>
+                                                            {% endif %}
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if has_library_data %}
+                        <!-- Library Records Tab -->
+                        <div class="tab-pane fade" id="library" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="fw-bold mb-0">{% trans "Library Records" %}</h4>
+                                <small class="text-muted">{% trans "Books borrowed and return status" %}</small>
+                            </div>
+
+                            <div class="row g-4">
+                                {% if library_data.current_borrows %}
+                                <!-- Current Borrows -->
+                                <div class="col-12">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body">
+                                            <h6 class="fw-bold mb-3">
+                                                <i class="bi bi-book-read text-primary me-2"></i>
+                                                {% trans "Currently Borrowed Books" %}
+                                            </h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-hover">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>{% trans "Book Title" %}</th>
+                                                            <th>{% trans "Author" %}</th>
+                                                            <th>{% trans "Borrow Date" %}</th>
+                                                            <th>{% trans "Due Date" %}</th>
+                                                            <th>{% trans "Status" %}</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for borrow in library_data.current_borrows %}
+                                                        <tr>
+                                                            <td>{{ borrow.book.title }}</td>
+                                                            <td>{{ borrow.book.author|default:"-" }}</td>
+                                                            <td>{{ borrow.borrow_date|date:"M j, Y" }}</td>
+                                                            <td>
+                                                                {% if borrow.due_date < today %}
+                                                                <span class="text-danger fw-bold">{{ borrow.due_date|date:"M j, Y" }}</span>
+                                                                {% else %}
+                                                                {{ borrow.due_date|date:"M j, Y" }}
+                                                                {% endif %}
+                                                            </td>
+                                                            <td>
+                                                                {% if borrow.due_date < today %}
+                                                                <span class="badge bg-danger">{% trans "Overdue" %}</span>
+                                                                {% elif borrow.return_date %}
+                                                                <span class="badge bg-success">{% trans "Returned" %}</span>
+                                                                {% else %}
+                                                                <span class="badge bg-info">{% trans "On Loan" %}</span>
+                                                                {% endif %}
+                                                            </td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+
+                                            {% if library_data.overdue_books > 0 %}
+                                            <div class="alert alert-danger mt-3">
+                                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                                <strong>{{ library_data.overdue_books }}</strong> {% trans "book(s) are overdue. Please return them immediately." %}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if has_health_data %}
+                        <!-- Health Records Tab -->
+                        <div class="tab-pane fade" id="health" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="fw-bold mb-0">{% trans "Health Records" %}</h4>
+                                <small class="text-muted">{% trans "Medical records and health information" %}</small>
+                            </div>
+
+                            <div class="row g-4">
+                                {% if health_data.medical_records %}
+                                <!-- Medical Records -->
+                                <div class="col-12">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body">
+                                            <h6 class="fw-bold mb-3">
+                                                <i class="bi bi-heart-pulse text-danger me-2"></i>
+                                                {% trans "Medical Records" %}
+                                            </h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-hover">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>{% trans "Visit Date" %}</th>
+                                                            <th>{% trans "Doctor" %}</th>
+                                                            <th>{% trans "Diagnosis" %}</th>
+                                                            <th>{% trans "Treatment" %}</th>
+                                                            <th>{% trans "Notes" %}</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for record in health_data.medical_records %}
+                                                        <tr>
+                                                            <td>{{ record.visit_date|date:"M j, Y" }}</td>
+                                                            <td>{{ record.doctor.first_name }} {{ record.doctor.last_name }}</td>
+                                                            <td>{{ record.diagnosis|truncatewords:5 }}</td>
+                                                            <td>{{ record.treatment|truncatewords:5 }}</td>
+                                                            <td>{{ record.notes|truncatewords:8|default:"-" }}</td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if has_transport_data %}
+                        <!-- Transport Info Tab -->
+                        <div class="tab-pane fade" id="transport" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="fw-bold mb-0">{% trans "Transport Information" %}</h4>
+                                <small class="text-muted">{% trans "Bus routes, pick-up/drop-off times, and transport details" %}</small>
+                            </div>
+
+                            <div class="row g-4">
+                                {% if transport_data.transport_enrollment %}
+                                <!-- Current Enrollment -->
+                                <div class="col-12">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body">
+                                            <h6 class="fw-bold mb-3">
+                                                <i class="bi bi-bus-front text-primary me-2"></i>
+                                                {% trans "Transport Enrollment" %}
+                                            </h6>
+                                            <div class="row g-3">
+                                                <div class="col-md-3">
+                                                    <small class="text-muted">{% trans "Route" %}</small><br>
+                                                    <strong>{{ transport_data.transport_enrollment.route.name }}</strong>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <small class="text-muted">{% trans "Vehicle" %}</small><br>
+                                                    <strong>{{ transport_data.transport_enrollment.route.vehicle.number_plate }}</strong>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <small class="text-muted">{% trans "Stop Point" %}</small><br>
+                                                    <strong>{{ transport_data.transport_enrollment.pickup_point.name }}</strong>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <small class="text-muted">{% trans "Fee" %}</small><br>
+                                                    <strong class="text-success">${{ transport_data.transport_enrollment.fee_monthly }}/mo</strong>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <small class="text-muted">{% trans "Pick-up Time" %}</small><br>
+                                                    <strong>{{ transport_data.transport_enrollment.pickup_time }}</strong>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <small class="text-muted">{% trans "Drop-off Time" %}</small><br>
+                                                    <strong>{{ transport_data.transport_enrollment.dropoff_time }}</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if has_activity_data %}
+                        <!-- Activity Log Tab -->
+                        <div class="tab-pane fade" id="activity" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="fw-bold mb-0">{% trans "Activity Log" %}</h4>
+                                <small class="text-muted">{% trans "System activities, role changes, and account history" %}</small>
+                            </div>
+
+                            <div class="row g-4">
+                                <!-- Login History -->
+                                {% if activity_data.login_history %}
+                                <div class="col-md-6">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body">
+                                            <h6 class="fw-bold mb-3">
+                                                <i class="bi bi-shield-lock text-primary me-2"></i>
+                                                {% trans "Recent Logins" %}
+                                            </h6>
+                                            <div class="activity-feed">
+                                                {% for login in activity_data.login_history %}
+                                                <div class="d-flex mb-2">
+                                                    <div class="me-3">
+                                                        {% if login.was_successful %}
+                                                        <i class="bi bi-check-circle text-success"></i>
+                                                        {% else %}
+                                                        <i class="bi bi-x-circle text-danger"></i>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="flex-grow-1">
+                                                        <small class="text-muted">{{ login.created_at|timesince }} ago</small><br>
+                                                        <span class="small">{{ login.get_login_method_display }} from {{ login.ip_address }}</span>
+                                                    </div>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <!-- Password History -->
+                                {% if activity_data.password_history %}
+                                <div class="col-md-6">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body">
+                                            <h6 class="fw-bold mb-3">
+                                                <i class="bi bi-key text-warning me-2"></i>
+                                                {% trans "Password Changes" %}
+                                            </h6>
+                                            <div class="activity-feed">
+                                                {% for password_change in activity_data.password_history %}
+                                                <div class="d-flex mb-2">
+                                                    <div class="me-3">
+                                                        <i class="bi bi-shield-check text-success"></i>
+                                                    </div>
+                                                    <div class="flex-grow-1">
+                                                        <small class="text-muted">{{ password_change.changed_at|timesince }} ago</small><br>
+                                                        <span class="small">Password changed by {{ password_change.changed_by.get_full_name }}</span>
+                                                    </div>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <!-- Transfer Requests -->
+                                {% if activity_data.transfer_requests %}
+                                <div class="col-12">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body">
+                                            <h6 class="fw-bold mb-3">
+                                                <i class="bi bi-arrow-left-right text-info me-2"></i>
+                                                {% trans "Transfer Requests" %}
+                                            </h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-hover">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>{% trans "Request #" %}</th>
+                                                            <th>{% trans "Requested Institution" %}</th>
+                                                            <th>{% trans "Status" %}</th>
+                                                            <th>{% trans "Requested On" %}</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for request in activity_data.transfer_requests %}
+                                                        <tr>
+                                                            <td>{{ request.request_number }}</td>
+                                                            <td>{{ request.requested_institution.name }}</td>
+                                                            <td>
+                                                                <span class="badge bg-{% if request.request_status == 'approved' %}success{% elif request.request_status == 'rejected' %}danger{% else %}warning{% endif %}">
+                                                                    {{ request.get_request_status_display }}
+                                                                </span>
+                                                            </td>
+                                                            <td>{{ request.created_at|date:"M j, Y" }}</td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if has_parent_data or has_student_data %}
+                        <!-- Relationships Tab -->
+                        <div class="tab-pane fade" id="relationships" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="fw-bold mb-0">{% trans "Relationships" %}</h4>
+                                <small class="text-muted">{% trans "Family connections and guardians" %}</small>
+                            </div>
+
+                            <div class="row g-4">
+                                {% if relationships_data.children %}
+                                <!-- Children (For Parents) -->
+                                <div class="col-12">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body">
+                                            <h6 class="fw-bold mb-3">
+                                                <i class="bi bi-people-fill text-primary me-2"></i>
+                                                {% trans "My Children" %}
+                                            </h6>
+                                            <div class="row g-3">
+                                                {% for child in relationships_data.children %}
+                                                <div class="col-md-6">
+                                                    <div class="card bg-light border-0">
+                                                        <div class="card-body">
+                                                            <div class="d-flex align-items-center mb-2">
+                                                                <i class="bi bi-person-circle fs-4 me-3"></i>
+                                                                <div>
+                                                                    <h6 class="mb-1">{{ child.student.user.get_full_name }}</h6>
+                                                                    <small class="text-muted">Student ID: {{ child.student.student_id }}</small>
+                                                                </div>
+                                                            </div>
+                                                            <div class="row g-2">
+                                                                <div class="col-6">
+                                                                    <small class="text-muted">{% trans "Relationship" %}:</small><br>
+                                                                    <strong>{{ child.get_relationship_type_display }}</strong>
+                                                                </div>
+                                                                <div class="col-6">
+                                                                    <small class="text-muted">{% trans "Contact" %}:</small><br>
+                                                                    <strong>{{ child.student.user.mobile|default:"Not provided" }}</strong>
+                                                                </div>
+                                                            </div>
+                                                            {% if child.is_primary_contact %}
+                                                            <div class="mt-2">
+                                                                <span class="badge bg-success">{% trans "Primary Contact" %}</span>
+                                                            </div>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                {% if has_student_data %}
+                                <!-- Guardians (For Students) -->
+                                <div class="col-12">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body">
+                                            <h6 class="fw-bold mb-3">
+                                                <i class="bi bi-shield-person text-success me-2"></i>
+                                                {% trans "My Guardians" %}
+                                            </h6>
+                                            {% if academic_data.current_enrollment %}
+                                            <div class="alert alert-info">
+                                                <small>{% trans "Guardian information is managed through the enrollment records." %}</small>
+                                            </div>
+                                            {% else %}
+                                            <div class="alert alert-warning">
+                                                <small>{% trans "No enrollment records found. Contact the school administration." %}</small>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
 
                         <!-- Application Details Tab -->
                         {% if student_application or staff_application %}
@@ -1068,90 +1925,90 @@
                             </div>
                         </div>
                         {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-                        <!-- Academic Records Tab -->
-                        {% if has_academic_data or has_assessment_data %}
-                        <div class="tab-pane fade" id="academic" role="tabpanel">
-                            <h4 class="fw-bold mb-4">{% trans "Academic Records" %}</h4>
+<!-- Profile Picture Modal -->
+<div class="modal fade" id="profilePictureModal" tabindex="-1" aria-labelledby="profilePictureModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="profilePictureModalLabel">{% trans "Update Profile Picture" %}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="profilePictureForm" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="text-center mb-4">
+                        <div class="profile-picture-preview mx-auto mb-3">
+                            {% if user.profile.profile_picture %}
+                            <img src="{{ user.profile.profile_picture.url }}" alt="Preview" class="rounded-circle" id="picturePreview" style="width: 150px; height: 150px; object-fit: cover;">
+                            {% else %}
+                            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center mx-auto" id="picturePreviewPlaceholder" style="width: 150px; height: 150px;">
+                                <span class="fw-bold fs-1">{{ user.get_initials }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <input type="file" class="form-control" id="profile_picture" name="profile_picture" accept="image/*" style="display: none;">
+                        <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('profile_picture').click()">
+                            <i class="bi bi-upload me-1"></i>
+                            {% trans "Choose Image" %}
+                        </button>
+                    </div>
+                    <div class="form-text text-center">
+                        {% trans "Recommended: Square image, 500x500 pixels, JPG or PNG format" %}
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+                <button type="button" class="btn btn-primary" onclick="uploadProfilePicture()">{% trans "Save Picture" %}</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
 
-                            <div class="row g-4">
-                                <!-- Student Profile Info -->
-                                {% if academic_data.student_profile %}
-                                <div class="col-12">
-                                    <div class="card border-0 shadow-sm">
-                                        <div class="card-body">
-                                            <h5 class="fw-bold mb-3">
-                                                <i class="bi bi-person-badge text-primary me-2"></i>
-                                                {% trans "Student Information" %}
-                                            </h5>
-                                            <div class="row g-3">
-                                                <div class="col-md-3">
-                                                    <small class="text-muted d-block">{% trans "Admission Number" %}</small>
-                                                    <strong>{{ academic_data.student_profile.admission_number }}</strong>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <small class="text-muted d-block">{% trans "Admission Date" %}</small>
-                                                    <strong>{{ academic_data.student_profile.admission_date|date:"M j, Y" }}</strong>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <small class="text-muted d-block">{% trans "Date of Birth" %}</small>
-                                                    <strong>{{ academic_data.student_profile.date_of_birth|date:"M j, Y" }}</strong>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <small class="text-muted d-block">{% trans "Gender" %}</small>
-                                                    <strong>{% if academic_data.student_profile.get_gender_display %}{{ academic_data.student_profile.get_gender_display }}{% else %}N/A{% endif %}</strong>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endif %}
+{% block extra_css %}
+<style>
+.profile-page {
+    background-color: #f8f9fa;
+}
 
-                                <!-- Current Enrollment -->
-                                {% if academic_data.current_enrollment %}
-                                <div class="col-md-6">
-                                    <div class="card border-0 shadow-sm h-100">
-                                        <div class="card-body">
-                                            <h6 class="fw-bold mb-3">
-                                                <i class="bi bi-book-half text-success me-2"></i>
-                                                {% trans "Current Enrollment" %}
-                                            </h6>
-                                            <div class="row g-2">
-                                                <div class="col-12">
-                                                    <small class="text-muted d-block">{% trans "Class" %}</small>
-                                                    <strong>{{ academic_data.current_enrollment.class_enrolled.name }}</strong>
-                                                </div>
-                                                <div class="col-12">
-                                                    <small class="text-muted d-block">{% trans "Academic Session" %}</small>
-                                                    <strong>{{ academic_data.current_enrollment.academic_session.name }}</strong>
-                                                </div>
-                                                <div class="col-6">
-                                                    <small class="text-muted d-block">{% trans "Enrollment Date" %}</small>
-                                                    <strong>{{ academic_data.current_enrollment.enrollment_date|date:"M j, Y" }}</strong>
-                                                </div>
-                                                <div class="col-6">
-                                                    <small class="text-muted d-block">{% trans "Status" %}</small>
-                                                    <span class="badge bg-success">{{ academic_data.current_enrollment.get_enrollment_status_display }}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endif %}
+.profile-sidebar {
+    position: sticky;
+    top: 1rem;
+}
 
-                                <!-- Teacher Information -->
-                                {% if academic_data.teacher_profile %}
-                                <div class="col-md-6">
-                                    <div class="card border-0 shadow-sm h-100">
-                                        <div class="card-body">
-                                            <h6 class="fw-bold mb-3">
-                                                <i class="bi bi-mortarboard text-info me-2"></i>
-                                                {% trans "Teaching Profile" %}
-                                            </h6>
-                                            <div class="row g-2">
-                                                <div class="col-12">
-                                                    <small class="text-muted d-block">{% trans "Employee ID" %}</small>
-                                                    <strong>{{ academic_data.teacher_profile.teacher_id }}</strong>
+.profile-picture-wrapper {
+    width: 120px;
+    height: 120px;
+}
+
+.profile-picture,
+.profile-picture-placeholder {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+}
+
+.profile-picture-upload {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.profile-navigation .nav-link {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
     color: #495057;
     border: none;
     transition: all 0.3s ease;

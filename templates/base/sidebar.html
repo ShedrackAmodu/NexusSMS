@@ -404,14 +404,24 @@
                         <!-- Administration - Super Admin, Admin, Principal -->
                         {% if can_manage_users %}
                         <li class="nav-item dropdown-wrapper">
-                            <a class="nav-link dropdown-toggle" href="#administrationSubmenu" data-bs-toggle="collapse" aria-expanded="{% if 'users' in request.resolver_match.app_name or 'audit' in request.resolver_match.app_name or 'analytics' in request.resolver_match.app_name and request.resolver_match.url_name == 'settings' %}true{% else %}false{% endif %}">
+                            <a class="nav-link dropdown-toggle" href="#administrationSubmenu" data-bs-toggle="collapse" aria-expanded="{% if sidebar_administration_expanded %}true{% else %}false{% endif %}">
                                 <i class="bi bi-gear me-2"></i>
-                                {% trans "Administration" %}
+                                {% if user.is_superuser %}
+                                    {% trans "Super Admin" %}
+                                {% else %}
+                                    {% trans "Administration" %}
+                                {% endif %}
                                 <span class="dropdown-indicator">
                                     <i class="bi bi-chevron-down"></i>
                                 </span>
                             </a>
-                            <ul class="collapse list-unstyled {% if 'users' in request.resolver_match.app_name or 'audit' in request.resolver_match.app_name or 'analytics' in request.resolver_match.app_name and request.resolver_match.url_name == 'settings' %}show{% endif %}" id="administrationSubmenu">
+                            <ul class="collapse list-unstyled {% if sidebar_administration_expanded %}show{% else %}{% endif %}" id="administrationSubmenu">
+                                {% if user.is_superuser %}
+                                <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'super_admin_dashboard' %}active{% endif %}" href="{% url 'core:super_admin_dashboard' %}"><i class="bi bi-speedometer2 me-2"></i>{% trans "Super Admin Dashboard" %}</a></li>
+                                <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'super_admin_entities' %}active{% endif %}" href="{% url 'core:super_admin_entities' %}"><i class="bi bi-cogs me-2"></i>{% trans "System Entities" %}</a></li>
+                                <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'institution_list' %}active{% endif %}" href="{% url 'core:institution_list' %}"><i class="bi bi-building me-2"></i>{% trans "Institution Management" %}</a></li>
+                                <li class="nav-item"><hr class="dropdown-divider"></li>
+                                {% endif %}
                                 <li class="nav-item"><a class="nav-link" href="{% url 'users:user_list' %}"><i class="bi bi-people me-2"></i>{% trans "User Management" %}</a></li>
                                 <li class="nav-item"><a class="nav-link" href="{% url 'users:role_list' %}"><i class="bi bi-person-gear me-2"></i>{% trans "Role Management" %}</a></li>
                                 <li class="nav-item"><a class="nav-link" href="{% url 'users:pending_applications' %}"><i class="bi bi-person-check me-2"></i>{% trans "Applications" %}</a></li>
