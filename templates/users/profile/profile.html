@@ -405,33 +405,34 @@
                             
                             <div class="row g-4">
                                 <!-- Email Verification -->
-                                                <div class="col-12">
-                                                    <div class="alert alert-info mb-0">
-                                                        <small>
-                                                            {% trans "Total outstanding amount" %}:
-                                                            <strong>${{ finance_data.total_outstanding }}</strong><br>
-                                                            {% trans "Last payment" %}:
-                                                            {% if finance_data.recent_payments %}
-                                                            <strong>{{ finance_data.recent_payments.0.payment_date|date:"M j, Y" }}</strong>
-                                                            {% else %}
-                                                            <em>{% trans "No recent payments" %}</em>
-                                                            {% endif %}
-                                                        </small>
-                                                    </div>
-                                                </div>
-                                                <div>
+                                <div class="col-12">
+                                    <div class="alert alert-info mb-0">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <small>
+                                                    {% trans "Email Status" %}:
                                                     {% if user.is_verified %}
-                                                    <span class="badge bg-success">
-                                                        <i class="bi bi-check-circle me-1"></i>
-                                                        {% trans "Verified" %}
-                                                    </span>
+                                                        <strong class="text-success">{% trans "Verified" %}</strong>
+                                                        {% if user.email_verified_at %}
+                                                            ({{ user.email_verified_at|date:"M j, Y H:i" }})
+                                                        {% endif %}
                                                     {% else %}
-                                                    <button class="btn btn-outline-warning btn-sm">
-                                                        <i class="bi bi-envelope me-1"></i>
-                                                        {% trans "Verify Email" %}
-                                                    </button>
+                                                        <strong class="text-warning">{% trans "Not Verified" %}</strong>
                                                     {% endif %}
-                                                </div>
+                                                </small>
+                                            </div>
+                                            <div>
+                                                {% if user.is_verified %}
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-check-circle me-1"></i>
+                                                    {% trans "Verified" %}
+                                                </span>
+                                                {% else %}
+                                                <button class="btn btn-outline-warning btn-sm">
+                                                    <i class="bi bi-envelope me-1"></i>
+                                                    {% trans "Verify Email" %}
+                                                </button>
+                                                {% endif %}
                                             </div>
                                         </div>
                                     </div>
@@ -523,6 +524,73 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                <!-- Audit Activity Summary -->
+                                <div class="col-12">
+                                    <div class="card border-0 bg-light">
+                                        <div class="card-body">
+                                            <h6 class="fw-semibold mb-3">{% trans "Recent Activity Summary" %}</h6>
+                                            <div class="row g-2">
+                                                {% with activity_count=activity_data.login_history|length %}
+                                                <div class="col-3">
+                                                    <small class="text-muted">{% trans "Recent Logins" %}</small>
+                                                    <div class="fw-semibold">{{ activity_count }}</div>
+                                                </div>
+                                                {% endwith %}
+                                                {% with transfer_count=activity_data.transfer_requests|length %}
+                                                <div class="col-3">
+                                                    <small class="text-muted">{% trans "Transfer Requests" %}</small>
+                                                    <div class="fw-semibold">{{ transfer_count }}</div>
+                                                </div>
+                                                {% endwith %}
+                                                {% with role_count=user.user_roles.count %}
+                                                <div class="col-3">
+                                                    <small class="text-muted">{% trans "Active Roles" %}</small>
+                                                    <div class="fw-semibold">{{ role_count }}</div>
+                                                </div>
+                                                {% endwith %}
+                                                {% with password_count=user.password_history|length %}
+                                                <div class="col-3">
+                                                    <small class="text-muted">{% trans "Password Changes" %}</small>
+                                                    <div class="fw-semibold">{{ password_count }}</div>
+                                                </div>
+                                                {% endwith %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Security Recommendations -->
+                                {% if not user.is_verified %}
+                                <div class="col-12">
+                                    <div class="card border-0 bg-warning bg-opacity-10">
+                                        <div class="card-body">
+                                            <h6 class="fw-semibold mb-3 text-warning">
+                                                <i class="bi bi-shield-exclamation me-2"></i>
+                                                {% trans "Security Recommendations" %}
+                                            </h6>
+                                            <ul class="list-unstyled mb-0 small">
+                                                {% if not user.is_verified %}
+                                                <li class="mb-1">
+                                                    <i class="bi bi-arrow-right text-warning me-1"></i>
+                                                    {% trans "Verify your email address for enhanced security" %}
+                                                </li>
+                                                {% endif %}
+                                                <li class="mb-1">
+                                                    <i class="bi bi-arrow-right text-warning me-1"></i>
+                                                    {% trans "Review your recent login activity and consider enabling additional security measures" %}
+                                                </li>
+                                                {% if not user.two_factor_enabled %}
+                                                <li class="mb-1">
+                                                    <i class="bi bi-arrow-right text-warning me-1"></i>
+                                                    {% trans "Enable two-factor authentication when available" %}
+                                                </li>
+                                                {% endif %}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
 
@@ -613,6 +681,16 @@
                                         {{ profile_form.twitter }}
                                     </div>
                                 </div>
+
+                                {% if user.is_staff or user.is_superuser %}
+                                <h6 class="mt-4 mb-3 fw-semibold">{% trans "Administrator Preferences" %}</h6>
+                                <div class="alert alert-info">
+                                    <small>
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        {% trans "Admin-specific settings and preferences will be available here. These may include dashboard configurations, notification filtering, and system management preferences." %}
+                                    </small>
+                                </div>
+                                {% endif %}
 
                                 <div class="mt-4">
                                     <button type="submit" class="btn btn-primary" name="save_preferences">
