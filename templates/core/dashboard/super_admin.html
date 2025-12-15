@@ -268,7 +268,7 @@
                                 <div class="text-xs font-weight-bold text-uppercase mb-1">{{ kpi.name }}</div>
                                 <div class="h6 mb-0 font-weight-bold">
                                     {% if kpi_data|length > 0 and kpi.id in kpi_data %}
-                                        {{ kpi_data|get_item:kpi.id.value }}
+                                        {{ kpi_data|get_item:kpi.id }}
                                     {% else %}
                                         --
                                     {% endif %}

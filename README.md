@@ -30,6 +30,7 @@
   - Can modify academic, financial, security, and UI configurations
   - Changes apply across all connected institutions
   - Audit trail maintained for all configuration changes
+  
 
 #### 🏫 2. Multi-Institution Management
 - **I want to** manage multiple school instances under one platform
@@ -704,6 +705,7 @@
   - View activity fee invoices and payment history
   - Make online payments for multiple activities
   - Receive reminders for upcoming fees
+  
 
 #### 🏆 9. Achievement Celebration
 - **I want to** celebrate my child's extracurricular achievements
