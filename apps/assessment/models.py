@@ -1,5 +1,7 @@
 # apps/assessment/models.py
 
+import re
+from decimal import Decimal
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils.translation import gettext_lazy as _
@@ -12,6 +14,21 @@ from datetime import datetime
 
 from apps.core.models import CoreBaseModel
 # Use app-label strings for related models to avoid import-time side-effects
+
+# Grade choices for result views (from clue system)
+GRADE_CHOICES = [
+    ('A+', 'A+'),
+    ('A', 'A'),
+    ('A-', 'A-'),
+    ('B+', 'B+'),
+    ('B', 'B'),
+    ('B-', 'B-'),
+    ('C+', 'C+'),
+    ('C', 'C'),
+    ('C-', 'C-'),
+    ('D', 'D'),
+    ('F', 'F'),
+]
 
 
 class AssessmentBaseModel(CoreBaseModel):
@@ -1057,7 +1074,15 @@ class AssessmentRule(AssessmentBaseModel):
 class QuestionBank(AssessmentBaseModel):
     """
     Question bank for organizing questions by subject and topic.
+    Enhanced with quiz categories and settings similar to clue system.
     """
+    # Quiz Categories (from clue system)
+    QUIZ_CATEGORIES = [
+        ('assignment', _('Assignment')),
+        ('exam', _('Exam')),
+        ('practice', _('Practice Quiz')),
+    ]
+
     name = models.CharField(_('question bank name'), max_length=200)
     description = models.TextField(_('description'), blank=True)
     subject = models.ForeignKey(
@@ -1086,6 +1111,60 @@ class QuestionBank(AssessmentBaseModel):
     )
     is_active = models.BooleanField(_('is active'), default=True)
 
+    # New fields from clue system
+    bank_type = models.CharField(
+        _('bank type'),
+        max_length=20,
+        choices=[
+            ('question_bank', _('Question Bank')),
+            ('quiz', _('Quiz')),
+        ],
+        default='question_bank',
+        help_text=_('Whether this is a question bank or a complete quiz')
+    )
+    category = models.CharField(
+        _('category'),
+        max_length=20,
+        choices=QUIZ_CATEGORIES,
+        blank=True,
+        help_text=_('Category for quiz-type question banks')
+    )
+    random_order = models.BooleanField(
+        _('random order'),
+        default=False,
+        help_text=_('Display questions in random order')
+    )
+    answers_at_end = models.BooleanField(
+        _('answers at end'),
+        default=False,
+        help_text=_('Show answers at the end instead of after each question')
+    )
+    exam_paper = models.BooleanField(
+        _('exam paper'),
+        default=False,
+        help_text=_('Store results for manual grading')
+    )
+    single_attempt = models.BooleanField(
+        _('single attempt'),
+        default=False,
+        help_text=_('Allow only one attempt per student')
+    )
+    pass_mark = models.PositiveIntegerField(
+        _('pass mark'),
+        default=50,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text=_('Percentage required to pass')
+    )
+    draft = models.BooleanField(
+        _('draft'),
+        default=False,
+        help_text=_('Draft quizzes are not visible to students')
+    )
+
+    # Additional clue system fields
+    url = models.SlugField(unique=True, blank=True, help_text=_('URL slug for the quiz'))
+    timestamp = models.DateTimeField(auto_now=True, help_text=_('Last modified timestamp'))
+
     class Meta:
         verbose_name = _('Question Bank')
         verbose_name_plural = _('Question Banks')
@@ -1093,6 +1172,28 @@ class QuestionBank(AssessmentBaseModel):
 
     def __str__(self):
         return f"{self.name} - {self.subject} ({self.academic_class})"
+
+    def save(self, *args, **kwargs):
+        """Auto-manage quiz settings similar to clue system."""
+        if self.single_attempt:
+            self.exam_paper = True
+
+        if not (0 <= self.pass_mark <= 100):
+            raise ValidationError(_('Pass mark must be between 0 and 100.'))
+
+        super().save(*args, **kwargs)
+
+    def get_questions(self):
+        """Get questions for this quiz, respecting random order."""
+        questions = self.questions.filter(is_active=True)
+        if self.random_order:
+            return list(questions.order_by('?'))
+        return list(questions.order_by('id'))
+
+    @property
+    def get_max_score(self):
+        """Get maximum possible score for this quiz."""
+        return self.questions.filter(is_active=True).count()
 
 
 class Question(AssessmentBaseModel):
@@ -1339,6 +1440,692 @@ class StudentAnswer(AssessmentBaseModel):
         if self.selected_options:
             return QuestionOption.objects.filter(id__in=self.selected_options)
         return QuestionOption.objects.none()
+
+
+class QuizProgress(AssessmentBaseModel):
+    """
+    Enhanced progress tracking similar to clue system's Progress model.
+    Tracks user progress across different quiz categories.
+    """
+    student = models.OneToOneField(
+        'academics.Student',
+        on_delete=models.CASCADE,
+        related_name='quiz_progress',
+        verbose_name=_('student')
+    )
+    score = models.TextField(
+        _('score data'),
+        blank=True,
+        help_text=_('Comma-separated quiz scores in format: quiz_id,correct,total,')
+    )
+
+    class Meta:
+        verbose_name = _('Quiz Progress')
+        verbose_name_plural = _('Quiz Progress Records')
+
+    def list_all_cat_scores(self):
+        """Get scores categorized by quiz category (enhanced from clue system)."""
+        cat_scores = {}
+        sittings = QuizAttempt.objects.filter(student=self.student, complete=True)
+
+        for sitting in sittings:
+            category = sitting.question_bank.category or "Uncategorized"
+            if category not in cat_scores:
+                cat_scores[category] = [0, 0, 0]  # correct, incorrect, percentage
+
+            total_questions = sitting.get_max_score
+            correct = sitting.current_score
+            incorrect = total_questions - correct
+
+            cat_scores[category][0] += correct
+            cat_scores[category][1] += incorrect
+            total = cat_scores[category][0] + cat_scores[category][1]
+            if total > 0:
+                cat_scores[category][2] = round((cat_scores[category][0] / total) * 100, 1)
+
+        return cat_scores
+
+    def list_category_scores(self):
+        """Alias for backward compatibility."""
+        return self.list_all_cat_scores()
+
+    def update_score(self, question_bank, score_to_add=0, possible_to_add=0):
+        """Update score for a specific question bank (enhanced from clue system)."""
+        if not isinstance(score_to_add, int) or not isinstance(possible_to_add, int):
+            return _("Error"), _("Invalid score values.")
+
+        to_find = re.escape(str(question_bank)) + r",(?P<score>\d+),(?P<possible>\d+),"
+        match = re.search(to_find, self.score, re.IGNORECASE)
+
+        if match:
+            updated_score = int(match.group("score")) + abs(score_to_add)
+            updated_possible = int(match.group("possible")) + abs(possible_to_add)
+            new_score = ",".join([str(question_bank), str(updated_score), str(updated_possible), ""])
+            self.score = self.score.replace(match.group(), new_score)
+            self.save()
+        else:
+            self.score += ",".join([str(question_bank), str(score_to_add), str(possible_to_add), ""])
+            self.save()
+
+    def show_exams(self):
+        """Get all completed quiz attempts (enhanced from clue system)."""
+        if self.student.user.is_superuser:
+            return QuizAttempt.objects.filter(complete=True).order_by("-end_time")
+        else:
+            return QuizAttempt.objects.filter(
+                student=self.student, complete=True
+            ).order_by("-end_time")
+
+    def show_attempts(self):
+        """Alias for backward compatibility."""
+        return self.show_exams()
+
+    @property
+    def total_quizzes_taken(self):
+        """Get total number of quizzes taken."""
+        return QuizAttempt.objects.filter(student=self.student, complete=True).count()
+
+    @property
+    def average_score(self):
+        """Get average quiz score."""
+        attempts = QuizAttempt.objects.filter(student=self.student, complete=True)
+        if attempts.exists():
+            total_score = sum(attempt.get_percent_correct for attempt in attempts)
+            return round(total_score / attempts.count(), 1)
+        return 0
+
+    @property
+    def best_score(self):
+        """Get best quiz score."""
+        attempts = QuizAttempt.objects.filter(student=self.student, complete=True)
+        if attempts.exists():
+            return max(attempt.get_percent_correct for attempt in attempts)
+        return 0
+
+
+class QuizAttempt(AssessmentBaseModel):
+    """
+    Enhanced quiz attempt tracking, similar to Sitting model in clue system.
+    """
+    student = models.ForeignKey(
+        'academics.Student',
+        on_delete=models.CASCADE,
+        related_name='quiz_attempts',
+        verbose_name=_('student')
+    )
+    question_bank = models.ForeignKey(
+        QuestionBank,
+        on_delete=models.CASCADE,
+        related_name='attempts',
+        verbose_name=_('question bank')
+    )
+    question_order = models.TextField(
+        _('question order'),
+        help_text=_('Comma-separated list of question IDs in order')
+    )
+    question_list = models.TextField(
+        _('question list'),
+        help_text=_('Current questions remaining to answer')
+    )
+    user_answers = models.TextField(
+        _('user answers'),
+        blank=True,
+        default="{}",
+        help_text=_('JSON string storing answers by question ID')
+    )
+    incorrect_questions = models.TextField(
+        _('incorrect questions'),
+        blank=True,
+        help_text=_('Comma-separated list of incorrectly answered question IDs')
+    )
+    current_score = models.IntegerField(_('current score'), default=0)
+    complete = models.BooleanField(_('complete'), default=False)
+    start_time = models.DateTimeField(_('start time'), auto_now_add=True)
+    end_time = models.DateTimeField(_('end time'), null=True, blank=True)
+
+    class Meta:
+        verbose_name = _('Quiz Attempt')
+        verbose_name_plural = _('Quiz Attempts')
+        unique_together = ['student', 'question_bank']
+        ordering = ['-start_time']
+
+    def __str__(self):
+        return f"{self.student} - {self.question_bank} ({'Complete' if self.complete else 'In Progress'})"
+
+    def get_first_question(self):
+        """Get the first unanswered question (from clue system)."""
+        if not self.question_list:
+            return False
+        first_question_id = int(self.question_list.split(",", 1)[0])
+        return Question.objects.get(id=first_question_id)
+
+    def remove_first_question(self):
+        """Remove the first question from the list (from clue system)."""
+        if not self.question_list:
+            return
+        _, remaining_questions = self.question_list.split(",", 1)
+        self.question_list = remaining_questions
+        self.save()
+
+    def add_user_answer(self, question, guess):
+        """Add or update user answer for a question (from clue system)."""
+        user_answers = json.loads(self.user_answers)
+        user_answers[str(question.id)] = guess
+        self.user_answers = json.dumps(user_answers)
+        self.save()
+
+    def add_to_score(self, points):
+        """Add points to current score."""
+        self.current_score += int(points)
+        self.save()
+
+    @property
+    def get_percent_correct(self):
+        """Calculate percentage correct."""
+        total_questions = len(self._question_ids())
+        if total_questions == 0:
+            return 0
+        percent = (self.current_score / total_questions) * 100
+        return min(max(int(round(percent)), 0), 100)
+
+    @property
+    def check_if_passed(self):
+        """Check if attempt passed the pass mark."""
+        return self.get_percent_correct >= self.question_bank.pass_mark
+
+    @property
+    def result_message(self):
+        """Get result message based on pass/fail."""
+        if self.check_if_passed:
+            return _("Congratulations! You have passed this quiz.")
+        else:
+            return _("You failed this quiz. Try again.")
+
+    def mark_quiz_complete(self):
+        """Mark the quiz attempt as complete and update TakenCourse (from clue system)."""
+        self.complete = True
+        self.end_time = timezone.now()
+        self.save()
+
+        # Update TakenCourse with quiz score (from clue system integration)
+        try:
+            from apps.academics.models import AcademicSession
+            current_session = AcademicSession.objects.filter(is_current=True).first()
+            if current_session:
+                taken_course, created = TakenCourse.objects.get_or_create(
+                    student=self.student,
+                    course=self.question_bank.subject,
+                    academic_session=current_session,
+                    defaults={'quiz': Decimal('0.00')}
+                )
+                # Update the quiz field with the percentage score
+                taken_course.quiz = Decimal(str(self.get_percent_correct))
+                taken_course.save()
+        except Exception as e:
+            # Log error but don't fail quiz completion
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to update TakenCourse.quiz for student {self.student}: {e}")
+
+    def get_questions_with_answers(self):
+        """Get all questions with user answers (from clue system)."""
+        question_ids = self._question_ids()
+        questions = sorted(
+            self.question_bank.questions.filter(id__in=question_ids),
+            key=lambda q: question_ids.index(q.id),
+        )
+
+        user_answers = json.loads(self.user_answers)
+        for question in questions:
+            question.user_answer = user_answers.get(str(question.id))
+
+        return questions
+
+    def _question_ids(self):
+        """Get list of question IDs from question_order."""
+        return [int(q) for q in self.question_order.split(",") if q]
+
+    @property
+    def get_max_score(self):
+        """Get maximum possible score."""
+        return len(self._question_ids())
+
+    @property
+    def progress_percentage(self):
+        """Calculate progress percentage."""
+        answered = len(json.loads(self.user_answers))
+        total = self.get_max_score
+        return answered, total
+
+    def add_incorrect_question(self, question):
+        """Add question to incorrect questions list (from clue system)."""
+        incorrect_ids = self.get_incorrect_questions
+        incorrect_ids.append(question.id)
+        self.incorrect_questions = ",".join(map(str, incorrect_ids)) + ","
+        if self.complete:
+            self.add_to_score(-1)
+        self.save()
+
+    def remove_incorrect_question(self, question):
+        """Remove question from incorrect questions list (from clue system)."""
+        incorrect_ids = self.get_incorrect_questions
+        if question.id in incorrect_ids:
+            incorrect_ids.remove(question.id)
+            self.incorrect_questions = ",".join(map(str, incorrect_ids)) + ","
+            self.add_to_score(1)
+            self.save()
+
+    @property
+    def get_incorrect_questions(self):
+        """Get list of incorrect question IDs (from clue system)."""
+        return [int(q) for q in self.incorrect_questions.split(",") if q]
+
+    def get_questions(self, with_answers=False):
+        """Get questions for this attempt (from clue system)."""
+        question_ids = self._question_ids()
+        questions = sorted(
+            self.question_bank.questions.filter(id__in=question_ids),
+            key=lambda q: question_ids.index(q.id),
+        )
+        if with_answers:
+            user_answers = json.loads(self.user_answers)
+            for question in questions:
+                question.user_answer = user_answers.get(str(question.id))
+        return questions
+
+    @property
+    def questions_with_user_answers(self):
+        """Get questions with user answers (from clue system)."""
+        return {q: q.user_answer for q in self.get_questions(with_answers=True)}
+
+
+class CourseGrade(AssessmentBaseModel):
+    """
+    Course-based grading system similar to TakenCourse in clue system.
+    Tracks comprehensive course performance including assignments, exams, quizzes, etc.
+    """
+    student = models.ForeignKey(
+        'academics.Student',
+        on_delete=models.CASCADE,
+        related_name='course_grades',
+        verbose_name=_('student')
+    )
+    subject = models.ForeignKey(
+        'academics.Subject',
+        on_delete=models.CASCADE,
+        related_name='course_grades',
+        verbose_name=_('subject')
+    )
+    academic_session = models.ForeignKey(
+        'academics.AcademicSession',
+        on_delete=models.CASCADE,
+        related_name='course_grades',
+        verbose_name=_('academic session')
+    )
+
+    # Assessment components (similar to TakenCourse)
+    assignments = models.DecimalField(
+        _('assignments score'),
+        max_digits=5,
+        decimal_places=2,
+        default=0.00,
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    mid_exam = models.DecimalField(
+        _('mid-term exam'),
+        max_digits=5,
+        decimal_places=2,
+        default=0.00,
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    quizzes = models.DecimalField(
+        _('quizzes score'),
+        max_digits=5,
+        decimal_places=2,
+        default=0.00,
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    attendance = models.DecimalField(
+        _('attendance percentage'),
+        max_digits=5,
+        decimal_places=2,
+        default=0.00,
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    final_exam = models.DecimalField(
+        _('final exam'),
+        max_digits=5,
+        decimal_places=2,
+        default=0.00,
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+
+    # Calculated fields
+    total_score = models.DecimalField(
+        _('total score'),
+        max_digits=5,
+        decimal_places=2,
+        default=0.00,
+        editable=False
+    )
+    grade = models.CharField(
+        _('grade'),
+        max_length=2,
+        blank=True,
+        editable=False
+    )
+    grade_point = models.DecimalField(
+        _('grade point'),
+        max_digits=3,
+        decimal_places=1,
+        default=0.0,
+        editable=False
+    )
+    remark = models.CharField(
+        _('remark'),
+        max_length=20,
+        blank=True,
+        editable=False
+    )
+
+    # Weightage for GPA calculation
+    credit_hours = models.PositiveIntegerField(
+        _('credit hours'),
+        default=1,
+        help_text=_('Credit hours for this course')
+    )
+
+    class Meta:
+        verbose_name = _('Course Grade')
+        verbose_name_plural = _('Course Grades')
+        unique_together = ['student', 'subject', 'academic_session']
+        ordering = ['student', 'subject']
+
+    def __str__(self):
+        return f"{self.student} - {self.subject} ({self.grade or 'Ungraded'})"
+
+    def calculate_total_score(self):
+        """Calculate total score based on weighted components."""
+        # Default weightage: assignments 20%, mid_exam 20%, quizzes 20%, attendance 10%, final_exam 30%
+        weights = {
+            'assignments': 0.20,
+            'mid_exam': 0.20,
+            'quizzes': 0.20,
+            'attendance': 0.10,
+            'final_exam': 0.30
+        }
+
+        total = (
+            self.assignments * weights['assignments'] +
+            self.mid_exam * weights['mid_exam'] +
+            self.quizzes * weights['quizzes'] +
+            self.attendance * weights['attendance'] +
+            self.final_exam * weights['final_exam']
+        )
+        return round(total, 2)
+
+    def calculate_grade(self):
+        """Calculate letter grade based on total score."""
+        # Standard grading scale
+        grade_boundaries = [
+            (90, 'A+', 4.0),
+            (85, 'A', 4.0),
+            (80, 'A-', 3.75),
+            (75, 'B+', 3.5),
+            (70, 'B', 3.0),
+            (65, 'B-', 2.75),
+            (60, 'C+', 2.5),
+            (55, 'C', 2.0),
+            (50, 'C-', 1.75),
+            (45, 'D', 1.0),
+            (0, 'F', 0.0)
+        ]
+
+        for boundary, grade, points in grade_boundaries:
+            if self.total_score >= boundary:
+                return grade, points, 'PASS' if grade != 'F' else 'FAIL'
+
+        return 'F', 0.0, 'FAIL'
+
+    def save(self, *args, **kwargs):
+        self.total_score = self.calculate_total_score()
+        self.grade, self.grade_point, self.remark = self.calculate_grade()
+        super().save(*args, **kwargs)
+
+    @property
+    def is_passing(self):
+        """Check if student is passing this course."""
+        return self.grade_point > 0
+
+    def update_quiz_score(self, quiz_percentage):
+        """Update quiz component score."""
+        self.quizzes = quiz_percentage
+        self.save()
+
+
+class AIGenerationLog(AssessmentBaseModel):
+    """
+    Track AI question generation history.
+    """
+    user = models.ForeignKey(
+        'academics.Teacher',
+        on_delete=models.CASCADE,
+        related_name='ai_generations',
+        verbose_name=_('teacher')
+    )
+    model_used = models.CharField(_('AI model used'), max_length=100)
+    topic = models.CharField(_('topic'), max_length=255)
+    question_count = models.PositiveIntegerField(_('questions generated'))
+    question_bank = models.ForeignKey(
+        QuestionBank,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='ai_generations',
+        verbose_name=_('question bank')
+    )
+    success = models.BooleanField(_('success'), default=True)
+    error_message = models.TextField(_('error message'), blank=True)
+    generated_at = models.DateTimeField(_('generated at'), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _('AI Generation Log')
+        verbose_name_plural = _('AI Generation Logs')
+        ordering = ['-generated_at']
+
+    def __str__(self):
+        return f"{self.user} - {self.topic} ({self.generated_at.strftime('%Y-%m-%d %H:%M')})"
+
+
+class TakenCourse(CoreBaseModel):
+    """
+    Enhanced course grade tracking similar to clue system's TakenCourse.
+    Tracks comprehensive course performance across all assessment components.
+    """
+    student = models.ForeignKey(
+        'academics.Student',
+        on_delete=models.CASCADE,
+        related_name='taken_courses',
+        verbose_name=_('student')
+    )
+    course = models.ForeignKey(
+        'academics.Subject',
+        on_delete=models.CASCADE,
+        related_name='taken_courses',
+        verbose_name=_('course')
+    )
+    academic_session = models.ForeignKey(
+        'academics.AcademicSession',
+        on_delete=models.CASCADE,
+        related_name='taken_courses',
+        verbose_name=_('academic session')
+    )
+
+    # Assessment components (from clue system)
+    assignment = models.DecimalField(
+        _('assignment score'),
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    mid_exam = models.DecimalField(
+        _('mid-term exam'),
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    quiz = models.DecimalField(
+        _('quiz score'),
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    attendance = models.DecimalField(
+        _('attendance percentage'),
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    final_exam = models.DecimalField(
+        _('final exam'),
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+
+    # Calculated fields
+    total = models.DecimalField(
+        _('total score'),
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        editable=False
+    )
+    grade = models.CharField(
+        _('grade'),
+        max_length=2,
+        blank=True,
+        editable=False
+    )
+    point = models.DecimalField(
+        _('grade point'),
+        max_digits=4,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        editable=False
+    )
+    comment = models.CharField(
+        _('comment'),
+        max_length=10,
+        blank=True,
+        editable=False
+    )
+
+    class Meta:
+        verbose_name = _('Taken Course')
+        verbose_name_plural = _('Taken Courses')
+        unique_together = ['student', 'course', 'academic_session']
+        ordering = ['student', 'course']
+
+    def __str__(self):
+        return f"{self.student} - {self.course} ({self.grade or 'Ungraded'})"
+
+    def get_total(self):
+        """Calculate total score from all components (from clue system)."""
+        return sum([
+            Decimal(self.assignment),
+            Decimal(self.mid_exam),
+            Decimal(self.quiz),
+            Decimal(self.attendance),
+            Decimal(self.final_exam),
+        ])
+
+    def get_grade(self):
+        """Determine grade based on total score (from clue system)."""
+        # Grade boundaries from clue system
+        grade_boundaries = [
+            (90, 'A+'),
+            (85, 'A'),
+            (80, 'A-'),
+            (75, 'B+'),
+            (70, 'B'),
+            (65, 'B-'),
+            (60, 'C+'),
+            (55, 'C'),
+            (50, 'C-'),
+            (45, 'D'),
+            (0, 'F'),
+        ]
+
+        total = float(self.total)
+        for boundary, grade in grade_boundaries:
+            if total >= boundary:
+                return grade
+        return 'F'
+
+    def get_point(self):
+        """Calculate grade points for GPA (from clue system)."""
+        grade_points = {
+            'A+': 4.0, 'A': 4.0, 'A-': 3.75,
+            'B+': 3.5, 'B': 3.0, 'B-': 2.75,
+            'C+': 2.5, 'C': 2.0, 'C-': 1.75,
+            'D': 1.0, 'F': 0.0
+        }
+        credit = getattr(self.course, 'credit_hours', 1)  # Default to 1 if no credit field
+        return Decimal(credit) * Decimal(grade_points.get(self.grade, 0.0))
+
+    def get_comment(self):
+        """Determine pass/fail comment (from clue system)."""
+        return 'PASS' if self.grade not in ['F'] else 'FAIL'
+
+    def calculate_gpa(self):
+        """Calculate GPA for current semester (from clue system)."""
+        current_session = self.academic_session
+        if not current_session:
+            return Decimal('0.00')
+
+        taken_courses = TakenCourse.objects.filter(
+            student=self.student,
+            academic_session=current_session
+        )
+
+        total_points = sum(tc.point for tc in taken_courses)
+        total_credits = sum(getattr(tc.course, 'credit_hours', 1) for tc in taken_courses)
+
+        if total_credits > 0:
+            gpa = total_points / Decimal(total_credits)
+            return round(gpa, 2)
+        return Decimal('0.00')
+
+    def calculate_cgpa(self):
+        """Calculate CGPA across all semesters (from clue system)."""
+        taken_courses = TakenCourse.objects.filter(student=self.student)
+
+        total_points = sum(tc.point for tc in taken_courses)
+        total_credits = sum(getattr(tc.course, 'credit_hours', 1) for tc in taken_courses)
+
+        if total_credits > 0:
+            cgpa = total_points / Decimal(total_credits)
+            return round(cgpa, 2)
+        return Decimal('0.00')
+
+    def save(self, *args, **kwargs):
+        """Auto-calculate fields on save (from clue system)."""
+        self.total = self.get_total()
+        self.grade = self.get_grade()
+        self.point = self.get_point()
+        self.comment = self.get_comment()
+        super().save(*args, **kwargs)
+
+    def update_quiz_score(self, quiz_percentage):
+        """Update quiz component score."""
+        self.quiz = Decimal(quiz_percentage)
+        self.save()
 
 
 # Signal handlers for parent notifications

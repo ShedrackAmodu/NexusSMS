@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load assessment_tags %}
+
+{% block title %}Grade Results{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-graduation-cap mr-2"></i>
+                        Grade Distribution & Results
+                    </h3>
+                    <div class="card-tools">
+                        <a href="{% url 'assessment:add_score' %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus"></i> Add Scores
+                        </a>
+                        {% if taken_courses %}
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle"
+                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-download"></i> Export
+                            </button>
+                            <ul class="dropdown-menu">
+                                {% for course in taken_courses|slice:":1" %}
+                                <li><a class="dropdown-item" href="{% url 'assessment:result_sheet_pdf' course.course.id %}">
+                                    <i class="fas fa-file-pdf"></i> PDF Result Sheet
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'assessment:course_registration_pdf' course.course.id %}">
+                                    <i class="fas fa-file-pdf"></i> Registration Form
+                                </a></li>
+                                {% endfor %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" onclick="exportToCSV()">
+                                    <i class="fas fa-file-csv"></i> CSV Export
+                                </a></li>
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Grade Summary Cards -->
+                    {% if grade_summary %}
+                    <div class="row mb-4">
+                        {% for grade, data in grade_summary.items %}
+                        <div class="col-md-2 col-sm-6 mb-3">
+                            <div class="card text-center h-100">
+                                <div class="card-body">
+                                    <h4 class="card-title text-primary">{{ grade }}</h4>
+                                    <h2 class="mb-0">{{ data.count }}</h2>
+                                    <small class="text-muted">Students</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Results Table -->
+                    {% if taken_courses %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Student</th>
+                                        <th>Course</th>
+                                        <th>Assignment</th>
+                                        <th>Mid Exam</th>
+                                        <th>Quiz</th>
+                                        <th>Attendance</th>
+                                        <th>Final Exam</th>
+                                        <th>Total</th>
+                                        <th>Grade</th>
+                                        <th>Comment</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for taken_course in taken_courses %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ taken_course.student.user.get_full_name }}</strong>
+                                        </td>
+                                        <td>{{ taken_course.course.name }}</td>
+                                        <td>{{ taken_course.assignment|floatformat:1 }}%</td>
+                                        <td>{{ taken_course.mid_exam|floatformat:1 }}%</td>
+                                        <td>{{ taken_course.quiz|floatformat:1 }}%</td>
+                                        <td>{{ taken_course.attendance|floatformat:1 }}%</td>
+                                        <td>{{ taken_course.final_exam|floatformat:1 }}%</td>
+                                        <td>
+                                            <strong>{{ taken_course.total|floatformat:1 }}%</strong>
+                                        </td>
+                                        <td>
+                                            {% if taken_course.grade == 'F' %}
+                                                <span class="badge badge-danger">{{ taken_course.grade }}</span>
+                                            {% elif taken_course.grade in 'ABC' %}
+                                                <span class="badge badge-success">{{ taken_course.grade }}</span>
+                                            {% else %}
+                                                <span class="badge badge-warning">{{ taken_course.grade }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if taken_course.comment == 'PASS' %}
+                                                <span class="badge badge-success">{{ taken_course.comment }}</span>
+                                            {% else %}
+                                                <span class="badge badge-danger">{{ taken_course.comment }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'assessment:result_detail' taken_course.student.pk taken_course.course.pk %}"
+                                               class="btn btn-sm btn-info">
+                                                <i class="fas fa-eye"></i> Details
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Grade Distribution Chart -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Grade Distribution</h4>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="gradeChart" width="400" height="200"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-graduation-cap fa-3x text-muted mb-3"></i>
+                            <h4>No Grade Results Found</h4>
+                            <p class="text-muted">There are no course grades to display at the moment.</p>
+                            <a href="{% url 'assessment:add_score' %}" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Add Course Scores
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+$(document).ready(function() {
+    // Initialize DataTables
+    $('.table').DataTable({
+        "pageLength": 25,
+        "ordering": true,
+        "searching": true,
+        "responsive": true
+    });
+
+    // Grade Distribution Chart
+    {% if grade_summary %}
+    var gradeLabels = {{ grade_summary|keys|list|safe }};
+    var gradeCounts = {{ grade_summary|values|list|safe }};
+
+    var ctx = document.getElementById('gradeChart').getContext('2d');
+    var gradeChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: gradeLabels,
+            datasets: [{
+                label: 'Grade Distribution',
+                data: gradeCounts.map(item => item.count),
+                backgroundColor: [
+                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+                    '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                }
+            }
+        }
+    });
+    {% endif %}
+});
+
+// CSV Export Function
+function exportToCSV() {
+    var csv = 'Student Name,Course,Assignment,Mid Exam,Quiz,Attendance,Final Exam,Total,Grade,Comment\n';
+
+    $('tbody tr').each(function() {
+        var row = $(this);
+        var studentName = row.find('td').eq(0).text().trim();
+        var course = row.find('td').eq(1).text().trim();
+        var assignment = row.find('td').eq(2).text().trim();
+        var midExam = row.find('td').eq(3).text().trim();
+        var quiz = row.find('td').eq(4).text().trim();
+        var attendance = row.find('td').eq(5).text().trim();
+        var finalExam = row.find('td').eq(6).text().trim();
+        var total = row.find('td').eq(7).text().trim();
+        var grade = row.find('td').eq(8).text().trim();
+        var comment = row.find('td').eq(9).text().trim();
+
+        csv += '"' + studentName + '","' + course + '",' + assignment + ',' + midExam + ',' + quiz + ',' + attendance + ',' + finalExam + ',' + total + ',"' + grade + '","' + comment + '"\n';
+    });
+
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    var link = document.createElement("a");
+    var url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "grade_results_{{ current_session.session|default:'current' }}.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toastr.success('CSV exported successfully!');
+}
+</script>
+{% endblock %}

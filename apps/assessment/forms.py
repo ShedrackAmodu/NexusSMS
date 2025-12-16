@@ -9,7 +9,8 @@ from django.core.validators import FileExtensionValidator
 from .models import (
     ExamType, GradingSystem, Grade, Exam, ExamAttendance, Mark,
     Assignment, Result, ResultSubject, ReportCard, AssessmentRule,
-    QuestionBank, Question, QuestionOption, ExamQuestion, StudentAnswer
+    QuestionBank, Question, QuestionOption, ExamQuestion, StudentAnswer,
+    QuizAttempt, AIGenerationLog
 )
 
 
@@ -1114,3 +1115,231 @@ class ExamCompositionForm(forms.Form):
                 academic_class=self.exam.academic_class,
                 is_active=True
             )
+
+
+# AI Question Generation Forms
+class AIQuestionGenerationForm(forms.Form):
+    """Form for AI question generation."""
+
+    topic = forms.CharField(
+        max_length=255,
+        label=_('Topic'),
+        help_text=_('Enter the topic for question generation'),
+        widget=forms.TextInput(attrs={'placeholder': _('e.g., Photosynthesis, World War II, Algebra')})
+    )
+    count = forms.IntegerField(
+        min_value=1,
+        max_value=10,
+        initial=5,
+        label=_('Number of Questions'),
+        help_text=_('Maximum 10 questions per generation')
+    )
+    difficulty = forms.ChoiceField(
+        choices=[
+            ('easy', _('Easy')),
+            ('medium', _('Medium')),
+            ('hard', _('Hard')),
+            ('expert', _('Expert'))
+        ],
+        initial='medium',
+        label=_('Difficulty Level')
+    )
+    question_types = forms.MultipleChoiceField(
+        choices=[
+            ('multiple_choice', _('Multiple Choice')),
+            ('true_false', _('True/False')),
+            ('short_answer', _('Short Answer'))
+        ],
+        initial=['multiple_choice'],
+        widget=forms.CheckboxSelectMultiple,
+        label=_('Question Types'),
+        help_text=_('Select the types of questions to generate')
+    )
+
+    def clean_topic(self):
+        topic = self.cleaned_data.get('topic')
+        if not topic or len(topic.strip()) < 3:
+            raise ValidationError(_('Topic must be at least 3 characters long.'))
+        return topic.strip()
+
+
+class QuizAttemptForm(forms.ModelForm):
+    """Form for QuizAttempt model (for quiz creation/configuration)."""
+
+    class Meta:
+        model = QuizAttempt
+        fields = []  # This form is for starting attempts, not editing
+
+    def __init__(self, *args, **kwargs):
+        self.question_bank = kwargs.pop('question_bank', None)
+        self.student = kwargs.pop('student', None)
+        super().__init__(*args, **kwargs)
+
+    def save(self, commit=True):
+        """Create a new quiz attempt."""
+        if not self.question_bank or not self.student:
+            raise ValueError("Question bank and student are required")
+
+        # Check if student already has an incomplete attempt
+        existing_attempt = QuizAttempt.objects.filter(
+            student=self.student,
+            question_bank=self.question_bank,
+            complete=False
+        ).first()
+
+        if existing_attempt:
+            return existing_attempt
+
+        # Check single attempt restriction
+        if self.question_bank.single_attempt:
+            completed_attempts = QuizAttempt.objects.filter(
+                student=self.student,
+                question_bank=self.question_bank,
+                complete=True
+            )
+            if completed_attempts.exists():
+                raise ValidationError(_('You have already completed this quiz and multiple attempts are not allowed.'))
+
+        # Create new attempt
+        attempt = QuizAttempt(
+            student=self.student,
+            question_bank=self.question_bank,
+            max_score=self.question_bank.questions.filter(is_active=True).count()
+        )
+
+        # Set up question order
+        questions = list(self.question_bank.questions.filter(is_active=True))
+
+        if self.question_bank.random_order:
+            import random
+            random.shuffle(questions)
+
+        question_ids = [str(q.id) for q in questions]
+        attempt.question_order = ",".join(question_ids) + ","
+        attempt.question_list = attempt.question_order
+
+        if commit:
+            attempt.save()
+
+        return attempt
+
+
+class QuizAnswerForm(forms.Form):
+    """Form for submitting quiz answers."""
+
+    question_id = forms.IntegerField(widget=forms.HiddenInput())
+    answer_text = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={'rows': 3, 'class': 'quiz-answer-input'})
+    )
+    selected_options = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(),
+        help_text=_('Comma-separated list of selected option IDs')
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.question = kwargs.pop('question', None)
+        super().__init__(*args, **kwargs)
+
+        if self.question:
+            # Configure form based on question type
+            if self.question.question_type in ['multiple_choice', 'true_false']:
+                options = self.question.options.all()
+                if self.question.question_type == 'multiple_choice':
+                    self.fields['selected_options'] = forms.MultipleChoiceField(
+                        choices=[(opt.id, opt.option_text) for opt in options],
+                        widget=forms.CheckboxSelectMultiple,
+                        required=False
+                    )
+                else:  # true_false
+                    self.fields['selected_options'] = forms.ChoiceField(
+                        choices=[(opt.id, opt.option_text) for opt in options],
+                        widget=forms.RadioSelect,
+                        required=False
+                    )
+                # Hide text input for objective questions
+                self.fields['answer_text'].widget = forms.HiddenInput()
+
+            elif self.question.question_type == 'short_answer':
+                self.fields['selected_options'].widget = forms.HiddenInput()
+                self.fields['answer_text'].widget.attrs.update({
+                    'placeholder': _('Enter your answer here...'),
+                    'maxlength': '500'
+                })
+
+            else:  # essay
+                self.fields['selected_options'].widget = forms.HiddenInput()
+                self.fields['answer_text'].widget.attrs.update({
+                    'placeholder': _('Write your detailed answer here...'),
+                    'rows': '6'
+                })
+
+
+class GPAReportForm(forms.Form):
+    """Form for generating GPA reports."""
+
+    student = forms.ModelChoiceField(
+        queryset=None,  # Will be set in view
+        required=False,
+        label=_('Student'),
+        help_text=_('Leave empty to show all students')
+    )
+    semester = forms.CharField(
+        max_length=100,
+        required=False,
+        label=_('Semester'),
+        help_text=_('e.g., First Semester, Second Semester')
+    )
+    level = forms.CharField(
+        max_length=100,
+        required=False,
+        label=_('Academic Level'),
+        help_text=_('e.g., 100 Level, 200 Level')
+    )
+    include_subjects = forms.BooleanField(
+        required=False,
+        initial=True,
+        label=_('Include Subject Breakdown'),
+        help_text=_('Show detailed subject-wise performance')
+    )
+    report_type = forms.ChoiceField(
+        choices=[
+            ('gpa', _('GPA Only')),
+            ('cgpa', _('CGPA Only')),
+            ('both', _('Both GPA and CGPA'))
+        ],
+        initial='both',
+        label=_('Report Type')
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.teacher = kwargs.pop('teacher', None)
+        super().__init__(*args, **kwargs)
+
+        if self.teacher:
+            # Limit students to those in classes taught by the teacher
+            from apps.academics.models import Class
+            taught_classes = Class.objects.filter(
+                subject_assignments__teacher=self.teacher,
+                subject_assignments__academic_session__is_current=True
+            ).distinct()
+
+            self.fields['student'].queryset = None  # Will be populated in view if needed
+
+
+class AIGenerationLogForm(forms.ModelForm):
+    """Form for viewing AI generation logs."""
+
+    class Meta:
+        model = AIGenerationLog
+        fields = ['model_used', 'topic', 'question_count', 'success', 'error_message']
+        widgets = {
+            'error_message': forms.Textarea(attrs={'rows': 3, 'readonly': True}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make all fields readonly for viewing
+        for field in self.fields:
+            self.fields[field].widget.attrs['readonly'] = True

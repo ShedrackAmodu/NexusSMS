@@ -708,8 +708,8 @@ def get_role_redirect_url(role_type):
         'student': reverse('users:dashboard'),
         'parent': reverse('users:dashboard'),
         'accountant': reverse('finance:dashboard'),
-        'librarian': reverse('library:librarian_dashboard'),
-        'driver': reverse('transport:driver_dashboard'),
+        'librarian': reverse('library:dashboard'),
+        'driver': reverse('transport:dashboard'),
         'support': reverse('support:dashboard'),
     }
     return role_redirects.get(role_type, reverse('users:dashboard'))

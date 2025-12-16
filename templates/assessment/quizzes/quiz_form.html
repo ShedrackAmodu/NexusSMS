@@ -1,49 +1,54 @@
 {% extends 'base/base.html' %}
-{% load static %}
+{% load static i18n %}
 
-{% block title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} Question Bank{% endblock %}
+{% block title %}{% if object %}{% trans "Edit Quiz" %}{% else %}{% trans "Create Quiz" %}{% endif %}{% endblock %}
 
 {% block page_title %}
-    {% if form.instance.pk %}Edit{% else %}Create{% endif %} Question Bank
+    {% if object %}{% trans "Edit Quiz" %}{% else %}{% trans "Create Quiz" %}{% endif %}
 {% endblock %}
 
 {% block breadcrumb_items %}
-    <li class="breadcrumb-item"><a href="{% url 'assessment:question_bank_list' %}">Question Banks</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'assessment:quiz_bank_list' %}">Quizzes</a></li>
     <li class="breadcrumb-item active" aria-current="page">
-        {% if form.instance.pk %}Edit{% else %}Create{% endif %} Question Bank
+        {% if object %}{% trans "Edit" %}{% else %}{% trans "Create" %}{% endif %} Quiz
     </li>
 {% endblock %}
 
 {% block page_actions %}
 <div class="page-actions">
     <div class="btn-group" role="group">
-        <a href="{% url 'assessment:question_bank_list' %}" class="btn btn-outline-secondary">
+        <a href="{% url 'assessment:quiz_bank_list' %}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i> Cancel
         </a>
         <button type="button" class="btn btn-outline-primary" id="validateFormBtn">
             <i class="bi bi-check-circle me-1"></i> Validate Form
         </button>
         <button type="button" class="btn btn-success" id="saveBtn">
-            <i class="bi bi-save me-1"></i> {% if form.instance.pk %}Update{% else %}Create{% endif %} Question Bank
+            <i class="bi bi-save me-1"></i> {% if object %}{% trans "Update" %}{% else %}{% trans "Create" %}{% endif %} Quiz
         </button>
+        {% if not object %}
+        <button type="button" class="btn btn-info" id="saveAndAddBtn">
+            <i class="bi bi-plus-circle me-1"></i> Create & Add Questions
+        </button>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
 
 {% block content %}
-<div class="question-bank-form-container">
+<div class="quiz-form-container">
     <div class="row">
         <!-- Main Form -->
         <div class="col-lg-8">
             <div class="card">
                 <div class="card-header bg-primary text-white">
                     <h5 class="card-title mb-0">
-                        <i class="bi bi-collection me-2"></i>
-                        {% if form.instance.pk %}Edit{% else %}Create{% endif %} Question Bank
+                        <i class="bi bi-collection-play me-2"></i>
+                        {% if object %}{% trans "Edit Quiz" %}{% else %}{% trans "Create New Quiz" %}{% endif %}
                     </h5>
                 </div>
                 <div class="card-body">
-                    <form method="post" id="questionBankForm" novalidate>
+                    <form method="post" id="quizForm" novalidate>
                         {% csrf_token %}
 
                         {% if form.non_field_errors %}
@@ -61,7 +66,7 @@
                             </h6>
 
                             <div class="row">
-                                <div class="col-md-6 mb-3">
+                                <div class="col-md-8 mb-3">
                                     <label for="{{ form.name.id_for_label }}" class="form-label">{{ form.name.label }} *</label>
                                     {{ form.name }}
                                     {% if form.name.errors %}
@@ -71,67 +76,20 @@
                                             {% endfor %}
                                         </div>
                                     {% endif %}
-                                    <div class="form-text">Enter a descriptive name for the question bank</div>
+                                    <div class="form-text">Enter a descriptive name for the quiz</div>
                                 </div>
 
-                                <div class="col-md-6 mb-3">
-                                    <label for="{{ form.subject.id_for_label }}" class="form-label">{{ form.subject.label }} *</label>
-                                    {{ form.subject }}
-                                    {% if form.subject.errors %}
+                                <div class="col-md-4 mb-3">
+                                    <label for="{{ form.category.id_for_label }}" class="form-label">{{ form.category.label }}</label>
+                                    {{ form.category }}
+                                    {% if form.category.errors %}
                                         <div class="invalid-feedback d-block">
-                                            {% for error in form.subject.errors %}
+                                            {% for error in form.category.errors %}
                                                 {{ error }}
                                             {% endfor %}
                                         </div>
                                     {% endif %}
                                 </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="{{ form.academic_class.id_for_label }}" class="form-label">{{ form.academic_class.label }} *</label>
-                                    {{ form.academic_class }}
-                                    {% if form.academic_class.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {% for error in form.academic_class.errors %}
-                                                {{ error }}
-                                            {% endfor %}
-                                        </div>
-                                    {% endif %}
-                                </div>
-
-                                <div class="col-md-6 mb-3">
-                                    <label for="{{ form.difficulty_level.id_for_label }}" class="form-label">{{ form.difficulty_level.label }}</label>
-                                    {{ form.difficulty_level }}
-                                    {% if form.difficulty_level.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {% for error in form.difficulty_level.errors %}
-                                                {{ error }}
-                                            {% endfor %}
-                                        </div>
-                                    {% endif %}
-                                    <div class="form-text">Overall difficulty level for this question bank</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Content Section -->
-                        <div class="form-section mb-4">
-                            <h6 class="section-title border-bottom pb-2 mb-3">
-                                <i class="bi bi-journal-text me-2"></i>Content Details
-                            </h6>
-
-                            <div class="mb-3">
-                                <label for="{{ form.topic.id_for_label }}" class="form-label">{{ form.topic.label }}</label>
-                                {{ form.topic }}
-                                {% if form.topic.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.topic.errors %}
-                                            {{ error }}
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                                <div class="form-text">Specific topic or chapter this question bank covers</div>
                             </div>
 
                             <div class="mb-3">
@@ -144,38 +102,225 @@
                                         {% endfor %}
                                     </div>
                                 {% endif %}
-                                <div class="form-text">Detailed description of the question bank's content and purpose</div>
+                                <div class="form-text">Brief description of what this quiz covers</div>
                             </div>
                         </div>
 
-                        <!-- Settings Section -->
+                        <!-- Academic Context Section -->
                         <div class="form-section mb-4">
                             <h6 class="section-title border-bottom pb-2 mb-3">
-                                <i class="bi bi-gear me-2"></i>Settings
+                                <i class="bi bi-book me-2"></i>Academic Context
                             </h6>
 
-                            <div class="mb-3">
-                                <div class="form-check form-switch">
-                                    {{ form.is_active }}
-                                    <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
-                                        {{ form.is_active.label }}
-                                    </label>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.subject.id_for_label }}" class="form-label">{{ form.subject.label }} *</label>
+                                    {{ form.subject }}
+                                    {% if form.subject.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.subject.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
                                 </div>
-                                {% if form.is_active.errors %}
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.academic_class.id_for_label }}" class="form-label">{{ form.academic_class.label }} *</label>
+                                    {{ form.academic_class }}
+                                    {% if form.academic_class.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.academic_class.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="{{ form.topic.id_for_label }}" class="form-label">{{ form.topic.label }}</label>
+                                {{ form.topic }}
+                                {% if form.topic.errors %}
                                     <div class="invalid-feedback d-block">
-                                        {% for error in form.is_active.errors %}
+                                        {% for error in form.topic.errors %}
                                             {{ error }}
                                         {% endfor %}
                                     </div>
                                 {% endif %}
-                                <div class="form-text">
-                                    Active question banks can be used to create exams and quizzes
+                                <div class="form-text">Specific topic or chapter this quiz covers</div>
+                            </div>
+                        </div>
+
+                        <!-- Quiz Settings Section -->
+                        <div class="form-section mb-4">
+                            <h6 class="section-title border-bottom pb-2 mb-3">
+                                <i class="bi bi-sliders me-2"></i>Quiz Settings
+                            </h6>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.difficulty_level.id_for_label }}" class="form-label">{{ form.difficulty_level.label }}</label>
+                                    {{ form.difficulty_level }}
+                                    {% if form.difficulty_level.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.difficulty_level.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Overall difficulty level for this quiz</div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.pass_mark.id_for_label }}" class="form-label">{{ form.pass_mark.label }}</label>
+                                    {{ form.pass_mark }}
+                                    {% if form.pass_mark.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.pass_mark.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Percentage required to pass the quiz</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quiz Behavior Section -->
+                        <div class="form-section mb-4">
+                            <h6 class="section-title border-bottom pb-2 mb-3">
+                                <i class="bi bi-gear me-2"></i>Quiz Behavior
+                            </h6>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check form-switch">
+                                        {{ form.random_order }}
+                                        <label class="form-check-label" for="{{ form.random_order.id_for_label }}">
+                                            {{ form.random_order.label }}
+                                        </label>
+                                    </div>
+                                    {% if form.random_order.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.random_order.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Display questions in random order</div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check form-switch">
+                                        {{ form.answers_at_end }}
+                                        <label class="form-check-label" for="{{ form.answers_at_end.id_for_label }}">
+                                            {{ form.answers_at_end.label }}
+                                        </label>
+                                    </div>
+                                    {% if form.answers_at_end.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.answers_at_end.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Display correct answers only after quiz completion</div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check form-switch">
+                                        {{ form.single_attempt }}
+                                        <label class="form-check-label" for="{{ form.single_attempt.id_for_label }}">
+                                            {{ form.single_attempt.label }}
+                                        </label>
+                                    </div>
+                                    {% if form.single_attempt.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.single_attempt.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Students can only attempt this quiz once</div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check form-switch">
+                                        {{ form.exam_paper }}
+                                        <label class="form-check-label" for="{{ form.exam_paper.id_for_label }}">
+                                            {{ form.exam_paper.label }}
+                                        </label>
+                                    </div>
+                                    {% if form.exam_paper.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.exam_paper.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Results stored for manual grading</div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check form-switch">
+                                        {{ form.draft }}
+                                        <label class="form-check-label" for="{{ form.draft.id_for_label }}">
+                                            {{ form.draft.label }}
+                                        </label>
+                                    </div>
+                                    {% if form.draft.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.draft.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Draft quizzes are not visible to students</div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check form-switch">
+                                        {{ form.is_active }}
+                                        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                            {{ form.is_active.label }}
+                                        </label>
+                                    </div>
+                                    {% if form.is_active.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.is_active.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Active quizzes are available to students</div>
                                 </div>
                             </div>
                         </div>
                     </form>
                 </div>
             </div>
+
+            <!-- Help Section -->
+            {% if not object %}
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">Quick Start Guide</h6>
+                </div>
+                <div class="card-body">
+                    <ol>
+                        <li class="mb-2">Fill in the basic quiz information above.</li>
+                        <li class="mb-2">Choose quiz behavior settings based on your requirements.</li>
+                        <li class="mb-2">Click 'Create & Add Questions' to immediately start adding questions after creating the quiz.</li>
+                        <li class="mb-2">Alternatively, create the quiz first and add questions later from the question bank.</li>
+                    </ol>
+                </div>
+            </div>
+            {% endif %}
         </div>
 
         <!-- Sidebar -->
@@ -201,12 +346,16 @@
                         <span id="summaryClass" class="text-muted">Not set</span>
                     </div>
                     <div class="summary-item mb-2">
+                        <strong>Category:</strong>
+                        <span id="summaryCategory" class="text-muted">Not set</span>
+                    </div>
+                    <div class="summary-item mb-2">
                         <strong>Difficulty:</strong>
                         <span id="summaryDifficulty" class="text-muted">Not set</span>
                     </div>
                     <div class="summary-item mb-2">
-                        <strong>Topic:</strong>
-                        <span id="summaryTopic" class="text-muted">Not set</span>
+                        <strong>Pass Mark:</strong>
+                        <span id="summaryPassMark" class="text-muted">Not set</span>
                     </div>
                     <div class="summary-item">
                         <strong>Status:</strong>
@@ -225,12 +374,12 @@
                 <div class="card-body">
                     <div class="d-grid gap-2">
                         <button type="button" class="btn btn-outline-primary" id="previewBtn">
-                            <i class="bi bi-eye me-1"></i> Preview
+                            <i class="bi bi-eye me-1"></i> Preview Quiz
                         </button>
                         <button type="button" class="btn btn-outline-secondary" id="clearFormBtn">
                             <i class="bi bi-arrow-clockwise me-1"></i> Clear Form
                         </button>
-                        <button type="button" class="btn btn-outline-info" id="duplicateBtn" {% if not form.instance.pk %}disabled{% endif %}>
+                        <button type="button" class="btn btn-outline-info" id="duplicateBtn" {% if not object %}disabled{% endif %}>
                             <i class="bi bi-copy me-1"></i> Duplicate
                         </button>
                     </div>
@@ -251,12 +400,16 @@
                             <span>Basic Information</span>
                         </div>
                         <div class="status-item mb-2">
-                            <i class="bi bi-circle-fill text-muted me-2" id="contentStatus"></i>
-                            <span>Content Details</span>
+                            <i class="bi bi-circle-fill text-muted me-2" id="academicStatus"></i>
+                            <span>Academic Context</span>
+                        </div>
+                        <div class="status-item mb-2">
+                            <i class="bi bi-circle-fill text-success me-2" id="settingsStatus"></i>
+                            <span>Quiz Settings</span>
                         </div>
                         <div class="status-item">
-                            <i class="bi bi-circle-fill text-success me-2" id="settingsStatus"></i>
-                            <span>Settings (Optional)</span>
+                            <i class="bi bi-circle-fill text-success me-2" id="behaviorStatus"></i>
+                            <span>Behavior (Optional)</span>
                         </div>
                     </div>
 
@@ -277,7 +430,7 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="previewModalLabel">Question Bank Preview</h5>
+                <h5 class="modal-title" id="previewModalLabel">Quiz Preview</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="previewContent">
@@ -285,8 +438,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" onclick="document.getElementById('questionBankForm').submit()">
-                    Save Question Bank
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('quizForm').submit()">
+                    Save Quiz
                 </button>
             </div>
         </div>
@@ -296,7 +449,7 @@
 
 {% block extra_css %}
 <style>
-.question-bank-form-container {
+.quiz-form-container {
     max-width: 100%;
 }
 
@@ -329,7 +482,7 @@
 }
 
 textarea.form-control {
-    min-height: 100px;
+    min-height: 80px;
     resize: vertical;
 }
 
@@ -394,7 +547,7 @@ textarea.form-control {
     overflow-y: auto;
 }
 
-.preview-question-bank {
+.preview-quiz {
     padding: 1rem;
     background-color: #f8f9fa;
     border-radius: 0.375rem;
@@ -464,31 +617,16 @@ textarea.form-control {
     outline: 0;
     box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
 }
-
-/* Difficulty level badges */
-.difficulty-badge {
-    display: inline-block;
-    padding: 0.25rem 0.5rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    margin-left: 0.5rem;
-}
-
-.difficulty-easy { background-color: #d1ecf1; color: #0c5460; }
-.difficulty-medium { background-color: #fff3cd; color: #856404; }
-.difficulty-hard { background-color: #f8d7da; color: #721c24; }
-.difficulty-expert { background-color: #e2e3e5; color: #383d41; }
 </style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const questionBankForm = document.getElementById('questionBankForm');
+    const quizForm = document.getElementById('quizForm');
     const validateFormBtn = document.getElementById('validateFormBtn');
     const saveBtn = document.getElementById('saveBtn');
+    const saveAndAddBtn = document.getElementById('saveAndAddBtn');
     const previewBtn = document.getElementById('previewBtn');
     const clearFormBtn = document.getElementById('clearFormBtn');
     const duplicateBtn = document.getElementById('duplicateBtn');
@@ -496,25 +634,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Form elements
     const nameInput = document.getElementById('id_name');
+    const categoryInput = document.getElementById('id_category');
+    const descriptionInput = document.getElementById('id_description');
     const subjectInput = document.getElementById('id_subject');
     const classInput = document.getElementById('id_academic_class');
-    const difficultyInput = document.getElementById('id_difficulty_level');
     const topicInput = document.getElementById('id_topic');
-    const descriptionInput = document.getElementById('id_description');
+    const difficultyInput = document.getElementById('id_difficulty_level');
+    const passMarkInput = document.getElementById('id_pass_mark');
+    const randomOrderInput = document.getElementById('id_random_order');
+    const answersAtEndInput = document.getElementById('id_answers_at_end');
+    const singleAttemptInput = document.getElementById('id_single_attempt');
+    const examPaperInput = document.getElementById('id_exam_paper');
+    const draftInput = document.getElementById('id_draft');
     const isActiveInput = document.getElementById('id_is_active');
 
     // Summary elements
     const summaryName = document.getElementById('summaryName');
     const summarySubject = document.getElementById('summarySubject');
     const summaryClass = document.getElementById('summaryClass');
+    const summaryCategory = document.getElementById('summaryCategory');
     const summaryDifficulty = document.getElementById('summaryDifficulty');
-    const summaryTopic = document.getElementById('summaryTopic');
+    const summaryPassMark = document.getElementById('summaryPassMark');
     const summaryStatus = document.getElementById('summaryStatus');
 
     // Status elements
     const basicInfoStatus = document.getElementById('basicInfoStatus');
-    const contentStatus = document.getElementById('contentStatus');
+    const academicStatus = document.getElementById('academicStatus');
     const settingsStatus = document.getElementById('settingsStatus');
+    const behaviorStatus = document.getElementById('behaviorStatus');
     const completionProgress = document.getElementById('completionProgress');
     const completionText = document.getElementById('completionText');
 
@@ -529,9 +676,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function initializeForm() {
         // Add Bootstrap classes to form inputs
-        const formInputs = questionBankForm.querySelectorAll('input, select, textarea');
+        const formInputs = quizForm.querySelectorAll('input, select, textarea');
         formInputs.forEach(input => {
-            input.classList.add('form-control');
+            if (!input.classList.contains('form-check-input')) {
+                input.classList.add('form-control');
+            }
 
             // Add validation on blur
             input.addEventListener('blur', function() {
@@ -546,16 +695,20 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
 
-        // Special handling for checkbox
-        if (isActiveInput) {
-            isActiveInput.classList.remove('form-control');
-            isActiveInput.classList.add('form-check-input');
-        }
+        // Special handling for checkboxes
+        const checkboxes = quizForm.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.classList.remove('form-control');
+            checkbox.classList.add('form-check-input');
+        });
 
-        // Add difficulty badges
-        if (difficultyInput) {
-            updateDifficultyBadge();
-            difficultyInput.addEventListener('change', updateDifficultyBadge);
+        // Single attempt implies exam paper
+        if (singleAttemptInput && examPaperInput) {
+            singleAttemptInput.addEventListener('change', function() {
+                if (this.checked) {
+                    examPaperInput.checked = true;
+                }
+            });
         }
 
         // Initial calculations
@@ -570,25 +723,33 @@ document.addEventListener('DOMContentLoaded', function() {
         // Save button
         saveBtn.addEventListener('click', function() {
             if (validateForm()) {
-                questionBankForm.submit();
+                quizForm.submit();
             }
         });
 
+        // Save and add questions button
+        if (saveAndAddBtn) {
+            saveAndAddBtn.addEventListener('click', function() {
+                if (validateForm()) {
+                    // Add a hidden field to indicate save and add questions
+                    const hiddenField = document.createElement('input');
+                    hiddenField.type = 'hidden';
+                    hiddenField.name = 'save_and_add_questions';
+                    hiddenField.value = '1';
+                    quizForm.appendChild(hiddenField);
+                    quizForm.submit();
+                }
+            });
+        }
+
         // Preview button
-        previewBtn.addEventListener('click', previewQuestionBank);
+        previewBtn.addEventListener('click', previewQuiz);
 
         // Clear form button
         clearFormBtn.addEventListener('click', clearForm);
 
         // Duplicate button
-        duplicateBtn.addEventListener('click', duplicateQuestionBank);
-
-        // Class change handler for subject filtering
-        if (classInput) {
-            classInput.addEventListener('change', function() {
-                updateSubjectsForClass(this.value);
-            });
-        }
+        duplicateBtn.addEventListener('click', duplicateQuiz);
     }
 
     function validateField(field) {
@@ -612,6 +773,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     return false;
                 }
                 break;
+            case 'pass_mark':
+                if (value && (parseFloat(value) < 0 || parseFloat(value) > 100)) {
+                    field.classList.add('is-invalid');
+                    return false;
+                }
+                break;
         }
 
         // If we made it here, field is valid
@@ -619,54 +786,6 @@ document.addEventListener('DOMContentLoaded', function() {
             field.classList.add('is-valid');
         }
         return true;
-    }
-
-    function updateSubjectsForClass(classId) {
-        // This would typically make an AJAX call to get subjects for the selected class
-        // For now, we'll just enable/disable the subject dropdown
-        if (classId) {
-            subjectInput.disabled = false;
-        } else {
-            subjectInput.disabled = true;
-            subjectInput.value = '';
-        }
-    }
-
-    function updateDifficultyBadge() {
-        if (!difficultyInput) return;
-
-        const selectedOption = difficultyInput.options[difficultyInput.selectedIndex];
-        if (!selectedOption || !selectedOption.value) return;
-
-        const difficulty = selectedOption.value.toLowerCase();
-        let badgeClass = 'difficulty-medium'; // default
-
-        switch(difficulty) {
-            case 'easy':
-                badgeClass = 'difficulty-easy';
-                break;
-            case 'medium':
-                badgeClass = 'difficulty-medium';
-                break;
-            case 'hard':
-                badgeClass = 'difficulty-hard';
-                break;
-            case 'expert':
-                badgeClass = 'difficulty-expert';
-                break;
-        }
-
-        // Remove existing badge
-        const existingBadge = difficultyInput.parentNode.querySelector('.difficulty-badge');
-        if (existingBadge) {
-            existingBadge.remove();
-        }
-
-        // Add new badge
-        const badge = document.createElement('span');
-        badge.className = `difficulty-badge ${badgeClass}`;
-        badge.textContent = selectedOption.text;
-        difficultyInput.parentNode.appendChild(badge);
     }
 
     function updateSummary() {
@@ -694,6 +813,16 @@ document.addEventListener('DOMContentLoaded', function() {
             summaryClass.className = 'text-muted';
         }
 
+        // Update category
+        if (categoryInput.value) {
+            const selectedOption = categoryInput.options[categoryInput.selectedIndex];
+            summaryCategory.textContent = selectedOption ? selectedOption.text : 'Not set';
+            summaryCategory.className = 'text-primary';
+        } else {
+            summaryCategory.textContent = 'Not set';
+            summaryCategory.className = 'text-muted';
+        }
+
         // Update difficulty
         if (difficultyInput.value) {
             const selectedOption = difficultyInput.options[difficultyInput.selectedIndex];
@@ -704,14 +833,27 @@ document.addEventListener('DOMContentLoaded', function() {
             summaryDifficulty.className = 'text-muted';
         }
 
-        // Update topic
-        summaryTopic.textContent = topicInput.value || 'Not set';
-        summaryTopic.className = topicInput.value ? 'text-primary' : 'text-muted';
+        // Update pass mark
+        summaryPassMark.textContent = passMarkInput.value ? `${passMarkInput.value}%` : 'Not set';
+        summaryPassMark.className = passMarkInput.value ? 'text-primary' : 'text-muted';
 
         // Update status
-        const isActive = isActiveInput && isActiveInput.checked;
-        summaryStatus.textContent = isActive ? 'Active' : 'Inactive';
-        summaryStatus.className = isActive ? 'text-success' : 'text-warning';
+        let statusText = 'Draft';
+        let statusClass = 'text-warning';
+
+        if (draftInput && draftInput.checked) {
+            statusText = 'Draft';
+            statusClass = 'text-warning';
+        } else if (isActiveInput && isActiveInput.checked) {
+            statusText = 'Active';
+            statusClass = 'text-success';
+        } else {
+            statusText = 'Inactive';
+            statusClass = 'text-secondary';
+        }
+
+        summaryStatus.textContent = statusText;
+        summaryStatus.className = statusClass;
     }
 
     function updateCompletion() {
@@ -738,17 +880,19 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateStatusIndicators(completed, total) {
-        const basicInfoComplete = nameInput.value && subjectInput.value && classInput.value;
-        const contentComplete = topicInput.value || descriptionInput.value;
+        const basicInfoComplete = nameInput.value && (descriptionInput.value || categoryInput.value);
+        const academicComplete = subjectInput.value && classInput.value;
         const settingsComplete = true; // Settings are optional
+        const behaviorComplete = true; // Behavior settings are optional
 
         // Update status colors
         basicInfoStatus.className = `bi bi-circle-fill me-2 ${basicInfoComplete ? 'text-success' : 'text-muted'}`;
-        contentStatus.className = `bi bi-circle-fill me-2 ${contentComplete ? 'text-success' : 'text-muted'}`;
+        academicStatus.className = `bi bi-circle-fill me-2 ${academicComplete ? 'text-success' : 'text-muted'}`;
         settingsStatus.className = `bi bi-circle-fill me-2 ${settingsComplete ? 'text-success' : 'text-muted'}`;
+        behaviorStatus.className = `bi bi-circle-fill me-2 ${behaviorComplete ? 'text-success' : 'text-muted'}`;
 
         // Add animation for status updates
-        [basicInfoStatus, contentStatus, settingsStatus].forEach(status => {
+        [basicInfoStatus, academicStatus, settingsStatus, behaviorStatus].forEach(status => {
             status.classList.add('status-update');
             setTimeout(() => {
                 status.classList.remove('status-update');
@@ -758,7 +902,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function validateForm() {
         let isValid = true;
-        const formInputs = questionBankForm.querySelectorAll('input[required], select[required], textarea[required]');
+        const formInputs = quizForm.querySelectorAll('input[required], select[required], textarea[required]');
 
         formInputs.forEach(input => {
             if (!validateField(input)) {
@@ -772,7 +916,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast('Please fix the errors in the form', 'error');
 
             // Scroll to first error
-            const firstError = questionBankForm.querySelector('.is-invalid');
+            const firstError = quizForm.querySelector('.is-invalid');
             if (firstError) {
                 firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 firstError.focus();
@@ -784,15 +928,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function clearForm() {
         if (confirm('Are you sure you want to clear the form? All unsaved changes will be lost.')) {
-            questionBankForm.reset();
+            quizForm.reset();
             updateSummary();
             updateCompletion();
-            updateDifficultyBadge();
             showToast('Form cleared successfully', 'info');
         }
     }
 
-    function previewQuestionBank() {
+    function previewQuiz() {
         if (!validateForm()) {
             showToast('Please fix form errors before previewing', 'error');
             return;
@@ -804,53 +947,76 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function generatePreviewContent() {
+        const behaviors = [];
+        if (randomOrderInput && randomOrderInput.checked) behaviors.push('Random question order');
+        if (answersAtEndInput && answersAtEndInput.checked) behaviors.push('Answers shown at end');
+        if (singleAttemptInput && singleAttemptInput.checked) behaviors.push('Single attempt only');
+        if (examPaperInput && examPaperInput.checked) behaviors.push('Exam paper mode');
+
         return `
-            <div class="preview-question-bank">
+            <div class="preview-quiz">
                 <div class="preview-section">
-                    <h4>${nameInput.value || 'Question Bank Name'}</h4>
+                    <h4>${nameInput.value || 'Quiz Name'}</h4>
+                    ${categoryInput.value ? `<p><strong>Category:</strong> ${categoryInput.options[categoryInput.selectedIndex]?.text || 'N/A'}</p>` : ''}
+                    ${descriptionInput.value ? `<p><strong>Description:</strong> ${descriptionInput.value}</p>` : ''}
+                </div>
+
+                <div class="preview-section">
+                    <h5>Academic Context</h5>
                     <div class="row">
                         <div class="col-md-6">
                             <p><strong>Subject:</strong> ${subjectInput.options[subjectInput.selectedIndex]?.text || 'N/A'}</p>
                             <p><strong>Class:</strong> ${classInput.options[classInput.selectedIndex]?.text || 'N/A'}</p>
                         </div>
                         <div class="col-md-6">
-                            <p><strong>Difficulty:</strong> ${difficultyInput.options[difficultyInput.selectedIndex]?.text || 'N/A'}</p>
-                            <p><strong>Status:</strong> ${isActiveInput && isActiveInput.checked ? 'Active' : 'Inactive'}</p>
+                            <p><strong>Topic:</strong> ${topicInput.value || 'N/A'}</p>
                         </div>
                     </div>
-                    ${topicInput.value ? `<p><strong>Topic:</strong> ${topicInput.value}</p>` : ''}
                 </div>
 
-                ${descriptionInput.value ? `
                 <div class="preview-section">
-                    <h5>Description</h5>
-                    <div class="description-preview">
-                        ${descriptionInput.value.replace(/\n/g, '<br>')}
+                    <h5>Quiz Settings</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Difficulty:</strong> ${difficultyInput.options[difficultyInput.selectedIndex]?.text || 'N/A'}</p>
+                            <p><strong>Pass Mark:</strong> ${passMarkInput.value ? `${passMarkInput.value}%` : 'N/A'}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Status:</strong> ${summaryStatus.textContent}</p>
+                        </div>
                     </div>
+                </div>
+
+                ${behaviors.length > 0 ? `
+                <div class="preview-section">
+                    <h5>Quiz Behavior</h5>
+                    <ul>
+                        ${behaviors.map(behavior => `<li>${behavior}</li>`).join('')}
+                    </ul>
                 </div>
                 ` : ''}
             </div>
         `;
     }
 
-    function duplicateQuestionBank() {
-        if (!confirm('Are you sure you want to duplicate this question bank?')) {
+    function duplicateQuiz() {
+        if (!confirm('Are you sure you want to duplicate this quiz?')) {
             return;
         }
 
-        // This would typically make an AJAX call to duplicate the question bank
-        showToast('Question bank duplication not implemented yet', 'info');
+        // This would typically make an AJAX call to duplicate the quiz
+        showToast('Quiz duplication not implemented yet', 'info');
     }
 
     function autoSaveDraft() {
         // Check if form has any data
-        const hasData = Array.from(questionBankForm.elements).some(element =>
+        const hasData = Array.from(quizForm.elements).some(element =>
             (element.type === 'text' || element.type === 'textarea' || element.type === 'select-one') &&
             element.value && element.value.trim()
         );
 
         if (hasData) {
-            console.log('Auto-saving question bank draft...');
+            console.log('Auto-saving quiz draft...');
             // In a real implementation, this would make an AJAX call
         }
     }

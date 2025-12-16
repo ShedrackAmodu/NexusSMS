@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Select Course for Score Entry{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">
+                        <i class="fas fa-clipboard-list"></i> Select Course for Score Entry
+                    </h4>
+                    <p class="card-description">
+                        Choose a course to enter comprehensive scores (assignments, exams, quizzes, attendance) for students.
+                    </p>
+                </div>
+                <div class="card-body">
+                    {% if not current_session %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            No active academic session found. Please contact administrator.
+                        </div>
+                    {% elif not courses %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            No courses found for the current semester.
+                        </div>
+                    {% else %}
+                        <div class="row">
+                            {% for course in courses %}
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card border-primary">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">{{ course.name }}</h5>
+                                        <p class="card-text text-muted">{{ course.code }}</p>
+                                        <p class="text-sm">
+                                            <strong>Semester:</strong> {{ current_semester }}<br>
+                                            <strong>Session:</strong> {{ current_session }}
+                                        </p>
+                                        <a href="{% url 'assessment:add_score_for' course.id %}"
+                                           class="btn btn-primary btn-sm">
+                                            <i class="fas fa-edit"></i> Enter Scores
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Add any client-side functionality here
+});
+</script>
+{% endblock %}
