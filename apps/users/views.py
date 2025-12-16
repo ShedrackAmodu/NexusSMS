@@ -252,7 +252,6 @@ def create_user_from_student_application(application, reviewed_by):
                 user=user,
                 role=student_role,
                 is_primary=True,
-                academic_session=application.academic_session,
                 context_id=f"grade_{application.grade_applying_for}"
             )
             
@@ -462,16 +461,14 @@ def create_user_from_staff_application(application, reviewed_by):
             # Assign staff role if not already assigned
             existing_role = UserRole.objects.filter(
                 user=user,
-                role=application.position_applied_for,
-                academic_session=application.academic_session
+                role=application.position_applied_for
             ).first()
 
             if not existing_role:
                 UserRole.objects.create(
                     user=user,
                     role=application.position_applied_for,
-                    is_primary=True,
-                    academic_session=application.academic_session
+                    is_primary=True
                 )
 
             # Set staff permissions based on role
@@ -797,7 +794,6 @@ class StudentApplicationView(FormView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = _('Student Application')
-        context['academic_sessions'] = AcademicSession.objects.filter(status='active', is_current=True)
         return context
     
     def form_valid(self, form):
@@ -808,11 +804,16 @@ class StudentApplicationView(FormView):
             # Set additional fields
             application.application_status = ApplicationStatus.PENDING
             
-            # Handle academic_session - it's now required in the form
+            # Handle academic_session - it's now optional in the form
             academic_session = form.cleaned_data.get('academic_session')
             if academic_session:
                 application.academic_session = academic_session
-            
+            else:
+                # Set to current session if not provided
+                current_session = AcademicSession.objects.filter(is_current=True).first()
+                if current_session:
+                    application.academic_session = current_session
+
             # Save the application
             application.save()
             
@@ -923,7 +924,6 @@ class StaffApplicationView(FormView):
         context = super().get_context_data(**kwargs)
         context['title'] = _('Staff Application')
         context['staff_types'] = Role.objects.exclude(role_type__in=['student', 'parent']).filter(status='active')
-        context['academic_sessions'] = AcademicSession.objects.filter(status='active', is_current=True)
         return context
     
     def send_application_confirmation_email(self, application):

@@ -3779,3 +3779,80 @@ class CommitteeMeetingsView(CommitteeRequiredMixin, ListView):
 
         context['committees'] = committees
         return context
+
+
+# =============================================================================
+# GRADE LEVEL VIEWS FOR SCHOOL ADMINS
+# =============================================================================
+
+class GradeLevelListView(StaffRequiredMixin, ListView):
+    """School admin view for managing grade levels."""
+    model = GradeLevel
+    template_name = 'academics/grade_levels/grade_level_list.html'
+    context_object_name = 'grade_levels'
+    paginate_by = 15
+
+    def get_queryset(self):
+        queryset = GradeLevel.objects.filter(status='active')
+
+        # Filter by education stage if provided
+        stage = self.request.GET.get('stage')
+        if stage:
+            queryset = queryset.filter(education_stage=stage)
+
+        return queryset.order_by('education_stage', 'code')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['education_stages'] = GradeLevel.EducationStage.choices
+        return context
+
+
+class GradeLevelCreateView(StaffRequiredMixin, CreateView):
+    """Create a new grade level."""
+    model = GradeLevel
+    form_class = GradeLevelForm
+    template_name = 'academics/grade_levels/grade_level_form.html'
+    success_url = reverse_lazy('academics:grade_level_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, _('Grade level created successfully.'))
+        return super().form_valid(form)
+
+
+class GradeLevelUpdateView(StaffRequiredMixin, UpdateView):
+    """Update a grade level."""
+    model = GradeLevel
+    form_class = GradeLevelForm
+    template_name = 'academics/grade_levels/grade_level_form.html'
+    success_url = reverse_lazy('academics:grade_level_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, _('Grade level updated successfully.'))
+        return super().form_valid(form)
+
+
+class GradeLevelDetailView(StaffRequiredMixin, DetailView):
+    """Grade level detail view."""
+    model = GradeLevel
+    template_name = 'academics/grade_levels/grade_level_detail.html'
+    context_object_name = 'grade_level'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get classes using this grade level
+        context['classes'] = self.object.classes.filter(status='active').order_by('name')
+
+        # Get enrollment count for this grade level
+        current_session = AcademicSession.objects.filter(is_current=True).first()
+        if current_session:
+            context['enrollment_count'] = Enrollment.objects.filter(
+                class_enrolled__grade_level=self.object,
+                academic_session=current_session,
+                enrollment_status='active'
+            ).count()
+        else:
+            context['enrollment_count'] = 0
+
+        return context

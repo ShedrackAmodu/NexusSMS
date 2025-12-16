@@ -18,6 +18,14 @@ def audit_user_role_changes(sender, instance, created, **kwargs):
     # This is a simplified version - in production, you'd want to track the admin user
     performing_user = getattr(instance, '_audit_user', None)
 
+    # Handle case where academic session may have issues
+    academic_session_id = None
+    try:
+        academic_session_id = str(instance.academic_session.id) if instance.academic_session else None
+    except:
+        # Session may have issues, use cached/original value if available
+        academic_session_id = getattr(instance, '_original_academic_session_id', None)
+
     details = {
         'user_id': str(user.id),
         'user_email': user.email,
@@ -26,7 +34,7 @@ def audit_user_role_changes(sender, instance, created, **kwargs):
         'role_name': role.name,
         'role_type': role.role_type,
         'is_primary': instance.is_primary,
-        'academic_session': str(instance.academic_session.id) if instance.academic_session else None,
+        'academic_session': academic_session_id,
     }
 
     if not created:
@@ -57,6 +65,14 @@ def audit_user_role_deletion(sender, instance, **kwargs):
     # Get the user performing the action
     performing_user = getattr(instance, '_audit_user', None)
 
+    # Handle case where academic session may have been deleted
+    academic_session_id = None
+    try:
+        academic_session_id = str(instance.academic_session.id) if instance.academic_session else None
+    except:
+        # Session may have been deleted, use cached/original value if available
+        academic_session_id = getattr(instance, '_original_academic_session_id', None)
+
     details = {
         'user_id': str(user.id),
         'user_email': user.email,
@@ -65,7 +81,7 @@ def audit_user_role_deletion(sender, instance, **kwargs):
         'role_name': role.name,
         'role_type': role.role_type,
         'was_primary': instance.is_primary,
-        'academic_session': str(instance.academic_session.id) if instance.academic_session else None,
+        'academic_session': academic_session_id,
     }
 
     AuditLog.objects.create(

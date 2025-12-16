@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load quiz_tags %}
+
+{% block title %} {{ quiz.title }} | {% trans 'Learning management system' %} {% endblock %}
+{% block description %} {{ quiz.title }} - {{ quiz.description }} {% endblock %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+	<ol class="breadcrumb">
+		<li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+		<li class="breadcrumb-item"><a href="{% url 'programs' %}">{% trans 'Programs' %}</a></li>
+		<li class="breadcrumb-item"><a href="{% url 'program_detail' course.program.id %}">{{ course.program }}</a></li>
+		<li class="breadcrumb-item"><a href="{{ course.get_absolute_url }}">{{ course }}</a></li>
+		<li class="breadcrumb-item"><a href="{% url 'quiz_index' course.slug %}">{% trans 'Quizzes' %}</a></li>
+		<li class="breadcrumb-item active" aria-current="page">{{ quiz.title|title }}</li>
+	</ol>
+</nav>
+
+<div class="title-1">{{ quiz.title|title }}</div>
+<br>
+
+<div class="container">
+	{% if previous.answers %}
+	<div class="card mb-4">
+		<div class="card-body">
+			<p class="muted"><small>{% trans "The previous question" %}:</small></p>
+			<p>{{ previous.previous_question.content }}</p>
+
+			{% if previous.previous_outcome %}
+				<div class="alert alert-success">
+			{% else %}
+				<div class="alert alert-warning">
+			{% endif %}
+				<p class="mb-0"><small>
+					{% trans "Your answer was" %} </small>
+					<strong>
+					{{ previous.previous_outcome|yesno:"correct,incorrect" }}
+					</strong>
+				</p>
+			</div>
+
+			{% include 'quiz/correct_answer.html' %}
+
+			<p><strong>{% trans "Explanation" %}:</strong></p>
+			<div class="p-3 bg-light rounded">
+				{% if previous.previous_question.explanation %}
+					{{ previous.previous_question.explanation }}
+				{% else %}
+					{% trans "No explanation set for this question." %}
+				{% endif %}
+			</div>
+		</div>
+	</div>
+	<hr>
+	{% endif %}
+
+	{% if question %}
+	{% if progress.0|add:0 == 0 %}
+	<div class="modal fade" id="instructionModal" tabindex="-1" aria-labelledby="instructionModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+		  <div class="modal-content">
+			<div class="modal-header">
+			  <h5 class="modal-title" id="instructionModalLabel">{% trans 'Quiz Instructions' %}</h5>
+			  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body">
+				{% blocktrans %}
+				You can't go back to the previous question after you submit it,
+				so double check your answer before proceeding to the next one!
+				{% endblocktrans %}
+			</div>
+			<div class="modal-footer">
+			  <button type="button" class="btn btn-primary" data-bs-dismiss="modal">{% trans 'Understood' %}</button>
+			</div>
+		  </div>
+		</div>
+	</div>
+	{% endif %}
+
+	{% if progress %}
+	<div class="d-flex justify-content-between align-items-center mb-3">
+		<small class="text-muted">{% trans "Quiz category" %}: <strong>{{ quiz.category }}</strong></small>
+		<span class="badge bg-danger">
+			{% trans "Question" %} {{ progress.0|add:1 }} {% trans "of" %} {{ progress.1 }}
+		</span>
+	</div>
+	{% endif %}
+
+	<div class="card">
+		<div class="card-header">
+			<h5 class="card-title mb-0">{{ question.content }}</h5>
+		</div>
+
+		<div class="card-body">
+			{% if question.figure %}
+			<div class="text-center mb-4">
+				<img class="img-fluid" src="{{ question.figure.url }}" alt="{{ question.content }}" style="max-height: 300px;"/>
+			</div>
+			{% endif %}
+
+			<form action="" method="POST">
+				{% csrf_token %}
+				<input type="hidden" name="question_id" value="{{ question.id }}">
+
+				{% if question|instanceof:"EssayQuestion" %}
+				<div class="form-group">
+					<label for="essay-answer" class="form-label">{% trans "Your Answer" %}</label>
+					<textarea class="form-control" id="essay-answer" name="answers" rows="5" required></textarea>
+				</div>
+				{% else %}
+				<ul class="list-group list-group-flush">
+					{% for answer in form.answers %}
+					<li class="list-group-item">
+						<div class="form-check">
+							{{ answer.tag }}
+							<label class="form-check-label" for="{{ answer.id_for_label }}">
+								{{ answer.choice_label }}
+							</label>
+						</div>
+					</li>
+					{% endfor %}
+				</ul>
+				{% endif %}
+
+				<div class="mt-4">
+					<button type="submit" class="btn btn-primary btn-lg w-100">
+						{% trans "Submit Answer" %}
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+	{% endif %}
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+	document.addEventListener('DOMContentLoaded', function() {
+		{% if progress.0|add:0 == 0 %}
+		var instructionModal = new bootstrap.Modal(document.getElementById('instructionModal'));
+		instructionModal.show();
+		{% endif %}
+	});
+</script>
+{% endblock %}

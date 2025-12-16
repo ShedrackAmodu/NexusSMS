@@ -696,7 +696,9 @@ class Enrollment(CoreBaseModel):
         AcademicSession,
         on_delete=models.CASCADE,
         related_name='enrollments',
-        verbose_name=_('academic session')
+        verbose_name=_('academic session'),
+        null=True,
+        blank=True
     )
     enrollment_date = models.DateField(_('enrollment date'))
     enrollment_status = models.CharField(
@@ -725,7 +727,7 @@ class Enrollment(CoreBaseModel):
         return f"{self.student} - {self.class_enrolled} ({self.academic_session})"
 
     def clean(self):
-        if self.enrollment_date and self.academic_session:
+        if self.academic_session and self.enrollment_date:
             if self.enrollment_date < self.academic_session.start_date:
                 raise ValidationError(
                     _('Enrollment date cannot be before academic session start date.')

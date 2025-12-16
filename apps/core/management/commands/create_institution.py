@@ -291,30 +291,12 @@ class Command(BaseCommand):
         return user
 
     def _get_or_create_current_session(self, institution):
-        """Get current academic session or create a default one."""
+        """Get current academic session - no longer creates default one."""
         from apps.academics.models import AcademicSession
-        from django.utils import timezone
 
+        # Just return the current session if it exists, otherwise return None
+        # User roles can be created without requiring an academic session initially
         current_session = AcademicSession.objects.filter(is_current=True).first()
-        if not current_session:
-            # Create a default session
-            now = timezone.now()
-            start_date = now.replace(month=1, day=1) if now.month >= 7 else now.replace(month=7, day=1, year=now.year-1)
-            end_date = start_date.replace(year=start_date.year+1, month=6, day=30)
-
-            current_session, created = AcademicSession.objects.get_or_create(
-                name=f"{start_date.year}-{end_date.year} Academic Year",
-                defaults={
-                    'start_date': start_date,
-                    'end_date': end_date,
-                    'is_current': True,
-                    'description': 'Default academic session created during institution setup',
-                }
-            )
-
-            if created:
-                self.stdout.write(_('Created default academic session: %s') % current_session.name)
-
         return current_session
 
     def _create_default_configs(self, institution):

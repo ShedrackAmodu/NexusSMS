@@ -291,18 +291,19 @@ class SystemCreator:
             ('setup_multitenancy', 'Setting up multi-tenancy...'),
             ('create_system_kpis', 'Creating system KPIs...'),
             ('create_system_reports', 'Creating system reports...'),
-            
+
             # Second: Populate data commands
             ('populate_exam_types', 'Populating exam types...'),
             ('populate_faqs', 'Populating FAQs...'),
             ('populate_legal_documents', 'Populating legal documents...'),
-            
+            ('populate_grade_levels', 'Populating grade levels...'),
+
             # Third: Permission and user management (run after roles are created)
             ('assign_role_permissions', 'Assigning role permissions...'),
             ('assign_transport_permissions', 'Assigning transport permissions...'),
             ('sync_permissions', 'Synchronizing user permissions...'),
             ('map_unmapped_users', 'Mapping unmapped users...'),
-            
+
             # Fourth: Data collection (optional - can be skipped if desired)
             ('collect_system_metrics', 'Collecting system metrics...'),
         ]
@@ -327,7 +328,7 @@ class SystemCreator:
         populate_commands = [cmd for cmd in all_commands.keys() if cmd.startswith('populate_')]
         
         # Exclude already run commands
-        already_run = ['populate_exam_types', 'populate_faqs', 'populate_legal_documents']
+        already_run = ['populate_exam_types', 'populate_faqs', 'populate_legal_documents', 'populate_grade_levels']
         new_commands = [cmd for cmd in populate_commands if cmd not in already_run]
         
         if new_commands:
@@ -398,80 +399,60 @@ class SystemCreator:
     def create_superuser_interactive(self):
         """Interactively create a superuser."""
         self.log_info("\nCreating superuser account...")
-        
+
         try:
             # Check if superuser already exists
             if User.objects.filter(is_superuser=True).exists():
                 self.log_warning("Superuser already exists.")
                 if not self.prompt_yes_no("Do you want to create another superuser? (y/n): "):
                     return None
-            
+
             # Get credentials from user
             print("\nPlease enter superuser credentials:")
-            
-            # Check if User model has username field
-            has_username_field = hasattr(User, 'username')
-            
-            if has_username_field:
-                username = input("Username: ").strip()
-                if not username:
-                    self.log_error("Username cannot be empty")
-                    return None
-            else:
-                # If no username field, we'll use email as identifier
-                username = None
-            
+
             email = input("Email address: ").strip()
-            
+
             # Validate email
             if not email or '@' not in email:
                 self.log_error("Invalid email address")
                 if self.prompt_yes_no("Try again? (y/n): "):
                     return self.create_superuser_interactive()
                 return None
-            
+
             # Get password (twice for confirmation)
             while True:
                 password = getpass.getpass("Password: ").strip()
                 confirm_password = getpass.getpass("Confirm password: ").strip()
-                
+
                 if not password:
                     print("Password cannot be empty")
                     if not self.prompt_yes_no("Try again? (y/n): "):
                         return None
                     continue
-                
+
                 if password != confirm_password:
                     print("Passwords do not match")
                     if not self.prompt_yes_no("Try again? (y/n): "):
                         return None
                 else:
                     break
-            
+
             # Create superuser
             try:
-                if has_username_field and username:
-                    # User model has username field
-                    user = User.objects.create_superuser(
-                        username=username,
-                        email=email,
-                        password=password
-                    )
-                else:
-                    # User model uses email as username
-                    user = User.objects.create_superuser(
-                        email=email,
-                        password=password
-                    )
-                    
+                # User model uses email as username
+                user = User.objects.create_superuser(
+                    email=email,
+                    password=password
+                )
+
                 self.log_success(f"Superuser created successfully: {email}")
                 return user
-                
+
             except Exception as e:
                 self.log_error(f"Error creating superuser: {e}")
                 if self.prompt_yes_no("Try again? (y/n): "):
                     return self.create_superuser_interactive()
-                
+
         except KeyboardInterrupt:
             self.log_warning("Superuser creation cancelled by user")
             return None

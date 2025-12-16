@@ -8,15 +8,8 @@ class Command(BaseCommand):
     help = 'Create system performance KPIs for monitoring'
 
     def handle(self, *args, **options):
-        # Get or create current academic session
-        current_session, created = AcademicSession.objects.get_or_create(
-            name="2025-2026",
-            defaults={
-                'start_date': '2025-01-01',
-                'end_date': '2026-12-31',
-                'status': 'active'
-            }
-        )
+        # Note: No longer creating default academic session
+        # KPIs can function without sessions and measurements will be tied to sessions when they exist
 
         # System Performance KPIs
         system_kpis = [

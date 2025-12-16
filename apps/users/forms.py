@@ -454,7 +454,7 @@ class UserRoleAssignmentForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         from apps.core.models import Institution
-        self.fields['academic_session'].queryset = AcademicSession.objects.filter(status='active')
+        self.fields['academic_session'].queryset = AcademicSession.objects.filter(is_current=True)
 
         # If editing existing role, pre-select the user's institution if available
         if self.instance.pk and self.instance.user:
@@ -957,7 +957,7 @@ class StudentApplicationForm(forms.ModelForm):
             'medical_conditions', 'special_needs', 'extracurricular_interests',
 
             # Application Details
-            'institution', 'academic_session'
+            'institution'
         ]
 
         widgets = {
@@ -1087,10 +1087,7 @@ class StudentApplicationForm(forms.ModelForm):
                 'placeholder': _('Sports, arts, clubs, etc.')
             }),
             
-            # Application Details
-            'academic_session': forms.Select(attrs={
-                'class': 'form-control'
-            }),
+
         }
         help_texts = {
             'date_of_birth': _('Format: YYYY-MM-DD'),
@@ -1100,14 +1097,19 @@ class StudentApplicationForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        from apps.academics.models import AcademicSession
-        # Only show active academic sessions
-        self.fields['academic_session'].queryset = AcademicSession.objects.filter(
-            status='active'
-        )
+        from apps.academics.models import AcademicSession, GradeLevel
 
-        # Make academic session optional
-        self.fields['academic_session'].required = False
+        # Show all grade levels (simplest and most reliable solution)
+        self.fields['grade_applying_for'].choices = [
+            (grade.name, grade.name) for grade in GradeLevel.objects.all().order_by('code')
+        ]
+
+        # Ensure proper ordering by sorting the choices list
+        self.fields['grade_applying_for'].choices = sorted(
+            self.fields['grade_applying_for'].choices,
+            key=lambda x: [int(s) for s in x[0].split() if s.isdigit()][0] if any(c.isdigit() for c in x[0]) else 0
+        )
+        self.fields['grade_applying_for'].empty_label = _("Select grade level")
 
     def clean(self):
         cleaned_data = super().clean()
@@ -1314,7 +1316,7 @@ class StaffApplicationForm(forms.ModelForm):
             'reference2_name', 'reference2_position', 'reference2_contact',
 
             # Application Details
-            'institution', 'academic_session'
+            'institution'
         ]
 
         widgets = {
@@ -1449,10 +1451,7 @@ class StaffApplicationForm(forms.ModelForm):
                 'placeholder': _('Reference 2 email or phone (optional)')
             }),
             
-            # Application Details
-            'academic_session': forms.Select(attrs={
-                'class': 'form-control'
-            }),
+
         }
         help_texts = {
             'cv': _('Upload your CV (PDF, DOC, DOCX, max 5MB)'),
@@ -1465,24 +1464,17 @@ class StaffApplicationForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         from apps.academics.models import AcademicSession
 
-        # Only show active academic sessions
-        self.fields['academic_session'].queryset = AcademicSession.objects.filter(
-            status='active'
-        )
-
         # FIX: Populate position_applied_for with ALL active staff roles
         self.fields['position_applied_for'].queryset = Role.objects.filter(
             role_type__in=Role.STAFF_ROLES,
             status='active'
         ).order_by('name')
 
-        # Make academic session optional, but CV required
-        self.fields['academic_session'].required = False
+        # Make CV required
         self.fields['cv'].required = True
 
         # Add empty label for dropdowns
         self.fields['position_applied_for'].empty_label = _("Select a position")
-        self.fields['academic_session'].empty_label = _("Select academic session")
         self.fields['position_type'].empty_label = _("Select position type")
         self.fields['gender'].empty_label = _("Select gender")
 

@@ -307,7 +307,9 @@ class KPIMeasurement(CoreBaseModel):
         AcademicSession,
         on_delete=models.CASCADE,
         related_name='kpi_measurements',
-        verbose_name=_('academic session')
+        verbose_name=_('academic session'),
+        null=True,
+        blank=True
     )
     measured_at = models.DateTimeField(_('measured at'), db_index=True)
     value = models.DecimalField(

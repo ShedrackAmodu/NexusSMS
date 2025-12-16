@@ -417,10 +417,11 @@ class EnrollmentForm(forms.ModelForm):
         self.fields['student'].queryset = Student.objects.filter(status='active').select_related('user')
         self.fields['class_enrolled'].queryset = Class.objects.filter(status='active').select_related('grade_level', 'academic_session')
         self.fields['academic_session'].queryset = AcademicSession.objects.filter(status='active')
-        
+
         self.fields['student'].empty_label = _("Select Student")
         self.fields['class_enrolled'].empty_label = _("Select Class")
-        self.fields['academic_session'].empty_label = _("Select Academic Session")
+        self.fields['academic_session'].empty_label = _("Select Academic Session (Optional)")
+        self.fields['academic_session'].required = False
 
     def clean(self):
         cleaned_data = super().clean()
@@ -430,6 +431,7 @@ class EnrollmentForm(forms.ModelForm):
         enrollment_date = cleaned_data.get('enrollment_date')
         roll_number = cleaned_data.get('roll_number')
 
+        # Only check for duplicates if academic_session is provided
         if student and academic_session:
             duplicate_enrollment = Enrollment.objects.filter(
                 student=student,
@@ -437,7 +439,7 @@ class EnrollmentForm(forms.ModelForm):
             ).exclude(pk=self.instance.pk).exists()
             if duplicate_enrollment:
                 raise forms.ValidationError(_('This student is already enrolled in a class for this academic session.'))
-        
+
         if class_enrolled and roll_number and academic_session:
             duplicate_roll_number = Enrollment.objects.filter(
                 class_enrolled=class_enrolled,
@@ -447,10 +449,11 @@ class EnrollmentForm(forms.ModelForm):
             if duplicate_roll_number:
                 raise forms.ValidationError(_('This roll number is already taken in this class for this academic session.'))
 
+        # Validate enrollment date only if session is provided
         if enrollment_date and academic_session:
             if enrollment_date < academic_session.start_date or enrollment_date > academic_session.end_date:
                 raise forms.ValidationError(_('Enrollment date must be within the academic session dates.'))
-        
+
         return cleaned_data
 
 class SubjectAssignmentForm(forms.ModelForm):

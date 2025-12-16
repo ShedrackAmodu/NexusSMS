@@ -465,7 +465,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (this.value) {
                 const semesters = parseInt(this.value);
                 for (let i = 1; i <= semesters; i++) {
-                    termNumberInput.add(new Option('Term ' + i, i));
+                    termNumberInput.add(new Option('Semester ' + i, i));
                 }
             } else {
                 termNumberInput.add(new Option('Select number of semesters first', ''));

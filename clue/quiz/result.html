@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load quiz_tags %}
+
+{% block title %} {{ quiz.title}} | {% trans 'Learning management system' %} {% endblock %}
+{% block description %} {% trans "Quiz Results for" %} {{ quiz.title }} {% endblock %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+	<ol class="breadcrumb">
+		<li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+		<li class="breadcrumb-item"><a href="{% url 'programs' %}">{% trans 'Programs' %}</a></li>
+		<li class="breadcrumb-item"><a href="{% url 'program_detail' course.program.id %}">{{ course.program }}</a></li>
+		<li class="breadcrumb-item"><a href="{{ course.get_absolute_url }}">{{ course }}</a></li>
+		<li class="breadcrumb-item"><a href="{% url 'quiz_index' course.slug %}">{% trans 'Quizzes' %}</a></li>
+		<li class="breadcrumb-item active" aria-current="page">{% trans 'Result' %}</li>
+	</ol>
+</nav>
+
+<div class="title-1">{% trans 'Quiz Results' %} - {{ quiz.title }}</div>
+<br>
+
+<div class="container">
+    {% if max_score %}
+    <div class="card mb-4">
+        <div class="card-body text-center">
+            <h3 class="card-title">{% trans "Quiz Result" %}</h3>
+
+            <div class="my-4">
+                <p class="lead">
+                    {% trans "You answered" %} <strong>{{ score }}</strong> {% trans "questions correctly out of" %} <strong>{{ max_score }}</strong>
+                </p>
+
+                <div class="progress mb-3" style="height: 30px;">
+                    <div class="progress-bar {% if percent >= 60 %}bg-success{% elif percent >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
+                         role="progressbar" style="width: {{ percent }}%;"
+                         aria-valuenow="{{ percent }}" aria-valuemin="0" aria-valuemax="100">
+                        <strong>{{ percent }}%</strong>
+                    </div>
+                </div>
+            </div>
+
+            {% if quiz.pass_mark %}
+            <div class="alert {% if percent >= quiz.pass_mark %}alert-success{% else %}alert-danger{% endif %}">
+                <h5 class="alert-heading">
+                    {% if percent >= quiz.pass_mark %}
+                        ✅ {% trans "Congratulations! You passed!" %}
+                    {% else %}
+                        ❌ {% trans "Sorry, you didn't pass this time." %}
+                    {% endif %}
+                </h5>
+                <p class="mb-0">{{ sitting.result_message }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if questions %}
+    <div class="card">
+        <div class="card-header">
+            <h4>{% trans "Question Review" %}</h4>
+        </div>
+        <div class="card-body">
+            {% for question in questions %}
+            <div class="question-review mb-4 pb-4 border-bottom">
+                <h5>{{ forloop.counter }}. {{ question.content }}</h5>
+
+                {% if question.user_answer %}
+                <p><strong>{% trans "Your answer" %}:</strong>
+                    <span class="badge bg-secondary">
+                    {% if question|instanceof:"EssayQuestion" %}
+                        {{ question.user_answer }}
+                    {% else %}
+                        {{ question|answer_choice_to_string:question.user_answer }}
+                    {% endif %}
+                    </span>
+                </p>
+                {% endif %}
+
+                <p><strong>{% trans "Explanation" %}:</strong></p>
+                <div class="alert alert-info">
+                    {% if question.explanation %}
+                        {{ question.explanation|safe }}
+                    {% else %}
+                        {% trans "No explanation provided for this question." %}
+                    {% endif %}
+                </div>
+
+                {% include 'quiz/correct_answer.html' %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="text-center mt-4">
+        <a href="{% url 'quiz_index' course.slug %}" class="btn btn-primary me-2">
+            {% trans "Back to Quizzes" %}
+        </a>
+        <a href="{% url 'quiz_progress' %}" class="btn btn-outline-secondary">
+            {% trans "View Progress" %}
+        </a>
+    </div>
+</div>
+{% endblock %}
