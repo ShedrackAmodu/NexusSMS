@@ -917,6 +917,14 @@ class StudentApplicationForm(forms.ModelForm):
             'placeholder': _("Confirm parent's email address")
         })
     )
+    # Grade level selection field
+    grade_applying_for = forms.ChoiceField(
+        label=_('Grade Applying For'),
+        widget=forms.Select(attrs={
+            'class': 'form-control'
+        }),
+        help_text=_('Select the grade level you are applying for.')
+    )
     # Institution selection field with enhanced filtering
     institution = forms.ModelChoiceField(
         queryset=Institution.objects.filter(
@@ -1014,9 +1022,6 @@ class StudentApplicationForm(forms.ModelForm):
             }),
             
             # Academic Information
-            'grade_applying_for': forms.Select(attrs={
-                'class': 'form-control'
-            }),
             'previous_school': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': _('Previous school name')
@@ -1099,16 +1104,34 @@ class StudentApplicationForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         from apps.academics.models import AcademicSession, GradeLevel
 
-        # Show all grade levels (simplest and most reliable solution)
-        self.fields['grade_applying_for'].choices = [
-            (grade.name, grade.name) for grade in GradeLevel.objects.all().order_by('code')
-        ]
+        # Organize grade levels by education stage with user-friendly labels
+        stage_labels = {
+            'preschool': 'Preschool & Early Childhood',
+            'elementary': 'Elementary School (Primary)',
+            'middle_school': 'Middle School (Junior Secondary)',
+            'high_school': 'High School (Senior Secondary)',
+            'undergraduate': 'University Undergraduate',
+            'graduate': 'Graduate School (Masters)',
+            'postgraduate': 'Postgraduate (PhD)',
+            'diploma': 'Diploma & Professional Programs'
+        }
 
-        # Ensure proper ordering by sorting the choices list
-        self.fields['grade_applying_for'].choices = sorted(
-            self.fields['grade_applying_for'].choices,
-            key=lambda x: [int(s) for s in x[0].split() if s.isdigit()][0] if any(c.isdigit() for c in x[0]) else 0
-        )
+        # Stage ordering for logical display
+        stage_order = ['preschool', 'elementary', 'middle_school', 'high_school', 'undergraduate', 'graduate', 'postgraduate', 'diploma']
+
+        grouped_choices = []
+        for stage in stage_order:
+            grades_in_stage = GradeLevel.objects.filter(
+                education_stage=stage,
+                status='active'
+            ).order_by('code')
+
+            if grades_in_stage.exists():
+                # Create optgroup for this stage
+                stage_choices = [(grade.name, grade.name) for grade in grades_in_stage]
+                grouped_choices.append((stage_labels[stage], stage_choices))
+
+        self.fields['grade_applying_for'].choices = grouped_choices
         self.fields['grade_applying_for'].empty_label = _("Select grade level")
 
     def clean(self):
