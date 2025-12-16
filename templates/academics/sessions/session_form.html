@@ -268,30 +268,154 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/academics/session_form.js' %}"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Date validation and duration calculation
-        const startDateInput = document.getElementById('{{ form.start_date.id_for_label }}');
-        const endDateInput = document.getElementById('{{ form.end_date.id_for_label }}');
-        const durationText = document.getElementById('durationText');
-        const durationDays = document.getElementById('durationDays');
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Session form JavaScript loaded');
 
-        function calculateDuration() {
-            if (startDateInput.value && endDateInput.value) {
-                const startDate = new Date(startDateInput.value);
-                const endDate = new Date(endDateInput.value);
-                
-                if (startDate && endDate && startDate <= endDate) {
-                    const diffTime = Math.abs(endDate - startDate);
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-                    
-                    const startFormatted = startDate.toLocaleDateString();
-                    const endFormatted = endDate.toLocaleDateString();
-                    
-                    durationText.textContent = `${startFormatted} to ${endFormatted}`;
-                    durationDays.textContent = `${diffDays} days`;
-                    
+    // Form validation
+    const sessionForm = document.getElementById('sessionForm');
+    if (sessionForm) {
+        sessionForm.addEventListener('submit', function(e) {
+            console.log('Submitting session form...');
+
+            // Client-side validation
+            if (!validateSessionForm()) {
+                e.preventDefault();
+                console.log('Form validation failed');
+                return false;
+            }
+
+            console.log('Form validation passed');
+            return true;
+        });
+    }
+
+    function validateSessionForm() {
+        let isValid = true;
+        const errors = [];
+
+        // Get form inputs
+        const nameInput = document.querySelector('input[name="name"]');
+        const startDateInput = document.querySelector('input[name="start_date"]');
+        const endDateInput = document.querySelector('input[name="end_date"]');
+        const isCurrentCheckbox = document.querySelector('input[name="is_current"]');
+
+        // Validate required fields
+        if (nameInput && !nameInput.value.trim()) {
+            showFieldError(nameInput, 'Session name is required');
+            isValid = false;
+        }
+
+        if (startDateInput && !startDateInput.value) {
+            showFieldError(startDateInput, 'Start date is required');
+            isValid = false;
+        }
+
+        if (endDateInput && !endDateInput.value) {
+            showFieldError(endDateInput, 'End date is required');
+            isValid = false;
+        }
+
+        // Validate date range
+        if (startDateInput && endDateInput && startDateInput.value && endDateInput.value) {
+            const startDate = new Date(startDateInput.value);
+            const endDate = new Date(endDateInput.value);
+
+            if (startDate >= endDate) {
+                showFieldError(endDateInput, 'End date must be after start date');
+                isValid = false;
+            }
+
+            // Check for reasonable future dates
+            const maxFutureDate = new Date();
+            maxFutureDate.setFullYear(maxFutureDate.getFullYear() + 10);
+
+            if (endDate > maxFutureDate) {
+                if (!confirm('Session end date is more than 10 years in the future. Are you sure this is correct?')) {
+                    showFieldError(endDateInput, 'End date seems too far in the future');
+                    isValid = false;
+                }
+            }
+        }
+
+        // Check current session warning
+        if (isCurrentCheckbox && isCurrentCheckbox.checked) {
+            const confirmation = confirm(
+                'Making this session current will automatically make all other sessions non-current. Continue?'
+            );
+            if (!confirmation) {
+                isCurrentCheckbox.checked = false;
+            }
+        }
+
+        if (!isValid) {
+            // Scroll to top to show errors
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        return isValid;
+    }
+
+    function showFieldError(input, message) {
+        // Remove existing error display
+        clearFieldError(input);
+
+        // Add error class to input
+        input.classList.add('is-invalid');
+
+        // Create error message element
+        const errorElement = document.createElement('div');
+        errorElement.className = 'invalid-feedback';
+        errorElement.textContent = message;
+
+        // Insert error message after input
+        const formGroup = input.closest('.mb-3');
+        if (formGroup) {
+            formGroup.appendChild(errorElement);
+        }
+
+        // Scroll to field if needed
+        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function clearFieldError(input) {
+        // Remove error class
+        input.classList.remove('is-invalid');
+
+        // Remove error message
+        const formGroup = input.closest('.mb-3');
+        if (formGroup) {
+            const errorElement = formGroup.querySelector('.invalid-feedback');
+            if (errorElement) {
+                errorElement.remove();
+            }
+        }
+    }
+
+    // Date validation and duration calculation
+    const startDateInput = document.getElementById('{{ form.start_date.id_for_label }}');
+    const endDateInput = document.getElementById('{{ form.end_date.id_for_label }}');
+    const durationText = document.getElementById('durationText');
+    const durationDays = document.getElementById('durationDays');
+
+    function calculateDuration() {
+        if (startDateInput && startDateInput.value && endDateInput && endDateInput.value) {
+            const startDate = new Date(startDateInput.value);
+            const endDate = new Date(endDateInput.value);
+
+            if (startDate && endDate && startDate <= endDate) {
+                const diffTime = Math.abs(endDate - startDate);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+                const startFormatted = startDate.toLocaleDateString();
+                const endFormatted = endDate.toLocaleDateString();
+
+                if (durationText) {
+                    durationText.textContent = startFormatted + ' to ' + endFormatted;
+                }
+                if (durationDays) {
+                    durationDays.textContent = diffDays + ' days';
+
                     // Color code based on duration
                     if (diffDays < 90) {
                         durationDays.className = 'badge bg-warning';
@@ -300,23 +424,69 @@
                     } else {
                         durationDays.className = 'badge bg-success';
                     }
-                } else {
+                }
+            } else {
+                if (durationText) {
                     durationText.textContent = '{% trans "Invalid date range" %}';
+                }
+                if (durationDays) {
                     durationDays.textContent = '0 days';
                     durationDays.className = 'badge bg-danger';
                 }
-            } else {
+            }
+        } else {
+            if (durationText) {
                 durationText.textContent = '{% trans "Select start and end dates to see duration" %}';
+            }
+            if (durationDays) {
                 durationDays.textContent = '0 days';
                 durationDays.className = 'badge bg-secondary';
             }
         }
+    }
 
+    if (startDateInput && endDateInput) {
         startDateInput.addEventListener('change', calculateDuration);
         endDateInput.addEventListener('change', calculateDuration);
-        
+
         // Initialize duration calculation
         calculateDuration();
+    }
+
+    // Form field dependencies for semesters
+    const numberOfSemestersInput = document.querySelector('select[name="number_of_semesters"]');
+    const termNumberInput = document.querySelector('select[name="term_number"]');
+
+    if (numberOfSemestersInput && termNumberInput) {
+        numberOfSemestersInput.addEventListener('change', function() {
+            termNumberInput.innerHTML = ''; // Clear options
+            termNumberInput.add(new Option('', '')); // Empty option
+
+            if (this.value) {
+                const semesters = parseInt(this.value);
+                for (let i = 1; i <= semesters; i++) {
+                    termNumberInput.add(new Option('Term ' + i, i));
+                }
+            } else {
+                termNumberInput.add(new Option('Select number of semesters first', ''));
+                termNumberInput.disabled = true;
+            }
+        });
+
+        // Initialize term number options
+        if (numberOfSemestersInput.value) {
+            numberOfSemestersInput.dispatchEvent(new Event('change'));
+        }
+    }
+
+    // Clear field errors on input
+    const formInputs = sessionForm.querySelectorAll('input, select, textarea');
+    formInputs.forEach(input => {
+        input.addEventListener('input', clearFieldError.bind(null, input));
+        input.addEventListener('change', clearFieldError.bind(null, input));
     });
+
+    console.log('Session form initialized successfully');
+});
 </script>
 {% endblock %}

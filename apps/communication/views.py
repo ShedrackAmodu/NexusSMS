@@ -17,8 +17,9 @@ from .models import (
     Announcement, NoticeBoard, NoticeBoardItem, EmailTemplate, SentEmail,
     SMSTemplate, SentSMS, RealTimeNotification,
     NotificationPreference, NotificationTemplate, ChatRoom, ChatMessage,
-    ChatParticipant, TypingIndicator
+    ChatParticipant, TypingIndicator, Message, MessageRecipient
 )
+from .forms import MessageForm
 from apps.users.models import User
 from apps.academics.models import Class, Student
 
@@ -115,9 +116,9 @@ class AnnouncementDetailView(LoginRequiredMixin, DetailView):
     model = Announcement
     template_name = 'communication/announcements/announcement_detail.html'
     context_object_name = 'announcement'
-    
+
     def get_queryset(self):
-        return Announcement.objects.select_related('author').prefetch_related('attachments')
+        return Announcement.objects.select_related('author')
 
 
 class AnnouncementCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
@@ -1104,7 +1105,7 @@ class ChatRoomListView(LoginRequiredMixin, ListView):
     View for listing chat rooms the user has access to
     """
     model = ChatRoom
-    template_name = 'communication/chat/room_list.html'
+    template_name = 'communication/chat/chat_room_list.html'
     context_object_name = 'chat_rooms'
     paginate_by = 20
 
@@ -1120,7 +1121,7 @@ class ChatRoomDetailView(LoginRequiredMixin, DetailView):
     View for displaying a chat room and its messages
     """
     model = ChatRoom
-    template_name = 'communication/chat/room_detail.html'
+    template_name = 'communication/chat/chat_room_detail.html'
     context_object_name = 'chat_room'
 
     def get_queryset(self):
@@ -1250,6 +1251,35 @@ def mark_chat_messages_read(request, room_pk):
     return JsonResponse({'success': False, 'message': 'Invalid request'}, status=400)
 
 
+# ===== MESSAGE VIEWS =====
+
+class MessageCreateView(LoginRequiredMixin, CreateView):
+    """
+    View for creating and sending messages
+    """
+    model = Message
+    form_class = MessageForm
+    template_name = 'communication/messages/message_form.html'
+
+    def get_form_kwargs(self):
+        """Pass request to form"""
+        kwargs = super().get_form_kwargs()
+        kwargs['request'] = self.request
+        return kwargs
+
+    def form_valid(self, form):
+        """Handle form submission"""
+        message = form.save()  # This handles recipients creation in the form's save method
+        messages.success(
+            self.request,
+            f'Message "{message.subject}" sent successfully to {message.recipients_count} recipient(s)!'
+        )
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('communication:inbox')
+
+
 # ===== UTILITY FUNCTIONS =====
 
 # Signal handlers for automatic notifications
@@ -1272,3 +1302,65 @@ def send_welcome_notification(sender, instance, created, **kwargs):
             notification_type='info',
             priority='low'
         )
+
+
+# ===== PUBLIC NOTICE BOARD VIEWS =====
+
+def public_noticeboard_portal(request):
+    """
+    Public noticeboard portal for guests and unregistered users
+    Shows public notice boards and their announcements
+    """
+    # Get all public notice boards (ones that allow public access)
+    public_noticeboards = NoticeBoard.objects.filter(
+        is_active=True,
+        status='active',
+        board_type='public'  # Assuming there's a board_type field or similar
+    ).prefetch_related(
+        'noticeboarditem_set__announcement'
+    ).order_by('name')
+
+    # Collect all active announcements from public boards
+    public_announcements = []
+    for board in public_noticeboards:
+        # Get active items for this board
+        active_items = board.noticeboarditem_set.filter(
+            is_active=True,
+            status='active'
+        ).select_related('announcement')
+
+        for item in active_items:
+            if item.is_currently_displayed and item.announcement.is_active:
+                announcement_data = {
+                    'announcement': item.announcement,
+                    'board': board,
+                    'display_order': item.display_order
+                }
+                public_announcements.append(announcement_data)
+
+    # Sort announcements by urgency, then by pinned status, then by display order
+    public_announcements.sort(key=lambda x: (
+        0 if x['announcement'].priority == 'urgent' else
+        1 if x['announcement'].is_pinned else 2,
+        x['display_order']
+    ), reverse=True)
+
+    # Group announcements by board for display
+    announcements_by_board = {}
+    for data in public_announcements:
+        board_id = data['board'].id
+        if board_id not in announcements_by_board:
+            announcements_by_board[board_id] = {
+                'board': data['board'],
+                'announcements': []
+            }
+        announcements_by_board[board_id]['announcements'].append(data['announcement'])
+
+    context = {
+        'public_noticeboards': public_noticeboards,
+        'announcements_by_board': announcements_by_board,
+        'total_announcements': len(public_announcements),
+        'is_public_view': True,
+    }
+
+    return render(request, 'communication/noticeboards/public_portal.html', context)

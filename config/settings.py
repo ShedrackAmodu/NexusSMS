@@ -95,6 +95,7 @@ TEMPLATES = [
             "builtins": [
                 "apps.attendance.templatetags.attendance_filters",
                 "apps.users.templatetags.user_filters",
+                "apps.communication.templatetags.communication_tags",
             ],
                 "context_processors": [
                     "django.template.context_processors.debug",

@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% load static i18n %}
+
+{% block title %}{{ competition.title }}{% endblock %}
+{% block page_title %}{{ competition.title }}{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'activities:activity_list' %}">Activities</a></li>
+<li class="breadcrumb-item"><a href="{% url 'activities:competition_list' %}">Competitions</a></li>
+<li class="breadcrumb-item active" aria-current="page">{{ competition.title }}</li>
+{% endblock %}
+
+{% block page_actions %}
+{% if user.is_staff or competition.activity.coordinator == user %}
+<a href="#" class="btn btn-outline-primary">
+    <i class="bi bi-pencil me-1"></i>Edit Competition
+</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Main Content -->
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h2 class="card-title mb-1">{{ competition.title }}</h2>
+                        <p class="text-muted mb-1">
+                            <i class="bi bi-trophy me-1"></i>{{ competition.get_competition_type_display }} •
+                            <i class="bi bi-award me-1"></i>{{ competition.get_level_display }} •
+                            <i class="bi bi-tag me-1"></i>{{ competition.activity.title }}
+                        </p>
+                    </div>
+                </div>
+
+                {% if competition.description %}
+                <div class="mb-4">
+                    <h5>Description</h5>
+                    <p class="card-text">{{ competition.description }}</p>
+                </div>
+                {% endif %}
+
+                <!-- Competition Details -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5><i class="bi bi-calendar-event me-2"></i>Dates</h5>
+                        <p class="mb-1">
+                            <strong>Start Date:</strong> {{ competition.start_date|date:"F j, Y" }}
+                        </p>
+                        {% if competition.end_date %}
+                        <p class="mb-1">
+                            <strong>End Date:</strong> {{ competition.end_date|date:"F j, Y" }}
+                        </p>
+                        {% endif %}
+                        {% if competition.registration_deadline %}
+                        <p class="mb-0">
+                            <strong>Registration Deadline:</strong> {{ competition.registration_deadline|date:"F j, Y" }}
+                        </p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <h5><i class="bi bi-people me-2"></i>Participants</h5>
+                        {% if competition.max_teams %}
+                        <p class="mb-1">
+                            <strong>Maximum Teams:</strong> {{ competition.max_teams }}
+                        </p>
+                        {% endif %}
+                        {% if competition.max_individuals %}
+                        <p class="mb-1">
+                            <strong>Maximum Individuals:</strong> {{ competition.max_individuals }}
+                        </p>
+                        {% endif %}
+                        {% if competition.venue %}
+                        <p class="mb-0">
+                            <strong>Venue:</strong> {{ competition.venue }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Rules and Format -->
+                {% if competition.rules %}
+                <div class="mb-4">
+                    <h5><i class="bi bi-file-text me-2"></i>Rules & Regulations</h5>
+                    <p>{{ competition.rules }}</p>
+                </div>
+                {% endif %}
+
+                {% if competition.format_description %}
+                <div class="mb-4">
+                    <h5><i class="bi bi-gear me-2"></i>Format</h5>
+                    <p>{{ competition.format_description }}</p>
+                </div>
+                {% endif %}
+
+                {% if competition.scoring_system %}
+                <div class="mb-4">
+                    <h5><i class="bi bi-trophy me-2"></i>Scoring System</h5>
+                    <p>{{ competition.scoring_system }}</p>
+                </div>
+                {% endif %}
+
+                <!-- Prizes -->
+                {% if competition.first_prize or competition.second_prize or competition.third_prize %}
+                <div class="mb-4">
+                    <h5><i class="bi bi-gift me-2"></i>Prizes</h5>
+                    <div class="row">
+                        {% if competition.first_prize %}
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="h6 text-warning mb-1">🥇 First Prize</div>
+                                <div class="fw-bold">{{ competition.first_prize }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if competition.second_prize %}
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="h6 text-muted mb-1">🥈 Second Prize</div>
+                                <div class="fw-bold">{{ competition.second_prize }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if competition.third_prize %}
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="h6 text-muted mb-1">🥉 Third Prize</div>
+                                <div class="fw-bold">{{ competition.third_prize }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Competition Info -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Competition Info</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong class="text-muted">Type:</strong>
+                    <span class="badge bg-primary ms-2">{{ competition.get_competition_type_display }}</span>
+                </div>
+                <div class="mb-3">
+                    <strong class="text-muted">Level:</strong>
+                    <span class="badge bg-secondary ms-2">{{ competition.get_level_display }}</span>
+                </div>
+                <div class="mb-0">
+                    <strong class="text-muted">Related Activity:</strong>
+                    <a href="{% url 'activities:activity_detail' competition.activity.pk %}">{{ competition.activity.title }}</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Information -->
+        {% if competition.contact_person or competition.contact_email %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Contact Information</h5>
+            </div>
+            <div class="card-body">
+                {% if competition.contact_person %}
+                <div class="mb-2">
+                    <strong class="text-muted">Contact Person:</strong>
+                    <div>{{ competition.contact_person }}</div>
+                </div>
+                {% endif %}
+                {% if competition.contact_email %}
+                <div class="mb-0">
+                    <strong class="text-muted">Email:</strong>
+                    <a href="mailto:{{ competition.contact_email }}">{{ competition.contact_email }}</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Registration Status -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Registration</h5>
+            </div>
+            <div class="card-body">
+                {% if competition.registration_deadline %}
+                    {% now "Y-m-d" as today %}
+                    {% if today <= competition.registration_deadline|date:"Y-m-d" %}
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle me-1"></i>Registration Open
+                        </div>
+                        <small class="text-muted">Deadline: {{ competition.registration_deadline|date:"F j, Y" }}</small>
+                    {% else %}
+                        <div class="alert alert-danger">
+                            <i class="bi bi-x-circle me-1"></i>Registration Closed
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-1"></i>Check with organizer for registration details
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

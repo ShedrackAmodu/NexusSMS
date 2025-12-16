@@ -89,6 +89,8 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 'apps.communication.context_processors.notification_count',
+                'apps.communication.context_processors.noticeboard_data',
+                'apps.communication.context_processors.active_announcements',
                 'apps.users.context_processors.user_roles',
                 'apps.core.context_processors.sidebar_menu_context',
             ],

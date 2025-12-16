@@ -171,7 +171,7 @@ class ExamForm(forms.ModelForm):
         if self.user and hasattr(self.user, 'teacher_profile'):
             teacher = self.user.teacher_profile
             # Limit classes to those taught by the current teacher
-            from apps.academics.models import Class
+            from apps.academics.models import Class, Subject
             self.fields['academic_class'].queryset = Class.objects.filter(
                 subject_assignments__teacher=teacher,
                 subject_assignments__academic_session__is_current=True

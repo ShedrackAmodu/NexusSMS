@@ -64,21 +64,53 @@
         </div>
     </div>
 
-    <!-- Announcement Banner -->
+    <!-- Global Notice Board Banner -->
+    {% if user.is_authenticated and urgent_noticeboard_announcements %}
     {% block announcement_banner %}
-    <div id="announcement-banner" class="announcement-banner bg-warning text-dark py-2" style="display: none;">
+    <div id="noticeboard-banner" class="noticeboard-banner bg-danger text-white py-3" style="position: relative; z-index: 1050;">
         <div class="container-fluid">
             <div class="row align-items-center">
-                <div class="col">
-                    <p class="mb-0 text-center" id="announcement-text"></p>
+                <div class="col-auto text-center">
+                    <i class="bi bi-exclamation-triangle-fill fs-4"></i>
                 </div>
-                <div class="col-auto">
-                    <button type="button" class="btn-close" aria-label="{% trans 'Close announcement' %}" onclick="BaseApp.hideAnnouncement()"></button>
+                <div class="col">
+                    <div class="noticeboard-marquee" style="overflow: hidden;">
+                        <!-- Rotating urgent announcements -->
+                        {% for announcement in urgent_noticeboard_announcements %}
+                        <div class="noticeboard-announcement{% if not forloop.first %} d-none{% endif %}">
+                            <strong>{{ announcement.title }}</strong> -
+                            {{ announcement.content|truncatechars:150 }}
+                            <a href="{% url 'communication:noticeboard_display' announcement.noticeboard.pk %}#announcement-{{ announcement.pk }}"
+                               class="text-light fw-bold ms-2">
+                                <u>View Details</u>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="col-auto text-end">
+                    <div class="d-flex align-items-center gap-2">
+                        {% if urgent_noticeboard_announcements|length > 1 %}
+                        <div class="noticeboard-controls">
+                            <button class="btn btn-sm btn-outline-light me-1" onclick="rotateNotification(-1)">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            <span class="badge bg-light text-danger fw-bold">
+                                <span id="current-banner">1</span> / {{ urgent_noticeboard_announcements|length }}
+                            </span>
+                            <button class="btn btn-sm btn-outline-light ms-1" onclick="rotateNotification(1)">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                        {% endif %}
+                        <button type="button" class="btn-close btn-close-white" aria-label="{% trans 'Close banner' %}" onclick="hideNoticeboardBanner()"></button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
     {% endblock %}
+    {% endif %}
 
     <!-- Main Layout Wrapper -->
     <div class="layout-wrapper">
@@ -395,6 +427,59 @@
 
     <!-- Page-specific JavaScript -->
     {% block extra_js %}{% endblock %}
+
+    <!-- Global Noticeboard Banner JavaScript -->
+    {% if user.is_authenticated and urgent_noticeboard_announcements %}
+    <script>
+        let currentBannerIndex = 0;
+        const bannerAnnouncements = {{ urgent_noticeboard_announcements|length }};
+        const bannerContainer = document.querySelector('.noticeboard-marquee');
+        const currentBannerDisplay = document.getElementById('current-banner');
+
+        function rotateNotification(direction) {
+            if (!bannerContainer) return;
+
+            const announcements = bannerContainer.querySelectorAll('.noticeboard-announcement');
+
+            // Hide current announcement
+            announcements[currentBannerIndex].classList.add('d-none');
+
+            // Calculate new index
+            currentBannerIndex = (currentBannerIndex + direction + bannerAnnouncements) % bannerAnnouncements;
+
+            // Show new announcement
+            announcements[currentBannerIndex].classList.remove('d-none');
+
+            // Update counter
+            if (currentBannerDisplay) {
+                currentBannerDisplay.textContent = currentBannerIndex + 1;
+            }
+        }
+
+        function hideNoticeboardBanner() {
+            const banner = document.getElementById('noticeboard-banner');
+            if (banner) {
+                banner.style.display = 'none';
+                // Store preference to hide banner for this session
+                sessionStorage.setItem('noticeboard-banner-hidden', 'true');
+            }
+        }
+
+        // Auto-rotate banners every 30 seconds
+        setInterval(() => {
+            if (!sessionStorage.getItem('noticeboard-banner-hidden')) {
+                rotateNotification(1);
+            }
+        }, 30000);
+
+        // Check if banner should be hidden on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            if (sessionStorage.getItem('noticeboard-banner-hidden')) {
+                hideNoticeboardBanner();
+            }
+        });
+    </script>
+    {% endif %}
 
     <!-- Analytics Scripts (production only) -->
     {% if not debug %}

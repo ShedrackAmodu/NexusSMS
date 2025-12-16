@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load permission_filters %}
 
 {% block title %}{{ announcement.title }} - Announcements{% endblock %}
 
@@ -353,15 +354,15 @@
                 <!-- Action Buttons -->
                 {% if user.is_authenticated and user == announcement.author or user.is_staff %}
                 <div class="announcement-actions">
-                    {% if user == announcement.author or user.has_perm('communication.change_announcement') %}
-                    <a href="{% url 'communication:announcement_edit' announcement.pk %}" 
+                {% if user == announcement.author or user|has_perm:'communication.change_announcement' %}
+                    <a href="{% url 'communication:announcement_update' announcement.pk %}"
                        class="btn btn-primary">
                         <i class="bi bi-pencil-square me-2"></i>
                         Edit Announcement
                     </a>
                     {% endif %}
                     
-                    {% if user.has_perm('communication.delete_announcement') %}
+                    {% if user|has_perm:'communication.delete_announcement' %}
                     <button type="button" 
                             class="btn btn-outline-danger" 
                             data-bs-toggle="modal" 
@@ -371,7 +372,7 @@
                     </button>
                     {% endif %}
                     
-                    {% if not announcement.is_published and user.has_perm('communication.change_announcement') %}
+                    {% if not announcement.is_published and user|has_perm:'communication.change_announcement' %}
                     <form method="post" action="{% url 'communication:bulk_publish_announcements' %}" class="d-inline">
                         {% csrf_token %}
                         <input type="hidden" name="announcement_ids" value="{{ announcement.id }}">
@@ -500,7 +501,7 @@
 </div>
 
 <!-- Delete Confirmation Modal -->
-{% if user.has_perm('communication.delete_announcement') %}
+{% if user|has_perm:'communication.delete_announcement' %}
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">

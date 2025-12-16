@@ -147,8 +147,26 @@
     </div>
     {% endif %}
 
-    <!-- Summary Cards -->
-    <div class="row mb-4">
+            <!-- Current Session Management -->
+            {% if active_sessions > 0 and can_manage_sessions %}
+            <div class="alert alert-info d-flex align-items-center justify-content-between mb-4">
+                <div>
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Current Session Active:</strong> There is currently {{ active_sessions }} active session(s).
+                    If you need to deactivate all current sessions (e.g., to set up a new one), click the button below.
+                </div>
+                <form method="post" action="{% url 'academics:session_list' %}" class="d-inline ms-3" onsubmit="return confirm('Are you sure you want to deactivate all current sessions?')">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="deactivate_current">
+                    <button type="submit" class="btn btn-warning btn-sm">
+                        <i class="bi bi-dash-circle me-1"></i>Deactivate Current Session
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+
+            <!-- Summary Cards -->
+            <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-3">
             <div class="card session-stats-card bg-gradient-primary text-white">
                 <div class="card-body">

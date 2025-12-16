@@ -6,48 +6,50 @@ app_name = 'communication'
 urlpatterns = [
     # Announcements
     path('announcements/', views.AnnouncementListView.as_view(), name='announcement_list'),
-    path('announcements/<int:pk>/', views.AnnouncementDetailView.as_view(), name='announcement_detail'),
+    path('announcements/<uuid:pk>/', views.AnnouncementDetailView.as_view(), name='announcement_detail'),
     path('announcements/create/', views.AnnouncementCreateView.as_view(), name='announcement_create'),
-    path('announcements/<int:pk>/update/', views.AnnouncementUpdateView.as_view(), name='announcement_update'),
-    path('announcements/<int:pk>/delete/', views.AnnouncementDeleteView.as_view(), name='announcement_delete'),
+    path('announcements/<uuid:pk>/update/', views.AnnouncementUpdateView.as_view(), name='announcement_update'),
+    path('announcements/<uuid:pk>/delete/', views.AnnouncementDeleteView.as_view(), name='announcement_delete'),
 
 
 
     # Notice Boards
     path('noticeboards/', views.NoticeBoardListView.as_view(), name='noticeboard_list'),
-    path('noticeboards/<int:pk>/', views.NoticeBoardDetailView.as_view(), name='noticeboard_detail'),
-    path('noticeboards/<int:pk>/display/', views.NoticeBoardDisplayView.as_view(), name='noticeboard_display'),
+    path('noticeboards/public/', views.public_noticeboard_portal, name='public_noticeboard_portal'),
+    path('noticeboards/<uuid:pk>/', views.NoticeBoardDetailView.as_view(), name='noticeboard_detail'),
+    path('noticeboards/<uuid:pk>/display/', views.NoticeBoardDisplayView.as_view(), name='noticeboard_display'),
     path('noticeboards/create/', views.NoticeBoardCreateView.as_view(), name='noticeboard_create'),
-    path('noticeboards/<int:pk>/update/', views.NoticeBoardUpdateView.as_view(), name='noticeboard_update'),
-    path('noticeboards/<int:pk>/delete/', views.NoticeBoardDeleteView.as_view(), name='noticeboard_delete'),
+    path('noticeboards/<uuid:pk>/update/', views.NoticeBoardUpdateView.as_view(), name='noticeboard_update'),
+    path('noticeboards/<uuid:pk>/delete/', views.NoticeBoardDeleteView.as_view(), name='noticeboard_delete'),
 
     # Notice Board Items
-    path('noticeboards/<int:board_pk>/add/<int:announcement_pk>/', views.add_announcement_to_board, name='add_to_board'),
-    path('noticeboards/<int:board_pk>/remove/<int:item_pk>/', views.remove_announcement_from_board, name='remove_from_board'),
-    path('noticeboards/<int:board_pk>/reorder/', views.reorder_notice_board_items, name='reorder_board_items'),
-    path('noticeboards/items/<int:item_pk>/toggle/', views.toggle_notice_board_item, name='toggle_board_item'),
+    path('noticeboards/<uuid:board_pk>/add/<uuid:announcement_pk>/', views.add_announcement_to_board, name='add_to_board'),
+    path('noticeboards/<uuid:board_pk>/remove/<uuid:item_pk>/', views.remove_announcement_from_board, name='remove_from_board'),
+    path('noticeboards/<uuid:board_pk>/reorder/', views.reorder_notice_board_items, name='reorder_board_items'),
+    path('noticeboards/items/<uuid:item_pk>/toggle/', views.toggle_notice_board_item, name='toggle_board_item'),
 
     # Email Templates
     path('emails/templates/', views.EmailTemplateListView.as_view(), name='emailtemplate_list'),
     path('emails/templates/create/', views.EmailTemplateCreateView.as_view(), name='emailtemplate_create'),
-    path('emails/templates/<int:pk>/update/', views.EmailTemplateUpdateView.as_view(), name='emailtemplate_update'),
-    path('emails/templates/<int:pk>/delete/', views.EmailTemplateDeleteView.as_view(), name='emailtemplate_delete'),
-    path('emails/templates/<int:pk>/test/', views.send_test_email_view, name='send_test_email'),
-    path('emails/templates/<int:pk>/toggle/', views.toggle_emailtemplate_status, name='toggle_emailtemplate'),
+    path('emails/templates/<uuid:pk>/update/', views.EmailTemplateUpdateView.as_view(), name='emailtemplate_update'),
+    path('emails/templates/<uuid:pk>/delete/', views.EmailTemplateDeleteView.as_view(), name='emailtemplate_delete'),
+    path('emails/templates/<uuid:pk>/test/', views.send_test_email_view, name='send_test_email'),
+    path('emails/templates/<uuid:pk>/toggle/', views.toggle_emailtemplate_status, name='toggle_emailtemplate'),
     path('emails/templates/bulk-update/', views.bulk_update_template_status, name='bulk_update_templates'),
-    path('emails/templates/<int:pk>/duplicate/', views.duplicate_emailtemplate, name='duplicate_emailtemplate'),
-    path('emails/templates/<int:pk>/export/', views.export_emailtemplate, name='export_emailtemplate'),
+    path('emails/templates/<uuid:pk>/duplicate/', views.duplicate_emailtemplate, name='duplicate_emailtemplate'),
+    path('emails/templates/<uuid:pk>/export/', views.export_emailtemplate, name='export_emailtemplate'),
 
     # SMS Templates
     path('sms/templates/', views.SMSTemplateListView.as_view(), name='smstemplate_list'),
     path('sms/templates/create/', views.SMSTemplateCreateView.as_view(), name='smstemplate_create'),
-    path('sms/templates/<int:pk>/update/', views.SMSTemplateUpdateView.as_view(), name='smstemplate_update'),
-    path('sms/templates/<int:pk>/delete/', views.SMSTemplateDeleteView.as_view(), name='smstemplate_delete'),
+    path('sms/templates/<uuid:pk>/update/', views.SMSTemplateUpdateView.as_view(), name='smstemplate_update'),
+    path('sms/templates/<uuid:pk>/delete/', views.SMSTemplateDeleteView.as_view(), name='smstemplate_delete'),
 
     # Dashboard and Analytics
     path('dashboard/', views.communication_dashboard, name='dashboard'),
 
-
+    # Messages
+    path('messages/create/', views.MessageCreateView.as_view(), name='message_create'),
 
     # Bulk actions
     path('announcements/bulk-publish/', views.bulk_publish_announcements, name='bulk_publish_announcements'),

@@ -939,24 +939,37 @@ class AcademicSessionListView(AcademicsAccessMixin, ListView):
         return queryset
 
     def post(self, request, *args, **kwargs):
-        """Handle setting current session."""
+        """Handle setting/removing current session."""
         if not request.user.is_staff:
-            messages.error(request, _("Only staff members can set current sessions."))
+            messages.error(request, _("Only staff members can manage academic sessions."))
             return redirect('academics:session_list')
-        
+
         session_id = request.POST.get('session_id')
         action = request.POST.get('action')
-        
+
         if action == 'set_current' and session_id:
             try:
                 session = AcademicSession.objects.get(id=session_id)
+                # First, check if there are any existing current sessions
+                existing_count = AcademicSession.objects.filter(is_current=True).count()
+                if existing_count > 0:
+                    messages.warning(request, _(f"There are currently {existing_count} active session(s). Setting '{session.name}' as current will deactivate the previous ones automatically."))
+
                 # This will automatically update other sessions via save method
                 session.is_current = True
                 session.save()
                 messages.success(request, _(f"'{session.name}' is now the current session."))
             except AcademicSession.DoesNotExist:
                 messages.error(request, _("Session not found."))
-        
+
+        elif action == 'deactivate_current':
+            # Deactivate all current sessions
+            deactivated_count = AcademicSession.objects.filter(is_current=True).update(is_current=False)
+            if deactivated_count > 0:
+                messages.success(request, _(f"Successfully deactivated {deactivated_count} current session(s). You can now set a new session as current."))
+            else:
+                messages.info(request, _("No current sessions to deactivate."))
+
         return redirect('academics:session_list')
 
 
@@ -1044,8 +1057,40 @@ class DepartmentListView(InstitutionPermissionMixin, ListView):
     context_object_name = 'departments'
     paginate_by = 12
 
+    def dispatch(self, request, *args, **kwargs):
+        # Check if user is school admin (admin/principal role)
+        user_roles = request.user.user_roles.filter(
+            role__role_type__in=['admin', 'principal'],
+            role__status='active'
+        ) if request.user.is_authenticated else None
+
+        is_school_admin = user_roles.exists() if user_roles else False
+
+        # If user is school admin, bypass institution requirement
+        if is_school_admin:
+            if not request.user.is_authenticated:
+                return self.handle_no_permission()
+            # Skip institution check and proceed directly
+            return super(InstitutionPermissionMixin.__bases__[0], self).dispatch(request, *args, **kwargs)
+        else:
+            # Use normal institution permission check
+            return super().dispatch(request, *args, **kwargs)
+
     def get_queryset(self):
-        return Department.objects.filter(status='active').select_related('head_of_department')
+        # Check if user is school admin
+        user_roles = self.request.user.user_roles.filter(
+            role__role_type__in=['admin', 'principal'],
+            role__status='active'
+        ) if self.request.user.is_authenticated else None
+
+        is_school_admin = user_roles.exists() if user_roles else False
+
+        if is_school_admin:
+            # School admins see all active departments
+            return Department.objects.filter(status='active').select_related('head_of_department')
+        else:
+            # Use normal institution filtering
+            return Department.objects.filter(status='active').select_related('head_of_department')
 
 
 class DepartmentDetailView(AcademicsAccessMixin, DetailView):

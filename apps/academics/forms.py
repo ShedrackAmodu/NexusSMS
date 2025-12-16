@@ -1,9 +1,14 @@
 # apps/academics/forms.py
 
+import logging
+
 from django import forms
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
-from django.db.models import Q # Import Q
+from django.db.models import Q
+from django.core.exceptions import ValidationError
+
+logger = logging.getLogger(__name__)
 
 from .models import (
     AcademicSession, Department, Subject, GradeLevel, Class, Student, Teacher,
@@ -36,22 +41,66 @@ class AcademicSessionForm(forms.ModelForm):
         }
 
     def clean(self):
+        """Enhanced form validation with detailed error logging."""
         cleaned_data = super().clean()
         start_date = cleaned_data.get('start_date')
         end_date = cleaned_data.get('end_date')
         is_current = cleaned_data.get('is_current')
+        number_of_semesters = cleaned_data.get('number_of_semesters')
+        term_number = cleaned_data.get('term_number')
+        name = cleaned_data.get('name')
 
-        if start_date and end_date and start_date >= end_date:
-            raise forms.ValidationError(_('End date must be after start date.'))
+        # Log form validation attempt
+        logger.debug(".2f")
 
-        if is_current:
-            # Check if another session is already current
-            existing_current = AcademicSession.objects.filter(is_current=True)
-            if self.instance.pk:
-                existing_current = existing_current.exclude(pk=self.instance.pk)
-            if existing_current.exists():
-                raise forms.ValidationError(_('Another academic session is already marked as current. Please deactivate it first.'))
-        
+        # Validate date range
+        if start_date and end_date:
+            if start_date >= end_date:
+                logger.warning(f"Date validation failed: start_date {start_date} >= end_date {end_date}")
+                raise forms.ValidationError(_('End date must be after start date.'))
+
+            # Additional date validation
+            today = timezone.now().date()
+            if start_date < today - timezone.timedelta(days=365):  # Allow some past dates
+                logger.warning(f"Suspicious start date: {start_date} is more than a year in the past")
+                self.add_error('start_date', _('Start date cannot be more than one year in the past.'))
+
+            if end_date > today + timezone.timedelta(days=730):  # Allow up to 2 years in future
+                logger.warning(f"Suspicious end date: {end_date} is more than 2 years in the future")
+                self.add_error('end_date', _('End date cannot be more than 2 years in the future.'))
+
+        elif start_date and not end_date:
+            self.add_error('end_date', _('End date is required when start date is provided.'))
+        elif end_date and not start_date:
+            self.add_error('start_date', _('Start date is required when end date is provided.'))
+
+        # Validate semester and term configuration
+        if number_of_semesters and term_number:
+            if term_number > number_of_semesters:
+                logger.warning(f"Term validation failed: term {term_number} > semesters {number_of_semesters}")
+                raise forms.ValidationError(_('Term number cannot exceed the number of semesters.'))
+
+            if number_of_semesters not in [2, 3]:
+                logger.warning(f"Invalid number of semesters: {number_of_semesters}")
+                self.add_error('number_of_semesters', _('Number of semesters must be 2 or 3.'))
+
+        # Validate session name
+        if name:
+            # Check for duplicate names (excluding current instance)
+            existing_sessions = AcademicSession.objects.filter(name__iexact=name.strip())
+            if self.instance and self.instance.pk:
+                existing_sessions = existing_sessions.exclude(pk=self.instance.pk)
+
+            if existing_sessions.exists():
+                existing_session = existing_sessions.first()
+                logger.warning(".2f")
+                raise forms.ValidationError(_('A session with this name already exists. Please choose a different name.'))
+
+        # Note: Validation for existing current sessions removed since the model-level save() method
+        # automatically handles deactivation of other current sessions, and we now have a UI
+        # option to manually deactivate current sessions before setting a new one.
+
+        logger.debug(".2f")
         return cleaned_data
 
 class DepartmentForm(forms.ModelForm):

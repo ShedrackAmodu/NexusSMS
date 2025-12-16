@@ -431,20 +431,35 @@ def grading_overview(request):
 
     # Add mark entry status for each exam
     exam_data = []
+    completed_exams = 0
+    in_progress_exams = 0
+    total_marks_entered = 0
+
     for exam in exams:
         marks_entered = Mark.objects.filter(exam=exam).count()
         total_students = exam.academic_class.enrollments.filter(enrollment_status='active').count()
+        completion_percentage = (marks_entered / total_students * 100) if total_students > 0 else 0
 
         exam_data.append({
             'exam': exam,
             'marks_entered': marks_entered,
             'total_students': total_students,
-            'completion_percentage': (marks_entered / total_students * 100) if total_students > 0 else 0
+            'completion_percentage': completion_percentage
         })
+
+        # Aggregate statistics for summary cards
+        total_marks_entered += marks_entered
+        if completion_percentage == 100:
+            completed_exams += 1
+        elif completion_percentage < 100:
+            in_progress_exams += 1
 
     context = {
         'exam_data': exam_data,
-        'taught_classes': taught_classes
+        'taught_classes': taught_classes,
+        'completed_exams': completed_exams,
+        'in_progress_exams': in_progress_exams,
+        'total_marks_entered': total_marks_entered
     }
 
     return render(request, 'assessment/grading_overview.html', context)

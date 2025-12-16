@@ -505,6 +505,17 @@ class CompetitionDetailView(LoginRequiredMixin, DetailView):
     context_object_name = 'competition'
 
 
+class CompetitionCreateView(LoginRequiredMixin, ActivityCoordinatorRequiredMixin, CreateView):
+    model = Competition
+    form_class = CompetitionForm
+    template_name = 'activities/competition_form.html'
+    success_url = reverse_lazy('activities:competition_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, _('Competition created successfully.'))
+        return super().form_valid(form)
+
+
 # AJAX views for dynamic content
 def get_activity_enrollments(request, activity_id):
     """AJAX view to get enrollment data for an activity"""

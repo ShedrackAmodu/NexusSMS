@@ -4,6 +4,7 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from django.utils.timezone import make_aware, is_naive
 from django.core.validators import MinLengthValidator, MaxLengthValidator
 
 from .models import (
@@ -13,7 +14,6 @@ from .models import (
 )
 from apps.users.models import User
 from apps.academics.models import Class, Student, Teacher
-from apps.core.models import AcademicSession
 
 
 class AnnouncementForm(forms.ModelForm):
@@ -130,10 +130,17 @@ class AnnouncementForm(forms.ModelForm):
         # Validate specific targeting
         if target_audience == 'specific' and not specific_users:
             raise ValidationError(_('Specific users must be selected when target audience is "Specific Users".'))
-        
+
         if target_audience == 'specific' and not specific_users.exists():
             raise ValidationError(_('At least one specific user must be selected.'))
-        
+
+        # Make datetime fields timezone-aware if they are naive
+        if schedule_publish and is_naive(schedule_publish):
+            cleaned_data['schedule_publish'] = make_aware(schedule_publish)
+
+        if expires_at and is_naive(expires_at):
+            cleaned_data['expires_at'] = make_aware(expires_at)
+
         return cleaned_data
     
     def save(self, commit=True):
@@ -206,7 +213,7 @@ class MessageForm(forms.ModelForm):
         model = Message
         fields = [
             'subject', 'content', 'message_type', 'priority',
-            'is_important', 'requires_confirmation', 'attachments'
+            'is_important', 'requires_confirmation', 'attachments', 'sender'
         ]
         widgets = {
             'subject': forms.TextInput(attrs={
@@ -221,6 +228,7 @@ class MessageForm(forms.ModelForm):
             'message_type': forms.Select(attrs={'class': 'form-control'}),
             'priority': forms.Select(attrs={'class': 'form-control'}),
             'attachments': forms.SelectMultiple(attrs={'class': 'form-control'}),
+            'sender': forms.HiddenInput(),
         }
     
     def __init__(self, *args, **kwargs):
@@ -363,10 +371,17 @@ class NoticeBoardItemForm(forms.ModelForm):
         cleaned_data = super().clean()
         start_display = cleaned_data.get('start_display')
         end_display = cleaned_data.get('end_display')
-        
+
         if start_display and end_display and end_display <= start_display:
             raise ValidationError(_('End display time must be after start display time.'))
-        
+
+        # Make datetime fields timezone-aware if they are naive
+        if start_display and is_naive(start_display):
+            cleaned_data['start_display'] = make_aware(start_display)
+
+        if end_display and is_naive(end_display):
+            cleaned_data['end_display'] = make_aware(end_display)
+
         return cleaned_data
 
 

@@ -100,9 +100,7 @@
                             <div class="col-md-3">
                                 <div class="card bg-light">
                                     <div class="card-body text-center">
-                                        <h4 class="text-success">
-                                            {% widthratio exam_data|length exam_data|length 100 %}
-                                        </h4>
+                                        <h4 class="text-success">{{ completed_exams }}</h4>
                                         <p class="mb-0">{% trans "Completed" %}</p>
                                     </div>
                                 </div>
@@ -110,12 +108,7 @@
                             <div class="col-md-3">
                                 <div class="card bg-light">
                                     <div class="card-body text-center">
-                                        <h4 class="text-warning">
-                                            {% for data in exam_data %}
-                                                {% if data.completion_percentage < 100 %}
-                                                    {% cycle 1 %}{% endif %}
-                                            {% empty %}0{% endfor %}
-                                        </h4>
+                                        <h4 class="text-warning">{{ in_progress_exams }}</h4>
                                         <p class="mb-0">{% trans "In Progress" %}</p>
                                     </div>
                                 </div>
@@ -123,12 +116,7 @@
                             <div class="col-md-3">
                                 <div class="card bg-light">
                                     <div class="card-body text-center">
-                                        <h4 class="text-info">
-                                            {% for data in exam_data %}
-                                                {% if data.marks_entered > 0 %}
-                                                    {{ data.marks_entered }}{% endif %}
-                                            {% empty %}0{% endfor %}
-                                        </h4>
+                                        <h4 class="text-info">{{ total_marks_entered }}</h4>
                                         <p class="mb-0">{% trans "Total Marks Entered" %}</p>
                                     </div>
                                 </div>

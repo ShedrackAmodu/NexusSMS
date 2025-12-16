@@ -1,15 +1,23 @@
 # apps/academics/admin.py
 
+import logging
+
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 from django.contrib import messages
 from django.utils import timezone
+from django.core.exceptions import ValidationError, PermissionDenied
+from django.db import IntegrityError
+
 from .models import (
     Department, Subject, GradeLevel, Class, Student, Teacher, Enrollment,
     SubjectAssignment, AcademicRecord, Timetable, AttendanceSchedule,
     ClassMaterial, BehaviorRecord, Achievement, ParentGuardian,
     StudentParentRelationship, ClassTransferHistory, AcademicWarning, Holiday, FileAttachment, AcademicSession
 )
+from apps.academics.forms import AcademicSessionForm
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -632,12 +640,13 @@ class AcademicSessionAdmin(admin.ModelAdmin):
     """
     Admin interface for AcademicSession model.
     """
+    form = AcademicSessionForm
     list_display = ('name', 'number_of_semesters', 'term_number', 'start_date', 'end_date', 'is_current', 'status')
     list_filter = ('number_of_semesters', 'is_current', 'status', 'start_date')
     search_fields = ('name',)
     readonly_fields = ('created_at', 'updated_at')
     date_hierarchy = 'start_date'
-    
+
     fieldsets = (
         (_('Session Information'), {
             'fields': ('name', 'number_of_semesters', 'term_number')
@@ -652,11 +661,83 @@ class AcademicSessionAdmin(admin.ModelAdmin):
     )
 
     def save_model(self, request, obj, form, change):
-        """Ensure only one session can be current."""
-        if obj.is_current:
-            # Set all other sessions to not current
-            AcademicSession.objects.filter(is_current=True).exclude(pk=obj.pk).update(is_current=False)
-        super().save_model(request, obj, form, change)
+        """Enhanced save method with comprehensive error handling."""
+        try:
+            # Check staff permissions
+            if not (request.user.is_staff or request.user.is_superuser):
+                logger.error(f"Permission denied: User {request.user} attempted to save AcademicSession")
+                raise PermissionDenied(_("You don't have permission to manage academic sessions."))
+
+            # Validate the model instance manually with detailed error reporting
+            try:
+                obj.full_clean()
+            except ValidationError as e:
+                logger.error(f"Validation error saving AcademicSession: {e.message_dict}")
+                error_messages = []
+                for field, messages_list in e.message_dict.items():
+                    field_name = self.get_field_display_name(field, obj)
+                    for msg in messages_list:
+                        error_messages.append(f"{field_name}: {msg}")
+                if error_messages:
+                    raise ValidationError("; ".join(error_messages))
+
+            # Handle current session logic
+            if obj.is_current:
+                try:
+                    deactivated_count = AcademicSession.objects.filter(is_current=True).exclude(pk=obj.pk).update(is_current=False)
+                    if deactivated_count > 0:
+                        logger.info(f"Deactivated {deactivated_count} previous current sessions")
+
+                    # Check if we're trying to set is_current=True on more than allowed
+                    active_sessions = AcademicSession.objects.filter(is_current=True)
+                    if active_sessions.count() >= 1 and not change:
+                        logger.warning(f"Multiple current sessions detected after save attempt")
+                        # Force only one current session
+                        active_sessions.exclude(pk=obj.pk).update(is_current=False)
+
+                except IntegrityError as e:
+                    logger.error(f"Database constraint error during session deactivation: {e}")
+                    raise ValidationError(_("Failed to update current session status due to database constraints."))
+
+            # Attempt to save
+            super().save_model(request, obj, form, change)
+
+            # Log successful save
+            action = "updated" if change else "created"
+            logger.info(f"AcademicSession {action}: '{obj.name}' by user {request.user}")
+
+        except ValidationError as e:
+            logger.error(f"Validation error saving AcademicSession: {str(e)}")
+            messages.error(request, _("Validation error: ") + str(e))
+            # Re-raise to prevent save
+            raise e
+
+        except IntegrityError as e:
+            logger.error(f"Database integrity error saving AcademicSession: {str(e)}")
+            messages.error(request, _("Database error: Could not save session due to data integrity constraint."))
+            raise ValidationError(_("Database constraint violation. Please check the data and try again."))
+
+        except PermissionDenied as e:
+            logger.error(f"Permission denied for user {request.user}: {str(e)}")
+            messages.error(request, str(e))
+            raise e
+
+        except Exception as e:
+            logger.error(f"Unexpected error saving AcademicSession: {type(e).__name__}: {str(e)}", exc_info=True)
+            messages.error(request, _("An unexpected error occurred while saving the session. Please try again."))
+            raise ValidationError(_("Unexpected error occurred. Administrators have been notified."))
+
+    def get_field_display_name(self, field_name, obj):
+        """Helper method to get user-friendly field names for error messages."""
+        field_display_names = {
+            'name': _('Session Name'),
+            'number_of_semesters': _('Number of Semesters'),
+            'term_number': _('Term Number'),
+            'start_date': _('Start Date'),
+            'end_date': _('End Date'),
+            'is_current': _('Current Session'),
+        }
+        return field_display_names.get(field_name, field_name)
 
 
 @admin.register(Holiday)

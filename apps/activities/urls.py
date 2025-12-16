@@ -33,6 +33,7 @@ urlpatterns = [
 
     # Competitions
     path('competitions/', views.CompetitionListView.as_view(), name='competition_list'),
+    path('competitions/create/', views.CompetitionCreateView.as_view(), name='competition_create'),
     path('competitions/<int:pk>/', views.CompetitionDetailView.as_view(), name='competition_detail'),
 
     # AJAX endpoints

@@ -642,7 +642,7 @@
                             {% endif %}
                             
                             {% if user.is_authenticated and user.has_perm('communication.change_announcement') %}
-                            <a href="{% url 'communication:announcement_edit' announcement.pk %}" 
+                            <a href="{% url 'communication:announcement_update' announcement.pk %}"
                                class="btn btn-outline-secondary btn-sm">
                                 <i class="bi bi-pencil"></i>
                             </a>
