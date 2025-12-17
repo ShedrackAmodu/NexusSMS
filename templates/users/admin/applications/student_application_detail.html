@@ -4,60 +4,11 @@
 {% block extrastyle %}
 {{ block.super }}
 <style>
-    .application-detail-card {
-        background: var(--bs-body-bg);
-        border-radius: 8px;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-        padding: 2rem;
+    .dashboard-content {
+        padding: 1.5rem 0;
     }
-    .detail-section {
+    .application-header {
         margin-bottom: 2rem;
-        padding-bottom: 1.5rem;
-        border-bottom: 1px solid var(--bs-border-color);
-    }
-    .detail-section:last-child {
-        border-bottom: none;
-        margin-bottom: 0;
-        padding-bottom: 0;
-    }
-    .detail-section h4 {
-        color: var(--bs-primary);
-        margin-bottom: 1.5rem;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
-    .detail-item {
-        margin-bottom: 1rem;
-    }
-    .detail-item strong {
-        color: var(--bs-secondary);
-        display: block;
-        margin-bottom: 0.25rem;
-        font-size: 0.875rem;
-    }
-    .detail-item span, .detail-item div {
-        color: var(--bs-body-color);
-        font-size: 0.95rem;
-    }
-    .document-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-    .document-list li {
-        margin-bottom: 0.5rem;
-    }
-    .document-list a {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        color: var(--bs-link-color);
-        text-decoration: none;
-    }
-    .document-list a:hover {
-        text-decoration: underline;
     }
     .status-badge {
         padding: 0.4rem 0.8rem;
@@ -70,8 +21,8 @@
         text-align: center;
         min-width: 120px;
     }
-    .status-pending { 
-        background: var(--bs-warning-bg-subtle); 
+    .status-pending {
+        background: var(--bs-warning-bg-subtle);
         color: var(--bs-warning-text);
         border-color: var(--bs-warning-border-subtle);
     }
@@ -90,20 +41,13 @@
         color: var(--bs-danger-text);
         border-color: var(--bs-danger-border-subtle);
     }
-    .status-waitlisted {
-        background: var(--bs-secondary-bg-subtle);
-        color: var(--bs-secondary-text);
-        border-color: var(--bs-secondary-border-subtle);
-    }
-    .action-buttons-bottom {
+    .action-buttons {
         display: flex;
         gap: 0.75rem;
         justify-content: flex-end;
         margin-top: 2rem;
-    }
-    .action-buttons-bottom .btn {
-        padding: 0.6rem 1.2rem;
-        font-size: 0.9rem;
+        padding-top: 2rem;
+        border-top: 1px solid var(--bs-border-color);
     }
     .review-notes-section {
         background-color: var(--bs-light-bg-subtle);
@@ -112,225 +56,372 @@
         border-radius: 0 8px 8px 0;
         margin-top: 1.5rem;
     }
-    .review-notes-section p {
-        margin-bottom: 0;
-        font-size: 0.9rem;
-        color: var(--bs-secondary);
-    }
-    .review-notes-section strong {
-        color: var(--bs-body-color);
-    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0">{% trans "Student Application Details" %}</h1>
-        <a href="{% url 'users:pending_applications' %}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-1"></i> {% trans "Back to Applications" %}
-        </a>
-    </div>
-
-    <div class="application-detail-card">
-        <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
-            <div>
-                <h2 class="h4 mb-1">{{ application.full_name }}</h2>
-                <p class="text-muted mb-0">{% trans "Application Number:" %} <strong>{{ application.application_number }}</strong></p>
-            </div>
+<div class="dashboard-content">
+    <div class="d-flex justify-content-between align-items-center application-header">
+        <div>
+            <h4 class="mb-1">{% trans "Student Application Details" %}</h4>
+            <p class="text-muted mb-0">{% trans "Application Number:" %} <strong>{{ application.application_number }}</strong></p>
+        </div>
+        <div class="d-flex align-items-center gap-3">
             <span class="status-badge status-{{ application.application_status }}">
                 {{ application.get_application_status_display }}
             </span>
+            <a href="{% url 'users:pending_applications' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> {% trans "Back to Applications" %}
+            </a>
         </div>
+    </div>
 
-        <div class="row">
-            <div class="col-md-6">
-                <div class="detail-section">
-                    <h4><i class="bi bi-person-vcard me-2"></i> {% trans "Personal Information" %}</h4>
-                    <div class="detail-item">
-                        <strong>{% trans "Email" %}</strong>
-                        <span>{{ application.email }}</span>
+    <div class="row">
+        <!-- Personal Information -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-person-vcard me-2 text-primary"></i>
+                        {% trans "Personal Information" %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-person fs-1 text-primary mb-2"></i>
+                                <h6>{% trans "Full Name" %}</h6>
+                                <p class="text-muted small mb-0">{{ application.full_name }}</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-envelope fs-1 text-success mb-2"></i>
+                                <h6>{% trans "Email" %}</h6>
+                                <p class="text-muted small mb-0">{{ application.email }}</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="detail-item">
-                        <strong>{% trans "Phone" %}</strong>
-                        <span>{{ application.phone }}</span>
+                    <div class="row">
+                        <div class="col-sm-6 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-telephone fs-1 text-info mb-2"></i>
+                                <h6>{% trans "Phone" %}</h6>
+                                <p class="text-muted small mb-0">{{ application.phone }}</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-calendar-date fs-1 text-warning mb-2"></i>
+                                <h6>{% trans "Date of Birth" %}</h6>
+                                <p class="text-muted small mb-0">{{ application.date_of_birth|date:"M j, Y" }}</p>
+                                <p class="text-muted small mb-1">({{ application.age }} {% trans "years old" %})</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="detail-item">
-                        <strong>{% trans "Date of Birth" %}</strong>
-                        <span>{{ application.date_of_birth|date:"M j, Y" }} ({{ application.age }} {% trans "years old" %})</span>
+                    <div class="row">
+                        <div class="col-sm-6 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-gender-ambiguous fs-1 text-secondary mb-2"></i>
+                                <h6>{% trans "Gender" %}</h6>
+                                <p class="text-muted small mb-0">{{ application.get_gender_display }}</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-flag fs-1 text-danger mb-2"></i>
+                                <h6>{% trans "Nationality" %}</h6>
+                                <p class="text-muted small mb-0">{{ application.nationality }}</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="detail-item">
-                        <strong>{% trans "Gender" %}</strong>
-                        <span>{{ application.get_gender_display }}</span>
-                    </div>
-                    <div class="detail-item">
-                        <strong>{% trans "Nationality" %}</strong>
-                        <span>{{ application.nationality }}</span>
-                    </div>
-                    <div class="detail-item">
-                        <strong>{% trans "Address" %}</strong>
-                        <div>
+                    <div class="mt-3">
+                        <h6 class="mb-2"><i class="bi bi-geo-alt me-1"></i>{% trans "Address" %}</h6>
+                        <div class="bg-light p-3 rounded small">
                             {{ application.address }}<br>
                             {{ application.city }}, {{ application.state }} {{ application.postal_code }}<br>
                             {{ application.country }}
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <div class="detail-section">
-                    <h4><i class="bi bi-people me-2"></i> {% trans "Parent/Guardian Information" %}</h4>
-                    <div class="detail-item">
-                        <strong>{% trans "Parent Name" %}</strong>
-                        <span>{{ application.parent_full_name }}</span>
-                    </div>
-                    <div class="detail-item">
-                        <strong>{% trans "Parent Email" %}</strong>
-                        <span>{{ application.parent_email }}</span>
-                    </div>
-                    <div class="detail-item">
-                        <strong>{% trans "Parent Phone" %}</strong>
-                        <span>{{ application.parent_phone }}</span>
-                    </div>
-                    <div class="detail-item">
-                        <strong>{% trans "Relationship" %}</strong>
-                        <span>{{ application.get_parent_relationship_display }}</span>
-                    </div>
+        <!-- Parent/Guardian Information -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-people me-2 text-success"></i>
+                        {% trans "Parent/Guardian Information" %}
+                    </h5>
                 </div>
-
-                <div class="detail-section">
-                    <h4><i class="bi bi-file-earmark-text me-2"></i> {% trans "Documents" %}</h4>
-                    <ul class="document-list">
-                        <li>
-                            <strong>{% trans "Birth Certificate" %}</strong>
-                            {% if application.birth_certificate %}
-                                <a href="{{ application.birth_certificate.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-file-earmark-arrow-down me-1"></i> {% trans "View Certificate" %}
-                                </a>
-                            {% else %}
-                                <span>{% trans "Not provided" %}</span>
-                            {% endif %}
-                        </li>
-                        <li>
-                            <strong>{% trans "Previous School Transcript" %}</strong>
-                            {% if application.previous_school_transcript %}
-                                <a href="{{ application.previous_school_transcript.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-file-earmark-arrow-down me-1"></i> {% trans "View Transcript" %}
-                                </a>
-                            {% else %}
-                                <span>{% trans "Not provided" %}</span>
-                            {% endif %}
-                        </li>
-                        <li>
-                            <strong>{% trans "Recommendation Letter" %}</strong>
-                            {% if application.recommendation_letter %}
-                                <a href="{{ application.recommendation_letter.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-file-earmark-arrow-down me-1"></i> {% trans "View Letter" %}
-                                </a>
-                            {% else %}
-                                <span>{% trans "Not provided" %}</span>
-                            {% endif %}
-                        </li>
-                        <li>
-                            <strong>{% trans "Medical Report" %}</strong>
-                            {% if application.medical_report %}
-                                <a href="{{ application.medical_report.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-file-earmark-arrow-down me-1"></i> {% trans "View Report" %}
-                                </a>
-                            {% else %}
-                                <span>{% trans "Not provided" %}</span>
-                            {% endif %}
-                        </li>
-                    </ul>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-person-gear fs-1 text-success mb-2"></i>
+                                <h6>{% trans "Parent Name" %}</h6>
+                                <p class="text-muted small mb-0">{{ application.parent_full_name }}</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-envelope-at fs-1 text-info mb-2"></i>
+                                <h6>{% trans "Parent Email" %}</h6>
+                                <p class="text-muted small mb-0">{{ application.parent_email }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-telephone-fill fs-1 text-warning mb-2"></i>
+                                <h6>{% trans "Parent Phone" %}</h6>
+                                <p class="text-muted small mb-0">{{ application.parent_phone }}</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-diagram-3 fs-1 text-secondary mb-2"></i>
+                                <h6>{% trans "Relationship" %}</h6>
+                                <p class="text-muted small mb-0">{{ application.get_parent_relationship_display }}</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <div class="col-md-6">
-                <div class="detail-section">
-                    <h4><i class="bi bi-book me-2"></i> {% trans "Academic Information" %}</h4>
-                    <div class="detail-item">
-                        <strong>{% trans "Grade Applying For" %}</strong>
-                        <span>{{ application.get_grade_applying_for_display }}</span>
+    <div class="row">
+        <!-- Academic Information -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-book me-2 text-info"></i>
+                        {% trans "Academic Information" %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-mortarboard fs-1 text-info mb-2"></i>
+                                <h6>{% trans "Grade Applying For" %}</h6>
+                                <p class="text-muted small mb-0">{{ application.get_grade_applying_for_display }}</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-building fs-1 text-warning mb-2"></i>
+                                <h6>{% trans "Previous School" %}</h6>
+                                <p class="text-muted small mb-0">{{ application.previous_school|default:_("Not specified") }}</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="detail-item">
-                        <strong>{% trans "Previous School" %}</strong>
-                        <span>{{ application.previous_school|default:_("Not specified") }}</span>
+                    <div class="row">
+                        <div class="col-sm-6 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-graph-up-arrow fs-1 text-success mb-2"></i>
+                                <h6>{% trans "Previous Grade" %}</h6>
+                                <p class="text-muted small mb-0">{{ application.previous_grade|default:_("Not specified") }}</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-trophy fs-1 text-warning mb-2"></i>
+                                <h6>{% trans "Achievements" %}</h6>
+                                <p class="text-muted small mb-0">{% trans "View Details" %}</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="detail-item">
-                        <strong>{% trans "Previous Grade" %}</strong>
-                        <span>{{ application.previous_grade|default:_("Not specified") }}</span>
-                    </div>
-                    <div class="detail-item">
-                        <strong>{% trans "Academic Achievements" %}</strong>
-                        <div>{{ application.academic_achievements|default:_("None provided") }}</div>
+                    <div class="mt-3">
+                        <h6 class="mb-2"><i class="bi bi-star me-1"></i>{% trans "Academic Achievements" %}</h6>
+                        <div class="bg-light p-3 rounded small">
+                            {{ application.academic_achievements|default:_("None provided") }}
+                        </div>
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <div class="detail-section">
-                    <h4><i class="bi bi-heart-pulse me-2"></i> {% trans "Health & Special Needs" %}</h4>
-                    <div class="detail-item">
-                        <strong>{% trans "Medical Conditions" %}</strong>
-                        <div>{{ application.medical_conditions|default:_("None") }}</div>
+        <!-- Health & Special Needs -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-heart-pulse me-2 text-danger"></i>
+                        {% trans "Health & Special Needs" %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-hospital fs-1 text-danger mb-2"></i>
+                                <h6>{% trans "Medical Conditions" %}</h6>
+                                <p class="text-muted small mb-0">{{ application.medical_conditions|default:_("None")|truncatechars:20 }}</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-universal-access fs-1 text-info mb-2"></i>
+                                <h6>{% trans "Special Needs" %}</h6>
+                                <p class="text-muted small mb-0">{{ application.special_needs|default:_("None")|truncatechars:20 }}</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="detail-item">
-                        <strong>{% trans "Special Needs" %}</strong>
-                        <div>{{ application.special_needs|default:_("None") }}</div>
+                    <div class="mt-3">
+                        <h6 class="mb-2"><i class="bi bi-palette me-1"></i>{% trans "Extracurricular Interests" %}</h6>
+                        <div class="bg-light p-3 rounded small">
+                            {{ application.extracurricular_interests|default:_("None provided") }}
+                        </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <div class="detail-section">
-                    <h4><i class="bi bi-palette me-2"></i> {% trans "Extracurricular Interests" %}</h4>
-                    <div class="detail-item">
-                        <div>{{ application.extracurricular_interests|default:_("None provided") }}</div>
+    <div class="row">
+        <!-- Documents -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-file-earmark-text me-2 text-secondary"></i>
+                        {% trans "Documents" %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-file-earmark-person fs-1 text-primary mb-2"></i>
+                                <h6>{% trans "Birth Certificate" %}</h6>
+                                {% if application.birth_certificate %}
+                                    <a href="{{ application.birth_certificate.url }}" target="_blank" class="btn btn-primary btn-sm">{% trans "View" %}</a>
+                                {% else %}
+                                    <span class="text-muted small">{% trans "Not provided" %}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-file-earmark-bar-graph fs-1 text-success mb-2"></i>
+                                <h6>{% trans "Transcript" %}</h6>
+                                {% if application.previous_school_transcript %}
+                                    <a href="{{ application.previous_school_transcript.url }}" target="_blank" class="btn btn-success btn-sm">{% trans "View" %}</a>
+                                {% else %}
+                                    <span class="text-muted small">{% trans "Not provided" %}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-file-earmark-check fs-1 text-info mb-2"></i>
+                                <h6>{% trans "Recommendation" %}</h6>
+                                {% if application.recommendation_letter %}
+                                    <a href="{{ application.recommendation_letter.url }}" target="_blank" class="btn btn-info btn-sm">{% trans "View" %}</a>
+                                {% else %}
+                                    <span class="text-muted small">{% trans "Not provided" %}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-file-earmark-medical fs-1 text-warning mb-2"></i>
+                                <h6>{% trans "Medical Report" %}</h6>
+                                {% if application.medical_report %}
+                                    <a href="{{ application.medical_report.url }}" target="_blank" class="btn btn-warning btn-sm">{% trans "View" %}</a>
+                                {% else %}
+                                    <span class="text-muted small">{% trans "Not provided" %}</span>
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <div class="detail-section">
-                    <h4><i class="bi bi-info-circle me-2"></i> {% trans "Application Details" %}</h4>
-                    <div class="detail-item">
-                        <strong>{% trans "Application Date" %}</strong>
-                        <span>{{ application.application_date|date:"M j, Y H:i" }}</span>
-                    </div>
-                    <div class="detail-item">
-                        <strong>{% trans "Academic Session" %}</strong>
-                        <span>{% if application.academic_session %}{{ application.academic_session.name }}{% else %}{% trans "N/A" %}{% endif %}</span>
+        <!-- Application Status & Details -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-info-circle me-2 text-info"></i>
+                        {% trans "Application Details" %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-calendar-event fs-1 text-primary mb-2"></i>
+                                <h6>{% trans "Application Date" %}</h6>
+                                <p class="text-muted small mb-0">{{ application.application_date|date:"M j, Y" }}</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-calendar-week fs-1 text-success mb-2"></i>
+                                <h6>{% trans "Academic Session" %}</h6>
+                                <p class="text-muted small mb-0">
+                                    {% if application.academic_session %}{{ application.academic_session.name }}{% else %}{% trans "N/A" %}{% endif %}
+                                </p>
+                            </div>
+                        </div>
                     </div>
                     {% if application.reviewed_by %}
-                    <div class="detail-item">
-                        <strong>{% trans "Reviewed By" %}</strong>
-                        <span>{{ application.reviewed_by.full_name }} ({{ application.reviewed_by.email }})</span>
-                    </div>
-                    <div class="detail-item">
-                        <strong>{% trans "Reviewed At" %}</strong>
-                        <span>{{ application.reviewed_at|date:"M j, Y H:i" }}</span>
+                    <div class="row">
+                        <div class="col-sm-6 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-person-check fs-1 text-info mb-2"></i>
+                                <h6>{% trans "Reviewed By" %}</h6>
+                                <p class="text-muted small mb-0">{{ application.reviewed_by.full_name }}</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-clock-history fs-1 text-warning mb-2"></i>
+                                <h6>{% trans "Reviewed At" %}</h6>
+                                <p class="text-muted small mb-0">{{ application.reviewed_at|date:"M j, Y H:i" }}</p>
+                            </div>
+                        </div>
                     </div>
                     {% endif %}
                     {% if application.review_notes %}
                     <div class="review-notes-section">
                         <strong>{% trans "Review Notes" %}:</strong>
-                        <p>{{ application.review_notes }}</p>
+                        <p class="mb-0">{{ application.review_notes }}</p>
                     </div>
                     {% endif %}
                 </div>
             </div>
         </div>
-
-        <div class="action-buttons-bottom">
-            {% if application.application_status == 'pending' or application.application_status == 'under_review' %}
-                <form method="post" action="{% url 'users:approve_application' application.id 'student' %}" class="d-inline">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-success" onclick="return confirm('{% trans "Are you sure you want to approve this application?" %}')">
-                        <i class="bi bi-check-lg me-1"></i> {% trans "Approve Application" %}
-                    </button>
-                </form>
-                <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#reviewModal">
-                    <i class="bi bi-pencil me-1"></i> {% trans "Mark Under Review" %}
-                </button>
-                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">
-                    <i class="bi bi-x-lg me-1"></i> {% trans "Reject Application" %}
-                </button>
-            {% endif %}
-        </div>
     </div>
+
+    <!-- Action Buttons -->
+    {% if application.application_status == 'pending' or application.application_status == 'under_review' %}
+    <div class="action-buttons">
+        <form method="post" action="{% url 'users:approve_application' application.id 'student' %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success" onclick="return confirm('{% trans "Are you sure you want to approve this application?" %}')">
+                <i class="bi bi-check-lg me-1"></i> {% trans "Approve Application" %}
+            </button>
+        </form>
+        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#reviewModal">
+            <i class="bi bi-pencil me-1"></i> {% trans "Mark Under Review" %}
+        </button>
+        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">
+            <i class="bi bi-x-lg me-1"></i> {% trans "Reject Application" %}
+        </button>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Reject Modal -->

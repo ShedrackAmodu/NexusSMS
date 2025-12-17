@@ -1200,9 +1200,10 @@ class StudentApplicationForm(forms.ModelForm):
     def clean_phone(self):
         phone = self.cleaned_data.get('phone')
         if phone:
-            # Basic phone validation
-            if len(phone) < 10:
-                raise forms.ValidationError(_('Please enter a valid phone number.'))
+            # Validate international phone format: +country_code followed by digits
+            import re
+            if not re.match(r'^\+?[1-9]\d{1,14}$', phone):
+                raise forms.ValidationError(_('Please enter a valid phone number in international format (e.g., +1234567890).'))
         return phone
 
     def clean_parent_phone(self):

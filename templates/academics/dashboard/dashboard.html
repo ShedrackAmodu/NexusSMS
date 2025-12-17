@@ -232,6 +232,40 @@
                         </div>
                     </div>
                     <div class="row mt-3">
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-bar-chart-line fs-1 text-info mb-2"></i>
+                                <h6>{% trans "Total Grade Levels" %}</h6>
+                                <p class="text-muted small mb-2">{{ total_grade_levels }}</p>
+                                <a href="{% url 'academics:grade_level_list' %}" class="btn btn-info btn-sm">{% trans "View Grade Levels" %}</a>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-calendar-event fs-1 text-secondary mb-2"></i>
+                                <h6>{% trans "Academic Sessions" %}</h6>
+                                <p class="text-muted small mb-2">{% trans "Manage academic years" %}</p>
+                                <a href="{% url 'academics:session_list' %}" class="btn btn-secondary btn-sm">{% trans "View Sessions" %}</a>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-table fs-1 text-dark mb-2"></i>
+                                <h6>{% trans "Timetables" %}</h6>
+                                <p class="text-muted small mb-2">{% trans "Manage schedules" %}</p>
+                                <a href="{% url 'academics:timetable_list' %}" class="btn btn-dark btn-sm">{% trans "View Timetables" %}</a>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <i class="bi bi-file-earmark-text fs-1 text-primary mb-2"></i>
+                                <h6>{% trans "School Policies" %}</h6>
+                                <p class="text-muted small mb-2">{% trans "View policies" %}</p>
+                                <a href="{% url 'academics:policy_list' %}" class="btn btn-primary btn-sm">{% trans "View Policies" %}</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
                         <div class="col-md-6 mb-3">
                             <div class="card border-0 shadow-sm">
                                 <div class="card-header bg-transparent border-0">
@@ -307,6 +341,9 @@
                                         <i class="bi bi-table me-1"></i> {% trans "Manage Timetable" %}
                                     </a>
                                     <a href="{% url 'academics:grade_level_list' %}" class="btn btn-outline-dark btn-sm">
+                                        <i class="bi bi-bar-chart-line me-1"></i> {% trans "Manage Grade Levels" %}
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>

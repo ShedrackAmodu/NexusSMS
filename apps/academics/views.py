@@ -823,6 +823,8 @@ class AcademicsDashboardView(AcademicsAccessMixin, View):
             'total_students': Student.objects.filter(status='active').count(),
             'total_teachers': Teacher.objects.filter(status='active').count(),
             'total_classes': Class.objects.filter(status='active').count(),
+            'total_subjects': Subject.objects.filter(status='active').count(),
+            'total_grade_levels': GradeLevel.objects.filter(status='active').count(),
             'recent_enrollments': Enrollment.objects.filter(
                 enrollment_status='active'
             ).order_by('-enrollment_date')[:10],

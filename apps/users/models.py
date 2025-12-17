@@ -1049,7 +1049,7 @@ class StudentApplication(CoreBaseModel, AddressModel):
     nationality = models.CharField(_('nationality'), max_length=50)
 
     # Academic Information
-    grade_applying_for = models.CharField(_('grade applying for'), max_length=20)
+    grade_applying_for = models.CharField(_('grade applying for'), max_length=100)
     previous_school = models.CharField(_('previous school'), max_length=100, blank=True)
     previous_grade = models.CharField(_('previous grade'), max_length=20, blank=True)
     academic_achievements = models.TextField(_('academic achievements'), blank=True)

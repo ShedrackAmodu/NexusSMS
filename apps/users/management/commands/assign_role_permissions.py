@@ -185,6 +185,11 @@ class Command(BaseCommand):
             'users.add_user', 'users.change_user', 'users.delete_user', 'users.view_user',
             'users.add_role', 'users.change_role', 'users.view_role',
 
+            # Application management
+            'users.add_studentapplication', 'users.change_studentapplication', 'users.delete_studentapplication', 'users.view_studentapplication',
+            'users.add_staffapplication', 'users.change_staffapplication', 'users.delete_staffapplication', 'users.view_staffapplication',
+            'users.approve_applications', 'users.add_applicationstatus', 'users.change_applicationstatus', 'users.delete_applicationstatus', 'users.view_applicationstatus',
+
             # Transport
             'transport.add_vehicle', 'transport.change_vehicle', 'transport.view_vehicle',
             'transport.add_driver', 'transport.change_driver', 'transport.view_driver',

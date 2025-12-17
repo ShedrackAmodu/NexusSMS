@@ -1,6 +1,7 @@
 # apps/attendance/views.py
 
 from django.shortcuts import render, get_object_or_404, redirect
+from django.http import Http404
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
@@ -321,11 +322,26 @@ class StudentAttendanceView(AttendancePermissionMixin, DetailView):
     model = Student
     template_name = 'attendance/daily/student_attendance.html'
     context_object_name = 'student'
-    
+
+    def dispatch(self, request, *args, **kwargs):
+        # If user is not a student and no pk is provided, redirect to daily attendance list
+        if not hasattr(request.user, 'student_profile') and not self.kwargs.get('pk'):
+            messages.info(request, "Please select a student to view their attendance.")
+            return redirect('daily_list')
+        return super().dispatch(request, *args, **kwargs)
+
     def get_object(self):
+        # If user is a student, show their own attendance
         if hasattr(self.request.user, 'student_profile'):
             return self.request.user.student_profile
-        return get_object_or_404(Student, pk=self.kwargs.get('pk'))
+
+        # If pk is provided, show specific student's attendance (for admins/teachers)
+        pk = self.kwargs.get('pk')
+        if pk:
+            return get_object_or_404(Student, pk=pk)
+
+        # This should not be reached due to dispatch check, but fallback
+        raise Http404("Student not found")
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
