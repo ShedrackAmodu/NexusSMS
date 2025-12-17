@@ -1,9 +1,12 @@
 <!-- templates/transport/vehicles/vehicle_list.html -->
-{% extends 'base.html' %}
-{% load static %}
-{% load i18n %}
+{% extends 'base/base.html' %}
+{% load static i18n %}
 
-{% block title %}{% trans "Vehicle Management" %}{% endblock %}
+{% block title %}{% trans "Vehicle Management - School Management System" %}{% endblock %}
+
+{% block meta_description %}{% trans "Manage and monitor school transportation fleet including vehicle details, maintenance schedules, and allocation status." %}{% endblock %}
+
+{% block body_class %}vehicle-management-page{% endblock %}
 
 {% block page_title %}{% trans "Vehicle Management" %}{% endblock %}
 
@@ -46,11 +49,15 @@
 
 {% block extra_css %}
 <style>
+    .vehicle-management-page {
+        background-color: #f8f9fa;
+    }
+
     /* Vehicle List Specific Styles */
     .vehicle-card {
-        border-radius: 12px;
-        border: none;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 0.75rem;
+        border: 0;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
         transition: all 0.3s ease;
         height: 100%;
     }
@@ -225,13 +232,37 @@
         display: none;
     }
     
+    /* Dark theme support */
+    [data-bs-theme="dark"] .vehicle-management-page {
+        background-color: #212529;
+    }
+
+    [data-bs-theme="dark"] .vehicle-card {
+        background-color: #2d3338;
+        border-color: #495057;
+    }
+
+    [data-bs-theme="dark"] .filter-card {
+        background-color: #2d3338;
+        border-color: #495057;
+    }
+
+    [data-bs-theme="dark"] .text-muted {
+        color: #adb5bd !important;
+    }
+
+    [data-bs-theme="dark"] .card {
+        background-color: #2d3338;
+        border-color: #495057;
+    }
+
     /* Responsive adjustments */
     @media (max-width: 768px) {
         .vehicle-image {
             height: 140px;
             font-size: 2rem;
         }
-        
+
         .view-grid {
             grid-template-columns: 1fr;
         }

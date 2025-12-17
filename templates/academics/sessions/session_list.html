@@ -34,6 +34,90 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/academics/lists.css' %}">
 <style>
+/* Dark mode fixes for page actions and teacher header elements */
+[data-bs-theme="dark"] .page-actions .btn {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    color: #ffffff !important;
+}
+
+[data-bs-theme="dark"] .page-actions .btn:hover {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+    color: #ffffff !important;
+}
+
+[data-bs-theme="dark"] .page-actions .btn-primary {
+    background-color: #0d6efd !important;
+    border-color: #0d6efd !important;
+}
+
+[data-bs-theme="dark"] .page-actions .btn-primary:hover {
+    background-color: #0b5ed7 !important;
+    border-color: #0a58ca !important;
+}
+
+[data-bs-theme="dark"] .page-actions .btn-outline-primary {
+    color: #6ea8fe !important;
+    border-color: #6ea8fe !important;
+}
+
+[data-bs-theme="dark"] .page-actions .btn-outline-primary:hover {
+    background-color: #6ea8fe !important;
+    border-color: #6ea8fe !important;
+    color: #000 !important;
+}
+
+[data-bs-theme="dark"] .page-actions .dropdown-menu {
+    background-color: rgba(33, 37, 41, 0.95) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(10px);
+}
+
+[data-bs-theme="dark"] .page-actions .dropdown-item {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+[data-bs-theme="dark"] .page-actions .dropdown-item:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+}
+
+/* Light mode styles for teacher quick actions section */
+.quick-actions {
+    background: #f8f9fa !important;
+    border: 1px solid rgba(0, 0, 0, 0.125) !important;
+    color: #212529 !important;
+}
+
+.quick-actions .text-muted {
+    color: #6c757d !important;
+}
+
+.quick-actions .badge.bg-primary {
+    background-color: #0d6efd !important;
+    color: #ffffff !important;
+}
+
+.quick-actions .badge.bg-success {
+    background-color: #198754 !important;
+    color: #ffffff !important;
+}
+
+/* Dark mode styles for teacher quick actions section */
+[data-bs-theme="dark"] .quick-actions {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-bs-theme="dark"] .quick-actions .text-muted {
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+[data-bs-theme="dark"] .quick-actions .badge {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    color: #ffffff !important;
+}
 .session-card {
     border: none;
     border-radius: 12px;
@@ -73,14 +157,47 @@
     border-radius: 6px;
 }
 
+/* Light mode styles for summary cards */
 .session-stats-card {
     border: none;
     border-radius: 12px;
     transition: transform 0.2s ease;
+    color: #ffffff !important;
 }
 
 .session-stats-card:hover {
     transform: translateY(-2px);
+}
+
+.session-stats-card.bg-gradient-primary {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+}
+
+.session-stats-card.bg-gradient-success {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%) !important;
+}
+
+.session-stats-card.bg-gradient-info {
+    background: linear-gradient(135deg, #17a2b8 0%, #117a8b 100%) !important;
+}
+
+.session-stats-card.bg-gradient-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%) !important;
+    color: #212529 !important; /* Dark text for warning background */
+}
+
+.session-stats-card .card-title {
+    color: #ffffff !important;
+}
+
+.session-stats-card .card-text {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Dark mode styles for summary cards */
+[data-bs-theme="dark"] .session-stats-card.bg-gradient-warning .card-title,
+[data-bs-theme="dark"] .session-stats-card.bg-gradient-warning .card-text {
+    color: #212529 !important;
 }
 
 .date-range {

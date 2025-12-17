@@ -1,9 +1,12 @@
 <!-- templates/transport/routeschedules/routeschedule_list.html -->
-{% extends 'base.html' %}
-{% load static %}
-{% load i18n %}
+{% extends 'base/base.html' %}
+{% load static i18n %}
 
-{% block title %}{% trans "Route Schedules" %}{% endblock %}
+{% block title %}{% trans "Route Schedules - School Management System" %}{% endblock %}
+
+{% block meta_description %}{% trans "Manage and monitor transport route schedules including vehicle assignments, driver allocations, and operational timing." %}{% endblock %}
+
+{% block body_class %}route-schedules-page{% endblock %}
 
 {% block page_title %}{% trans "Route Schedules" %}{% endblock %}
 
@@ -39,10 +42,33 @@
 
 {% block extra_css %}
 <style>
+    .route-schedules-page {
+        background-color: #f8f9fa;
+    }
+
+    .welcome-card {
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+        border-radius: 1rem;
+    }
+
+    .avatar {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .avatar-sm {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+
     .schedule-card {
-        border-radius: 12px;
-        border: none;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 0.75rem;
+        border: 0;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
         transition: transform 0.3s ease, box-shadow 0.3s ease;
         margin-bottom: 1.5rem;
         border-left: 4px solid #0d6efd;
@@ -181,9 +207,9 @@
     }
     
     .filter-card {
-        border-radius: 12px;
-        border: none;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 0.75rem;
+        border: 0;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
         margin-bottom: 1.5rem;
     }
     
@@ -253,50 +279,36 @@
 
 {% block content %}
 <div class="route-schedules-list">
-    <!-- Filters and Controls -->
+    <!-- Welcome Section -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card filter-card">
+            <div class="card border-0 bg-primary text-white welcome-card">
                 <div class="card-body">
                     <div class="row align-items-center">
                         <div class="col-md-8">
-                            <div class="row g-3">
-                                <div class="col-md-3">
-                                    <label class="form-label">{% trans "Route" %}</label>
-                                    <select class="form-select" id="route-filter">
-                                        <option value="">{% trans "All Routes" %}</option>
-                                        {% for route in routes %}
-                                        <option value="{{ route.id }}">{{ route.code }} - {{ route.name }}</option>
-                                        {% endfor %}
-                                    </select>
+                            <h2 class="card-title h4 mb-2">
+                                {% trans "Route Schedules Management" %}, {{ user.display_name }}!
+                            </h2>
+                            <p class="card-text mb-0 opacity-75">
+                                {% now "l, F j, Y" %}
+                            </p>
+                            {% if user.user_type %}
+                            <span class="badge bg-light text-primary mt-2">
+                                {{ user.get_user_type_display }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <div class="dashboard-stats-mini">
+                                <div class="stat-item">
+                                    <i class="bi bi-calendar-event fs-1 opacity-50"></i>
                                 </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">{% trans "Vehicle" %}</label>
-                                    <select class="form-select" id="vehicle-filter">
-                                        <option value="">{% trans "All Vehicles" %}</option>
-                                        {% for vehicle in vehicles %}
-                                        <option value="{{ vehicle.id }}">{{ vehicle.vehicle_number }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">{% trans "Driver" %}</label>
-                                    <select class="form-select" id="driver-filter">
-                                        <option value="">{% trans "All Drivers" %}</option>
-                                        {% for driver in drivers %}
-                                        <option value="{{ driver.id }}">{{ driver.user.get_full_name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">{% trans "Status" %}</label>
-                                    <select class="form-select" id="status-filter">
-                                        <option value="">{% trans "All Status" %}</option>
-                                        {% for value, label in status_choices %}
-                                        <option value="{{ value }}">{{ label }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
+                            </div>
+                    </div>
+                </div>
+            </div>
+
+
                             </div>
                         </div>
                         <div class="col-md-4">
@@ -325,6 +337,143 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Right Column - Sidebar -->
+        <div class="col-lg-4">
+            <!-- Quick Stats -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <h5 class="card-title mb-0">{% trans "Quick Stats" %}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="text-center p-3 border rounded">
+                                <div class="text-primary fs-4 mb-1">
+                                    <i class="fas fa-route"></i>
+                                </div>
+                                <div class="fw-bold">{{ schedules.count }}</div>
+                                <small class="text-muted">{% trans "Schedules" %}</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-3 border rounded">
+                                <div class="text-success fs-4 mb-1">
+                                    <i class="fas fa-play-circle"></i>
+                                </div>
+                                <div class="fw-bold">{{ active_schedules_count }}</div>
+                                <small class="text-muted">{% trans "Active" %}</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-3 border rounded">
+                                <div class="text-info fs-4 mb-1">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="fw-bold">{{ total_students_count }}</div>
+                                <small class="text-muted">{% trans "Students" %}</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-3 border rounded">
+                                <div class="text-warning fs-4 mb-1">
+                                    <i class="fas fa-calendar-check"></i>
+                                </div>
+                                <div class="fw-bold">{{ operational_today_count }}</div>
+                                <small class="text-muted">{% trans "Today" %}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Links -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <h5 class="card-title mb-0">{% trans "Quick Links" %}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'transport:dashboard' %}" class="btn btn-outline-primary text-start">
+                            <i class="fas fa-tachometer-alt me-2"></i>
+                            {% trans "Transport Dashboard" %}
+                        </a>
+                        <a href="{% url 'transport:routeschedule_create' %}" class="btn btn-outline-success text-start">
+                            <i class="fas fa-plus me-2"></i>
+                            {% trans "Create Schedule" %}
+                        </a>
+                        <a href="{% url 'transport:vehicle_list' %}" class="btn btn-outline-info text-start">
+                            <i class="fas fa-bus me-2"></i>
+                            {% trans "Manage Vehicles" %}
+                        </a>
+                        <a href="{% url 'transport:driver_list' %}" class="btn btn-outline-warning text-start">
+                            <i class="fas fa-id-card me-2"></i>
+                            {% trans "Manage Drivers" %}
+                        </a>
+                        <a href="{% url 'transport:route_list' %}" class="btn btn-outline-secondary text-start">
+                            <i class="fas fa-route me-2"></i>
+                            {% trans "Manage Routes" %}
+                        </a>
+                        <a href="{% url 'transport:transportallocation_list' %}" class="btn btn-outline-dark text-start">
+                            <i class="fas fa-user-plus me-2"></i>
+                            {% trans "Student Allocations" %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <h5 class="card-title mb-0">{% trans "Recent Activity" %}</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_schedule_changes %}
+                        <div class="list-group list-group-flush">
+                            {% for change in recent_schedule_changes|slice:":5" %}
+                            <div class="list-group-item px-0 py-2">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar avatar-sm bg-primary text-white rounded-circle me-2">
+                                        <i class="fas fa-{{ change.action_icon|default:'edit' }}"></i>
+                                    </div>
+                                    <div class="flex-fill">
+                                        <small class="fw-semibold">{{ change.description }}</small>
+                                        <br>
+                                        <small class="text-muted">{{ change.created_at|timesince }} ago</small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-clock text-muted mb-2"></i>
+                            <p class="text-muted small mb-0">{% trans "No recent activity" %}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Maintenance Alerts -->
+            {% if vehicles_due_maintenance %}
+            <div class="card border-0 shadow-sm mb-4 border-start border-warning border-4">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <h5 class="card-title mb-0 text-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        {% trans "Maintenance Alerts" %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning border-0 p-2 mb-2">
+                        <small>{{ vehicles_due_maintenance }} {% trans "vehicles due for maintenance" %}</small>
+                    </div>
+                    <a href="{% url 'transport:vehicle_maintenance_schedule' %}" class="btn btn-warning btn-sm w-100">
+                        {% trans "View Schedule" %}
+                    </a>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 

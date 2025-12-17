@@ -1,8 +1,39 @@
-{% extends 'base.html' %}
-{% load static %}
+{% extends 'base/base.html' %}
+{% load static i18n %}
 
-{% block title %}
-    Notice Boards - Communications
+{% block title %}{% trans "Notice Boards - Communications" %}{% endblock %}
+
+{% block meta_description %}{% trans "Manage and view digital notice boards across the school institution with announcements and important information." %}{% endblock %}
+
+{% block body_class %}noticeboards-page{% endblock %}
+
+{% block page_title %}{% trans "Notice Boards" %}{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'users:dashboard' %}">{% trans "Home" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'communication:dashboard' %}">{% trans "Communications" %}</a></li>
+<li class="breadcrumb-item active" aria-current="page">{% trans "Notice Boards" %}</li>
+{% endblock %}
+
+{% block page_actions %}
+<div class="page-actions">
+    {% if perms.communication.add_noticeboard %}
+    <a href="{% url 'admin:communication_noticeboard_add' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-2"></i>
+        {% trans "Add Notice Board" %}
+    </a>
+    {% endif %}
+    {% if user.is_authenticated %}
+    <div class="btn-group ms-2" role="group">
+        <button type="button" class="btn btn-outline-secondary" id="fullscreen-toggle" title="{% trans 'Toggle fullscreen' %}">
+            <i class="bi bi-arrows-fullscreen"></i>
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#settingsModal" title="{% trans 'Settings' %}">
+            <i class="bi bi-gear-fill"></i>
+        </button>
+    </div>
+    {% endif %}
+</div>
 {% endblock %}
 
 {% block extra_css %}
@@ -426,40 +457,6 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'users:dashboard' %}">Home</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'communication:dashboard' %}">Communications</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Notice Boards</li>
-        </ol>
-    </nav>
-
-    <!-- Page Header -->
-    <div class="page-header bg-light py-4 mb-4">
-        <div class="container-fluid">
-            <div class="row align-items-center">
-                <div class="col">
-                    <h1 class="page-title h2 mb-2">
-                        <i class="bi bi-display text-primary me-2"></i>
-                        Notice Boards
-                    </h1>
-                    <p class="text-muted mb-0">
-                        Manage and view all digital notice boards across the institution
-                    </p>
-                </div>
-                <div class="col-auto">
-                    {% if perms.communication.add_noticeboard %}
-                    <a href="{% url 'admin:communication_noticeboard_add' %}" class="btn btn-primary">
-                        <i class="bi bi-plus-circle me-2"></i>
-                        Add Notice Board
-                    </a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Statistics Cards -->
     <div class="stats-grid">
         <div class="stat-card">

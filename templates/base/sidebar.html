@@ -583,10 +583,35 @@
 
     .quick-actions .btn-outline-primary {
         color: #ffffff !important;
-        border-color: rgba(255, 255, 255, 0.25) !important;
+        border-color: rgba(255, 255, 255, 0.5) !important;
+        background-color: rgba(255, 255, 255, 0.05) !important;
     }
 
     .quick-actions .btn-outline-primary:hover {
+        background-color: rgba(255, 255, 255, 0.15) !important;
+        color: #ffffff !important;
+        border-color: rgba(255, 255, 255, 0.7) !important;
+    }
+
+    .quick-actions .btn-outline-primary:focus {
+        background-color: rgba(255, 255, 255, 0.2) !important;
+        color: #ffffff !important;
+        border-color: rgba(255, 255, 255, 0.8) !important;
+        box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25) !important;
+    }
+
+    /* Ensure dropdown menu is visible in dark mode */
+    .quick-actions .dropdown-menu {
+        background-color: rgba(33, 37, 41, 0.95) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        backdrop-filter: blur(10px);
+    }
+
+    .quick-actions .dropdown-item {
+        color: rgba(255, 255, 255, 0.9) !important;
+    }
+
+    .quick-actions .dropdown-item:hover {
         background-color: rgba(255, 255, 255, 0.1) !important;
         color: #ffffff !important;
     }

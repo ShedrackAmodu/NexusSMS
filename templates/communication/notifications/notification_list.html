@@ -1,20 +1,44 @@
 {% extends "base/base.html" %}
+{% load static i18n %}
 
-{% block title %}Notifications{% endblock %}
+{% block title %}{% trans "Notifications - Communications" %}{% endblock %}
+
+{% block meta_description %}{% trans "View and manage your notifications, alerts, and messages within the school management system." %}{% endblock %}
+
+{% block body_class %}notifications-page{% endblock %}
+
+{% block page_title %}{% trans "Notifications" %}{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'users:dashboard' %}">{% trans "Home" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'communication:dashboard' %}">{% trans "Communications" %}</a></li>
+<li class="breadcrumb-item active" aria-current="page">{% trans "Notifications" %}</li>
+{% endblock %}
+
+{% block page_actions %}
+<div class="page-actions">
+    {% if user.is_authenticated %}
+    <div class="btn-group ms-2" role="group">
+        <button type="button" class="btn btn-outline-secondary" id="fullscreen-toggle" title="{% trans 'Toggle fullscreen' %}">
+            <i class="bi bi-arrows-fullscreen"></i>
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#settingsModal" title="{% trans 'Settings' %}">
+            <i class="bi bi-gear-fill"></i>
+        </button>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
 
 {% block content %}
 <div class="notifications-container" style="max-width: 1000px; margin: 0 auto; padding: 20px;">
-    <!-- Header Section -->
+    <!-- Quick Actions Header -->
     <div class="notifications-header" style="margin-bottom: 24px;">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
-            <div>
-                <h1 style="font-size: 28px; font-weight: 700; color: #1f2937; margin: 0 0 4px 0;">Notifications</h1>
-                <p style="color: #6b7280; margin: 0;">Manage your notifications and stay updated</p>
+            <div class="unread-counter" id="unreadCounter" style="background: #3b82f6; color: white; padding: 6px 12px; border-radius: 20px; font-size: 14px; font-weight: 600;">
+                {{ unread_notification_count }} unread
             </div>
             <div class="header-actions" style="display: flex; gap: 12px;">
-                <div class="unread-counter" id="unreadCounter" style="background: #3b82f6; color: white; padding: 6px 12px; border-radius: 20px; font-size: 14px; font-weight: 600;">
-                    {{ unread_notification_count }} unread
-                </div>
                 <button id="markAllReadBtn" class="action-btn" style="background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 500; cursor: pointer; transition: background-color 0.2s;">
                     Mark All Read
                 </button>

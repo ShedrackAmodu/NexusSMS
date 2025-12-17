@@ -1979,14 +1979,30 @@ def user_list(request):
     """
     # Filter users by institution for multitenancy
     current_user_institution = request.user.current_institution
-    if current_user_institution:
+    if request.user.is_superuser:
+        # Superusers can see all users
+        users = User.objects.all().select_related('profile').prefetch_related('user_roles__role').distinct()
+    elif current_user_institution:
         users = User.objects.filter(
             institution_memberships__institution=current_user_institution,
             institution_memberships__is_primary=True
         ).select_related('profile').prefetch_related('user_roles__role').distinct()
     else:
-        # Fallback for users without primary institution (like during setup)
-        users = User.objects.none()
+        # Fallback for staff users without primary institution
+        # Try to get users from any institution they belong to
+        from apps.core.models import InstitutionUser
+        accessible_institution_ids = InstitutionUser.objects.filter(
+            user=request.user,
+            institution__is_active=True
+        ).values_list('institution_id', flat=True)
+
+        if accessible_institution_ids:
+            users = User.objects.filter(
+                institution_memberships__institution_id__in=accessible_institution_ids,
+                institution_memberships__is_primary=True
+            ).select_related('profile').prefetch_related('user_roles__role').distinct()
+        else:
+            users = User.objects.none()
 
     # Filtering
     role_filter = request.GET.get('role')
@@ -2057,13 +2073,17 @@ def user_detail(request, user_id):
     """
     User detail view with all related information.
     """
-    user = get_object_or_404(
-        User.objects.filter(
-            institution_memberships__institution=request.user.current_institution,
-            institution_memberships__is_primary=True
-        ),
-        id=user_id
-    )
+    # Superusers can access all users, staff users can only access users from their institution
+    if request.user.is_superuser:
+        user = get_object_or_404(User, id=user_id)
+    else:
+        user = get_object_or_404(
+            User.objects.filter(
+                institution_memberships__institution=request.user.current_institution,
+                institution_memberships__is_primary=True
+            ),
+            id=user_id
+        )
 
     # Security check - staff can only view, superuser can edit
     can_edit = request.user.is_superuser

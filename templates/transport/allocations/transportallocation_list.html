@@ -51,6 +51,10 @@
 
 {% block extra_css %}
 <style>
+    .allocations-management-page {
+        background-color: #f8f9fa;
+    }
+
     .allocations-management {
         max-width: 1400px;
         margin: 0 auto;
@@ -59,13 +63,13 @@
     .stats-card {
         text-align: center;
         padding: 1.5rem;
-        border-radius: 12px;
-        border: none;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 0.75rem;
+        border: 0;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
         transition: all 0.3s ease;
         height: 100%;
     }
-    
+
     .stats-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
@@ -84,9 +88,9 @@
     }
     
     .allocation-card {
-        border-radius: 12px;
-        border: none;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 0.75rem;
+        border: 0;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
         transition: all 0.3s ease;
         height: 100%;
     }

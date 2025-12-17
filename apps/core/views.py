@@ -2048,8 +2048,8 @@ class GlobalSearchView(LoginRequiredMixin, PermissionRequiredMixin, View):
                 status='active'
             ).values_list('class_assigned', flat=True)
             return Student.objects.filter(
-                class_enrollments__class_enrolled__in=teacher_assignments,
-                class_enrollments__status='active'
+                enrollments__class_enrolled__in=teacher_assignments,
+                enrollments__status='active'
             ).distinct()
 
         # Parents can see only their children
@@ -2075,23 +2075,18 @@ class GlobalSearchView(LoginRequiredMixin, PermissionRequiredMixin, View):
     def get_accessible_teachers(self):
         """
         Get queryset of teachers the current user can access.
+        Only admin-level users (super_admin, admin, principal) can see teachers.
         """
         user = self.request.user
         from apps.academics.models import Teacher
 
-        # Super admin and admin can see all teachers
+        # Only super admin, admin, and principal can see teachers
         if (user.is_superuser or
             user.user_roles.filter(role__role_type__in=['super_admin', 'admin', 'principal']).exists()):
             return Teacher.objects.all()
 
-        # Teachers and students in same institution can see teachers
-        try:
-            from .middleware import get_user_accessible_institutions
-            accessible_institutions = get_user_accessible_institutions(user)
-            return Teacher.objects.filter(institution__in=accessible_institutions)
-        except ImportError:
-            # Fallback
-            return Teacher.objects.all()
+        # Other staff members cannot see teachers
+        return Teacher.objects.none()
 
     def get_accessible_classes(self):
         """

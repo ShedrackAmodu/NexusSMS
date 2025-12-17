@@ -1,9 +1,12 @@
 <!-- templates/transport/dashboard/dashboard.html -->
-{% extends 'base.html' %}
-{% load static %}
-{% load i18n %}
+{% extends 'base/base.html' %}
+{% load static i18n %}
 
-{% block title %}{% trans "Transport Dashboard" %}{% endblock %}
+{% block title %}{% trans "Transport Dashboard - School Management System" %}{% endblock %}
+
+{% block meta_description %}{% trans "Comprehensive transport management dashboard with fleet overview, maintenance alerts, and allocation statistics." %}{% endblock %}
+
+{% block body_class %}transport-dashboard-page{% endblock %}
 
 {% block page_title %}{% trans "Transport Dashboard" %}{% endblock %}
 
@@ -14,6 +17,10 @@
 
 {% block extra_css %}
 <style>
+    .transport-dashboard-page {
+        background-color: #f8f9fa;
+    }
+
     /* Dashboard Specific Styles */
     .transport-dashboard {
         opacity: 1;
@@ -24,10 +31,29 @@
         opacity: 0.7;
     }
 
+    .welcome-card {
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+        border-radius: 1rem;
+    }
+
+    .avatar {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .avatar-sm {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+
     .stat-card {
-        border-radius: 12px;
-        border: none;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 0.75rem;
+        border: 0;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
         transition: transform 0.3s ease, box-shadow 0.3s ease;
         height: 100%;
         min-height: 120px;
@@ -70,17 +96,18 @@
 
     .chart-container {
         background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 0.75rem;
+        border: 0;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
         padding: 1.5rem;
         height: 100%;
         min-height: 300px;
     }
 
     .quick-action-card {
-        border-radius: 12px;
-        border: none;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 0.75rem;
+        border: 0;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
         transition: all 0.3s ease;
         height: 100%;
     }
@@ -170,6 +197,25 @@
         background: rgba(0, 0, 0, 0.8);
     }
 
+    /* Dark theme support */
+    [data-bs-theme="dark"] .transport-dashboard-page {
+        background-color: #212529;
+    }
+
+    [data-bs-theme="dark"] .chart-container {
+        background-color: #2d3338;
+        border-color: #495057;
+    }
+
+    [data-bs-theme="dark"] .text-muted {
+        color: #adb5bd !important;
+    }
+
+    [data-bs-theme="dark"] .card {
+        background-color: #2d3338;
+        border-color: #495057;
+    }
+
     /* Responsive adjustments */
     @media (max-width: 768px) {
         .stat-value {
@@ -207,6 +253,38 @@
 
 {% block content %}
 <div class="transport-dashboard" id="transportDashboard">
+    <!-- Welcome Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 bg-primary text-white welcome-card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h2 class="card-title h4 mb-2">
+                                {% trans "Welcome to Transport Management" %}, {{ user.display_name }}!
+                            </h2>
+                            <p class="card-text mb-0 opacity-75">
+                                {% now "l, F j, Y" %}
+                            </p>
+                            {% if user.user_type %}
+                            <span class="badge bg-light text-primary mt-2">
+                                {{ user.get_user_type_display }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <div class="dashboard-stats-mini">
+                                <div class="stat-item">
+                                    <i class="bi bi-bus-front fs-1 opacity-50"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Statistics Overview -->
     <div class="dashboard-section">
         <div class="row">

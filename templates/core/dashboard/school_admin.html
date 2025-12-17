@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load i18n %}
+{% load filters %}
 
 {% block title %}{{ page_title }}{% endblock %}
 
@@ -266,33 +267,39 @@
                                             </div>
                                             <div class="h5 mb-0 font-weight-bold text-gray-800">
                                                 {% if kpi_data|length > 0 and kpi.id in kpi_data %}
-                                                    {% if kpi.value_type == 'percentage' %}
-                                                        {{ kpi_data|get_item:kpi.id.value }}%
-                                                    {% elif kpi.value_type == 'currency' %}
-                                                        ${{ kpi_data|get_item:kpi.id.value|floatformat:2 }}
-                                                    {% else %}
-                                                        {{ kpi_data|get_item:kpi.id.value }}
-                                                    {% endif %}
+                                                    {% with measurement=kpi_data|get_item:kpi.id %}
+                                                        {% if kpi.value_type == 'percentage' %}
+                                                            {{ measurement.value }}%
+                                                        {% elif kpi.value_type == 'currency' %}
+                                                            ${{ measurement.value|floatformat:2 }}
+                                                        {% else %}
+                                                            {{ measurement.value }}
+                                                        {% endif %}
+                                                    {% endwith %}
                                                 {% else %}
                                                     --
                                                 {% endif %}
                                             </div>
-                                            {% if kpi_data|length > 0 and kpi.id in kpi_data and kpi_data|get_item:kpi.id.change_percentage %}
-                                                <div class="text-xs">
-                                                    {% if kpi_data|get_item:kpi.id.change_percentage > 0 %}
-                                                        <span class="text-success">
-                                                            <i class="fas fa-arrow-up"></i> +{{ kpi_data|get_item:kpi.id.change_percentage }}%
-                                                        </span>
-                                                    {% elif kpi_data|get_item:kpi.id.change_percentage < 0 %}
-                                                        <span class="text-danger">
-                                                            <i class="fas fa-arrow-down"></i> {{ kpi_data|get_item:kpi.id.change_percentage }}%
-                                                        </span>
-                                                    {% else %}
-                                                        <span class="text-muted">
-                                                            <i class="fas fa-minus"></i> 0%
-                                                        </span>
+                                            {% if kpi_data|length > 0 and kpi.id in kpi_data %}
+                                                {% with measurement=kpi_data|get_item:kpi.id %}
+                                                    {% if measurement.change_percentage %}
+                                                        <div class="text-xs">
+                                                            {% if measurement.change_percentage > 0 %}
+                                                                <span class="text-success">
+                                                                    <i class="fas fa-arrow-up"></i> +{{ measurement.change_percentage }}%
+                                                                </span>
+                                                            {% elif measurement.change_percentage < 0 %}
+                                                                <span class="text-danger">
+                                                                    <i class="fas fa-arrow-down"></i> {{ measurement.change_percentage }}%
+                                                                </span>
+                                                            {% else %}
+                                                                <span class="text-muted">
+                                                                    <i class="fas fa-minus"></i> 0%
+                                                                </span>
+                                                            {% endif %}
+                                                        </div>
                                                     {% endif %}
-                                                </div>
+                                                {% endwith %}
                                             {% endif %}
                                         </div>
                                         <div class="col-auto">

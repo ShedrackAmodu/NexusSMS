@@ -206,24 +206,24 @@
                             <div class="card-body p-0">
                                 <div class="list-group list-group-flush">
                                     {% for teacher in results.teachers %}
-                                        <a href="{% url 'users:user_detail' teacher.id %}"
+                                        <a href="{% url 'users:user_detail' teacher.user.id %}"
                                            class="list-group-item list-group-item-action">
                                             <div class="d-flex align-items-center">
                                                 <div class="avatar avatar-sm bg-success text-white rounded-circle me-3">
-                                                    {% if teacher.profile.profile_picture %}
-                                                        <img src="{{ teacher.profile.profile_picture.url }}"
-                                                             alt="{{ teacher.get_full_name }}"
+                                                    {% if teacher.user.profile.profile_picture %}
+                                                        <img src="{{ teacher.user.profile.profile_picture.url }}"
+                                                             alt="{{ teacher.user.get_full_name }}"
                                                              class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
                                                     {% else %}
-                                                        <span class="fw-bold">{{ teacher.get_initials }}</span>
+                                                        <span class="fw-bold">{{ teacher.user.get_initials }}</span>
                                                     {% endif %}
                                                 </div>
                                                 <div class="flex-grow-1">
-                                                    <h6 class="mb-1">{{ teacher.get_full_name }}</h6>
+                                                    <h6 class="mb-1">{{ teacher.user.get_full_name }}</h6>
                                                     <p class="text-muted mb-0 small">
-                                                        {{ teacher.email }}
-                                                        {% if teacher.profile.employee_id %} • ID: {{ teacher.profile.employee_id }}{% endif %}
-                                                        {% for role in teacher.user_roles.all %}
+                                                        {{ teacher.user.email }}
+                                                        {% if teacher.employee_id %} • ID: {{ teacher.employee_id }}{% endif %}
+                                                        {% for role in teacher.user.user_roles.all %}
                                                             {% if forloop.first %}• {{ role.role.name }}{% endif %}
                                                         {% empty %}
                                                             • {% trans "Staff Member" %}

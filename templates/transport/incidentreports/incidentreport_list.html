@@ -3,7 +3,11 @@
 {% load static %}
 {% load i18n %}
 
-{% block title %}{% trans "Incident Reports" %}{% endblock %}
+{% block title %}{% trans "Incident Reports - School Management System" %}{% endblock %}
+
+{% block meta_description %}{% trans "Manage and track transportation incident reports including accidents, breakdowns, and safety issues." %}{% endblock %}
+
+{% block body_class %}incident-reports-page{% endblock %}
 
 {% block page_title %}{% trans "Incident Reports" %}{% endblock %}
 
@@ -15,6 +19,10 @@
 
 {% block extra_css %}
 <style>
+    .incident-reports-page {
+        background-color: #f8f9fa;
+    }
+
     /* Incident Report List Specific Styles */
     .incidents-container {
         margin-top: 1rem;
@@ -22,16 +30,18 @@
     
     .filter-card {
         background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border-radius: 0.75rem;
+        border: 0;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
         padding: 1.5rem;
         margin-bottom: 1.5rem;
     }
-    
+
     .incident-card {
         background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border-radius: 0.75rem;
+        border: 0;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
         border-left: 4px solid #6c757d;
         transition: all 0.3s ease;
         margin-bottom: 1rem;

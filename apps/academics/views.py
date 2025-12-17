@@ -79,9 +79,21 @@ class StudentRequiredMixin(UserPassesTestMixin):
 
 class StaffRequiredMixin(UserPassesTestMixin):
     """Mixin to ensure user is staff."""
-    
+
     def test_func(self):
         return self.request.user.is_staff
+
+
+class AdminRequiredMixin(UserPassesTestMixin):
+    """Mixin to ensure user has admin, principal, or super_admin role."""
+
+    def test_func(self):
+        user = self.request.user
+
+        # Check if user has admin, principal, or super_admin role
+        user_roles = user.user_roles.all()
+        admin_roles = ['admin', 'principal', 'super_admin']
+        return any(role.role.role_type in admin_roles for role in user_roles)
 
 
 # =============================================================================
@@ -973,7 +985,7 @@ class AcademicSessionListView(AcademicsAccessMixin, ListView):
         return redirect('academics:session_list')
 
 
-class AcademicSessionCreateView(StaffRequiredMixin, CreateView):
+class AcademicSessionCreateView(AdminRequiredMixin, CreateView):
     """Create a new academic session."""
     model = AcademicSession
     form_class = AcademicSessionForm
@@ -1018,7 +1030,7 @@ class AcademicSessionDetailView(AcademicsAccessMixin, DetailView):
         return context
 
 
-class AcademicSessionUpdateView(StaffRequiredMixin, UpdateView):
+class AcademicSessionUpdateView(AdminRequiredMixin, UpdateView):
     """Update an academic session."""
     model = AcademicSession
     form_class = AcademicSessionForm
@@ -1058,39 +1070,17 @@ class DepartmentListView(InstitutionPermissionMixin, ListView):
     paginate_by = 12
 
     def dispatch(self, request, *args, **kwargs):
-        # Check if user is school admin (admin/principal role)
-        user_roles = request.user.user_roles.filter(
-            role__role_type__in=['admin', 'principal'],
-            role__status='active'
-        ) if request.user.is_authenticated else None
+        # Departments are core academic entities that should be accessible
+        # without institution selection for all authenticated users
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
 
-        is_school_admin = user_roles.exists() if user_roles else False
-
-        # If user is school admin, bypass institution requirement
-        if is_school_admin:
-            if not request.user.is_authenticated:
-                return self.handle_no_permission()
-            # Skip institution check and proceed directly
-            return super(InstitutionPermissionMixin.__bases__[0], self).dispatch(request, *args, **kwargs)
-        else:
-            # Use normal institution permission check
-            return super().dispatch(request, *args, **kwargs)
+        # Bypass institution requirement and proceed directly
+        return super(InstitutionPermissionMixin.__bases__[0], self).dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        # Check if user is school admin
-        user_roles = self.request.user.user_roles.filter(
-            role__role_type__in=['admin', 'principal'],
-            role__status='active'
-        ) if self.request.user.is_authenticated else None
-
-        is_school_admin = user_roles.exists() if user_roles else False
-
-        if is_school_admin:
-            # School admins see all active departments
-            return Department.objects.filter(status='active').select_related('head_of_department')
-        else:
-            # Use normal institution filtering
-            return Department.objects.filter(status='active').select_related('head_of_department')
+        # Departments are core academic entities accessible to all authenticated users
+        return Department.objects.filter(status='active').select_related('head_of_department')
 
 
 class DepartmentDetailView(AcademicsAccessMixin, DetailView):

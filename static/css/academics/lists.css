@@ -256,6 +256,122 @@
     background: var(--bs-dark);
 }
 
+/* Additional Dark Mode Button Fixes - Only for academics pages */
+.academic-sessions [data-bs-theme="dark"] .btn-outline-primary,
+.academic-departments [data-bs-theme="dark"] .btn-outline-primary,
+.academic-subjects [data-bs-theme="dark"] .btn-outline-primary,
+.academic-classes [data-bs-theme="dark"] .btn-outline-primary,
+.academic-students [data-bs-theme="dark"] .btn-outline-primary,
+.academic-teachers [data-bs-theme="dark"] .btn-outline-primary {
+    color: #6ea8fe !important;
+    border-color: #6ea8fe !important;
+}
+
+.academic-sessions [data-bs-theme="dark"] .btn-outline-primary:hover,
+.academic-departments [data-bs-theme="dark"] .btn-outline-primary:hover,
+.academic-subjects [data-bs-theme="dark"] .btn-outline-primary:hover,
+.academic-classes [data-bs-theme="dark"] .btn-outline-primary:hover,
+.academic-students [data-bs-theme="dark"] .btn-outline-primary:hover,
+.academic-teachers [data-bs-theme="dark"] .btn-outline-primary:hover {
+    background-color: #6ea8fe !important;
+    border-color: #6ea8fe !important;
+    color: #000 !important;
+}
+
+.academic-sessions [data-bs-theme="dark"] .btn-outline-secondary,
+.academic-departments [data-bs-theme="dark"] .btn-outline-secondary,
+.academic-subjects [data-bs-theme="dark"] .btn-outline-secondary,
+.academic-classes [data-bs-theme="dark"] .btn-outline-secondary,
+.academic-students [data-bs-theme="dark"] .btn-outline-secondary,
+.academic-teachers [data-bs-theme="dark"] .btn-outline-secondary {
+    color: rgba(255, 255, 255, 0.75) !important;
+    border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+.academic-sessions [data-bs-theme="dark"] .btn-outline-secondary:hover,
+.academic-departments [data-bs-theme="dark"] .btn-outline-secondary:hover,
+.academic-subjects [data-bs-theme="dark"] .btn-outline-secondary:hover,
+.academic-classes [data-bs-theme="dark"] .btn-outline-secondary:hover,
+.academic-students [data-bs-theme="dark"] .btn-outline-secondary:hover,
+.academic-teachers [data-bs-theme="dark"] .btn-outline-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+}
+
+.academic-sessions [data-bs-theme="dark"] .dropdown-menu,
+.academic-departments [data-bs-theme="dark"] .dropdown-menu,
+.academic-subjects [data-bs-theme="dark"] .dropdown-menu,
+.academic-classes [data-bs-theme="dark"] .dropdown-menu,
+.academic-students [data-bs-theme="dark"] .dropdown-menu,
+.academic-teachers [data-bs-theme="dark"] .dropdown-menu {
+    background-color: rgba(33, 37, 41, 0.95) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(10px);
+}
+
+.academic-sessions [data-bs-theme="dark"] .dropdown-item,
+.academic-departments [data-bs-theme="dark"] .dropdown-item,
+.academic-subjects [data-bs-theme="dark"] .dropdown-item,
+.academic-classes [data-bs-theme="dark"] .dropdown-item,
+.academic-students [data-bs-theme="dark"] .dropdown-item,
+.academic-teachers [data-bs-theme="dark"] .dropdown-item {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.academic-sessions [data-bs-theme="dark"] .dropdown-item:hover,
+.academic-departments [data-bs-theme="dark"] .dropdown-item:hover,
+.academic-subjects [data-bs-theme="dark"] .dropdown-item:hover,
+.academic-classes [data-bs-theme="dark"] .dropdown-item:hover,
+.academic-students [data-bs-theme="dark"] .dropdown-item:hover,
+.academic-teachers [data-bs-theme="dark"] .dropdown-item:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+}
+
+/* Session cards dark mode */
+[data-bs-theme="dark"] .session-card {
+    background: var(--bs-dark);
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+[data-bs-theme="dark"] .session-card:hover {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+[data-bs-theme="dark"] .session-card.current-session {
+    border-left-color: #28a745 !important;
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(34, 197, 94, 0.1) 100%) !important;
+}
+
+[data-bs-theme="dark"] .session-card.upcoming-session {
+    border-left-color: #17a2b8 !important;
+    background: linear-gradient(135deg, rgba(23, 162, 184, 0.1) 0%, rgba(0, 181, 204, 0.1) 100%) !important;
+}
+
+[data-bs-theme="dark"] .session-card.completed-session {
+    border-left-color: #6c757d !important;
+    background: linear-gradient(135deg, rgba(108, 117, 125, 0.1) 0%, rgba(173, 181, 189, 0.1) 100%) !important;
+}
+
+[data-bs-theme="dark"] .session-card.active-session {
+    border-left-color: #007bff !important;
+    background: linear-gradient(135deg, rgba(0, 123, 255, 0.1) 0%, rgba(0, 86, 179, 0.1) 100%) !important;
+}
+
+[data-bs-theme="dark"] .session-card .card-title {
+    color: #ffffff !important;
+}
+
+[data-bs-theme="dark"] .session-card .text-muted {
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+[data-bs-theme="dark"] .badge.bg-light {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+}
+
 /* Loading States */
 .table-loading {
     position: relative;
