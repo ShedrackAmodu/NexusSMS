@@ -23,7 +23,7 @@
                         {% trans "User Information" %}
                     </h5>
                     <div class="dropdown">
-                        <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-gear me-1"></i>{% trans "Actions" %}
                         </button>
                         <ul class="dropdown-menu">
@@ -692,30 +692,39 @@
         height: 150px;
         object-fit: cover;
     }
-    
+
     .initials-avatar {
         width: 150px;
         height: 150px;
         font-size: 3rem;
     }
-    
+
     .status-badge {
         position: absolute;
         bottom: 10px;
         right: 10px;
     }
-    
+
     .table-borderless td {
         border: none;
         padding: 0.25rem 0;
     }
-    
+
     .quick-action-btn {
         transition: all 0.2s ease;
     }
-    
+
     .quick-action-btn:hover {
         transform: translateY(-1px);
+    }
+
+    /* Ensure dropdown is visible above card boundaries */
+    .card {
+        overflow: visible;
+    }
+
+    .card-header .dropdown-menu {
+        z-index: 1070;
     }
 </style>
 {% endblock %}

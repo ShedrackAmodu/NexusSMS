@@ -552,7 +552,7 @@ def send_email_with_retry(subject, message, from_email, recipient_list, html_mes
     return False
 
 def send_approval_email(request, application, user, temporary_password):
-    """Send approval email with login credentials."""
+    """Send approval email with login credentials to student."""
     subject = _('Application Approved - Welcome to {}').format(getattr(settings, 'SCHOOL_NAME', 'Our School'))
 
     # Get student information if this is a student application
@@ -563,7 +563,7 @@ def send_approval_email(request, application, user, temporary_password):
         admission_number = user.student_profile.admission_number
 
     # Check if this was a staff application that went through interview process
-    had_interview = False 
+    had_interview = False
     interview_date = None
     if hasattr(application, 'interview_date') and application.interview_date:
         had_interview = True
@@ -594,9 +594,61 @@ def send_approval_email(request, application, user, temporary_password):
     )
 
     if success:
-        logger.info(f"Approval email sent to {user.email}")
+        logger.info(f"Student approval email sent to {user.email}")
     else:
-        logger.error(f"Failed to send approval email to {user.email}")
+        logger.error(f"Failed to send student approval email to {user.email}")
+
+    return success
+
+
+def send_parent_approval_email(request, application, student_user, parent_user):
+    """Send approval notification email to parent."""
+    subject = _('Student Application Approved - {}').format(getattr(settings, 'SCHOOL_NAME', 'Our School'))
+
+    # Get student information
+    student_id = None
+    admission_number = None
+    if hasattr(student_user, 'student_profile'):
+        student_id = student_user.student_profile.student_id
+        admission_number = student_user.student_profile.admission_number
+
+    # Check if this was an application that went through interview process
+    had_interview = False
+    interview_date = None
+    if hasattr(application, 'interview_date') and application.interview_date:
+        had_interview = True
+        interview_date = application.interview_date
+
+    context = {
+        'application': application,
+        'student': student_user,
+        'parent': parent_user,
+        'school_name': getattr(settings, 'SCHOOL_NAME', 'Our School'),
+        'contact_email': settings.DEFAULT_FROM_EMAIL,
+        'student_id': student_id,
+        'admission_number': admission_number,
+        'grade_applying_for': getattr(application, 'grade_applying_for', None),
+        'had_interview': had_interview,
+        'interview_date': interview_date,
+    }
+
+    html_message = render_to_string('users/emails/parent_application_approved.html', context)
+    text_message = strip_tags(html_message)
+
+    success = send_email_with_retry(
+        subject=subject,
+        message=text_message,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[parent_user.email],
+        html_message=html_message
+    )
+
+    if success:
+        logger.info(f"Parent approval email sent to {parent_user.email}")
+    else:
+        logger.error(f"Failed to send parent approval email to {parent_user.email}")
+
+    return success
 
 def send_rejection_email(application, review_notes):
     """Send rejection email to applicant."""
@@ -2085,8 +2137,8 @@ def user_detail(request, user_id):
             id=user_id
         )
 
-    # Security check - staff can only view, superuser can edit
-    can_edit = request.user.is_superuser
+    # Security check - staff can view some actions, superuser can edit all
+    can_edit = request.user.is_superuser or request.user.is_staff
 
     # Get recent login history
     recent_logins = LoginHistory.objects.filter(user=user).order_by('-created_at')[:5]
@@ -2420,10 +2472,10 @@ def user_toggle_status(request, user_id):
     return redirect('users:user_detail', user_id=user.id)
 
 @login_required
-@user_passes_test(lambda u: u.is_superuser)
+@user_passes_test(lambda u: u.is_superuser or u.user_roles.filter(role__role_type__in=['admin', 'principal'], status='active').exists())
 def user_delete(request, user_id):
     """
-    Permanently delete a user account (superuser only).
+    Permanently delete a user account (superuser and school admin only).
     """
     user_to_delete = get_object_or_404(User, id=user_id)
 
@@ -2569,8 +2621,23 @@ def approve_application(request, application_id, application_type):
                 }
             )
 
-            # Send approval email
+            # Send approval email to student
             send_approval_email(request, application, user, temporary_password)
+
+            # Send approval notification emails to parents
+            if application_type == 'student':
+                # Find parents for this student
+                parent_relationships = ParentStudentRelationship.objects.filter(
+                    student=user,
+                    status='active'
+                ).select_related('parent')
+
+                for relationship in parent_relationships:
+                    try:
+                        send_parent_approval_email(request, application, user, relationship.parent)
+                        logger.info(f"Parent approval email sent to {relationship.parent.email}")
+                    except Exception as parent_email_error:
+                        logger.error(f"Failed to send parent approval email to {relationship.parent.email}: {parent_email_error}")
 
             success_msg = _('Application approved and user account created!')
 
@@ -3449,18 +3516,103 @@ def user_bulk_action(request):
                                 )
 
                         message = _('Role assigned to users successfully!')
+                    elif action == 'delete':
+                        # Check permissions for bulk delete (same as individual delete)
+                        if not (request.user.is_superuser or request.user.user_roles.filter(role__role_type__in=['admin', 'principal'], status='active').exists()):
+                            messages.error(request, _('You do not have permission to delete users.'))
+                            return redirect('users:user_list')
 
-                    # Log bulk action
-                    AuditLog.objects.create(
-                        user=request.user,
-                        action=AuditLog.ActionType.UPDATE,
-                        model_name='users.User',
-                        object_id='bulk',
-                        ip_address=get_client_ip(request),
-                        details={'action': f'Bulk {action}', 'count': len(users)}
-                    )
+                        deleted_users = []
+                        failed_deletions = []
 
-                    messages.success(request, message)
+                        for user in users:
+                            try:
+                                # Prevent self-deletion
+                                if request.user.id == user.id:
+                                    failed_deletions.append(f"{user.display_name} (cannot delete yourself)")
+                                    continue
+
+                                # Additional safety check for superusers
+                                if user.is_superuser and not request.user.is_superuser:
+                                    failed_deletions.append(f"{user.display_name} (only superusers can delete other superusers)")
+                                    continue
+
+                                # Store user details for logging before deletion
+                                user_name = user.display_name
+                                user_email = user.email
+                                user_id_deleted = user.id
+
+                                # Check for related academic records that will be affected
+                                related_models = []
+                                try:
+                                    from apps.academics.models import Student
+                                    if Student.objects.filter(user=user).exists():
+                                        related_models.append('Student profile')
+                                except:
+                                    pass
+
+                                try:
+                                    from apps.academics.models import Teacher
+                                    if Teacher.objects.filter(user=user).exists():
+                                        related_models.append('Teacher profile')
+                                except:
+                                    pass
+
+                                # Log the deletion
+                                AuditLog.objects.create(
+                                    user=request.user,
+                                    action=AuditLog.ActionType.DELETE,
+                                    model_name='users.User',
+                                    object_id=str(user_id_deleted),
+                                    ip_address=get_client_ip(request),
+                                    details={
+                                        'action': 'User account permanently deleted (bulk)',
+                                        'deleted_user_name': user_name,
+                                        'deleted_user_email': user_email,
+                                        'related_models_affected': related_models
+                                    }
+                                )
+
+                                # Delete the user (cascading delete will handle related data)
+                                user.delete()
+                                deleted_users.append(user_name)
+
+                            except Exception as e:
+                                logger.error(f"Error deleting user {user.id} in bulk operation: {e}")
+                                failed_deletions.append(f"{user.display_name} ({str(e)})")
+
+                        # Construct success message
+                        if deleted_users:
+                            message = _(f'Successfully deleted {len(deleted_users)} user(s): {", ".join(deleted_users[:3])}')
+                            if len(deleted_users) > 3:
+                                message += _(f' and {len(deleted_users) - 3} more.')
+                        else:
+                            message = _('No users were deleted.')
+
+                        if failed_deletions:
+                            message += _(f' Failed to delete: {", ".join(failed_deletions[:2])}')
+                            if len(failed_deletions) > 2:
+                                message += _(f' and {len(failed_deletions) - 2} more.')
+
+                        if deleted_users:
+                            messages.success(request, message)
+                        else:
+                            messages.warning(request, message)
+
+                    # Log bulk action (skip for delete since we log individual deletions above)
+                    if action != 'delete':
+                        AuditLog.objects.create(
+                            user=request.user,
+                            action=AuditLog.ActionType.UPDATE,
+                            model_name='users.User',
+                            object_id='bulk',
+                            ip_address=get_client_ip(request),
+                            details={'action': f'Bulk {action}', 'count': len(users)}
+                        )
+
+                    # Only show success message for non-delete actions
+                    if action != 'delete':
+                        messages.success(request, message)
 
             except Exception as e:
                 logger.error(f"Error performing bulk action: {e}")

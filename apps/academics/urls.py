@@ -54,6 +54,7 @@ urlpatterns = [
     # Teacher URLs
     path('teachers/', views.TeacherListView.as_view(), name='teacher_list'),
     path('teachers/<uuid:pk>/', views.TeacherDetailView.as_view(), name='teacher_detail'),
+    path('teachers/<uuid:pk>/contact/', views.ContactTeacherView.as_view(), name='contact_teacher'),
     path('teachers/create/', views.TeacherCreateView.as_view(), name='teacher_create'),
     path('teachers/<uuid:pk>/update/', views.TeacherUpdateView.as_view(), name='teacher_update'),
 
@@ -134,4 +135,11 @@ urlpatterns = [
     path('grade-levels/create/', views.GradeLevelCreateView.as_view(), name='grade_level_create'),
     path('grade-levels/<uuid:pk>/', views.GradeLevelDetailView.as_view(), name='grade_level_detail'),
     path('grade-levels/<uuid:pk>/update/', views.GradeLevelUpdateView.as_view(), name='grade_level_update'),
+
+    # Subject Assignment URLs
+    path('subject-assignments/', views.SubjectAssignmentListView.as_view(), name='subject_assignment_list'),
+    path('subject-assignment/', views.SubjectAssignmentCreateView.as_view(), name='subject_assignment'),
+    path('subject-assignments/create/', views.SubjectAssignmentCreateView.as_view(), name='subject_assignment_create'),
+    path('subject-assignments/<uuid:pk>/update/', views.SubjectAssignmentUpdateView.as_view(), name='subject_assignment_update'),
+    path('subject-assignments/<uuid:pk>/delete/', views.SubjectAssignmentDeleteView.as_view(), name='subject_assignment_delete'),
 ]

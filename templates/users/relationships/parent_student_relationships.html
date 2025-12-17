@@ -26,127 +26,90 @@
 {% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <!-- Statistics Cards -->
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card bg-primary text-white">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <h4 class="mb-0">{{ total_relationships }}</h4>
-                                <p class="mb-0">{% trans "Total Relationships" %}</p>
-                            </div>
-                            <div class="align-self-center">
-                                <i class="bi bi-people-fill fs-1"></i>
-                            </div>
+<div class="relationships-container">
+    <!-- Quick Stats Row -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title text-muted mb-2">{% trans "Total Relationships" %}</h6>
+                            <h3 class="fw-bold text-primary mb-0">{{ total_relationships }}</h3>
+                        </div>
+                        <div class="avatar avatar-sm bg-primary text-white rounded-circle">
+                            <i class="bi bi-people"></i>
                         </div>
                     </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-success text-white">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <h4 class="mb-0">{{ primary_contacts }}</h4>
-                                <p class="mb-0">{% trans "Primary Contacts" %}</p>
-                            </div>
-                            <div class="align-self-center">
-                                <i class="bi bi-person-check-fill fs-1"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-info text-white">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <h4 class="mb-0">{{ can_pickup_count }}</h4>
-                                <p class="mb-0">{% trans "Can Pickup" %}</p>
-                            </div>
-                            <div class="align-self-center">
-                                <i class="bi bi-car-front-fill fs-1"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-warning text-dark">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <h4 class="mb-0">{{ unique_parents }}</h4>
-                                <p class="mb-0">{% trans "Unique Parents" %}</p>
-                            </div>
-                            <div class="align-self-center">
-                                <i class="bi bi-person-badge-fill fs-1"></i>
-                            </div>
-                        </div>
-                    </div>
+                    <p class="text-muted small mb-0 mt-2">
+                        {% trans "Active connections" %}
+                    </p>
                 </div>
             </div>
         </div>
 
-        <!-- Filters Card -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-funnel me-2"></i>
-                    {% trans "Filters" %}
-                </h5>
-            </div>
-            <div class="card-body">
-                <form method="get" class="row g-3">
-                    <div class="col-md-3">
-                        <label for="parent_filter" class="form-label">{% trans "Parent" %}</label>
-                        <input type="text" class="form-control" id="parent_filter" name="parent" 
-                               value="{{ request.GET.parent }}" placeholder="{% trans 'Search parent...' %}">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title text-muted mb-2">{% trans "Primary Contacts" %}</h6>
+                            <h3 class="fw-bold text-success mb-0">{{ primary_contacts }}</h3>
+                        </div>
+                        <div class="avatar avatar-sm bg-success text-white rounded-circle">
+                            <i class="bi bi-person-check"></i>
+                        </div>
                     </div>
-                    <div class="col-md-3">
-                        <label for="student_filter" class="form-label">{% trans "Student" %}</label>
-                        <input type="text" class="form-control" id="student_filter" name="student" 
-                               value="{{ request.GET.student }}" placeholder="{% trans 'Search student...' %}">
-                    </div>
-                    <div class="col-md-2">
-                        <label for="relationship_type_filter" class="form-label">{% trans "Relationship Type" %}</label>
-                        <select class="form-select" id="relationship_type_filter" name="relationship_type">
-                            <option value="">{% trans "All Types" %}</option>
-                            {% for value, label in relationship_types %}
-                                <option value="{{ value }}" {% if request.GET.relationship_type == value %}selected{% endif %}>
-                                    {{ label }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label for="primary_contact_filter" class="form-label">{% trans "Primary Contact" %}</label>
-                        <select class="form-select" id="primary_contact_filter" name="is_primary_contact">
-                            <option value="">{% trans "All" %}</option>
-                            <option value="true" {% if request.GET.is_primary_contact == 'true' %}selected{% endif %}>
-                                {% trans "Yes" %}
-                            </option>
-                            <option value="false" {% if request.GET.is_primary_contact == 'false' %}selected{% endif %}>
-                                {% trans "No" %}
-                            </option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label d-block">&nbsp;</label>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-filter me-2"></i>{% trans "Apply" %}
-                        </button>
-                        <a href="{% url 'users:parent_student_relationships' %}" class="btn btn-outline-secondary">
-                            {% trans "Clear" %}
-                        </a>
-                    </div>
-                </form>
+                    <p class="text-muted small mb-0 mt-2">
+                        {% trans "Main emergency contacts" %}
+                    </p>
+                </div>
             </div>
         </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title text-muted mb-2">{% trans "Can Pickup" %}</h6>
+                            <h3 class="fw-bold text-info mb-0">{{ can_pickup_count }}</h3>
+                        </div>
+                        <div class="avatar avatar-sm bg-info text-white rounded-circle">
+                            <i class="bi bi-car-front"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">
+                        {% trans "Authorized for pickup" %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title text-muted mb-2">{% trans "Unique Parents" %}</h6>
+                            <h3 class="fw-bold text-warning mb-0">{{ unique_parents }}</h3>
+                        </div>
+                        <div class="avatar avatar-sm bg-warning text-white rounded-circle">
+                            <i class="bi bi-person-badge"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">
+                        {% trans "Individual parents" %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="row">
+        <!-- Left Column - Main Table -->
+        <div class="col-lg-8">
 
         <!-- Relationships Table -->
         <div class="card">
@@ -349,6 +312,129 @@
                 {% endif %}
             </div>
         </div>
+        </div>
+
+        <!-- Right Column - Sidebar -->
+        <div class="col-lg-4">
+            <!-- Filters Card -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-funnel me-2"></i>
+                        {% trans "Filters" %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-12">
+                            <label for="parent_filter" class="form-label">{% trans "Parent" %}</label>
+                            <input type="text" class="form-control" id="parent_filter" name="parent"
+                                   value="{{ request.GET.parent }}" placeholder="{% trans 'Search parent...' %}">
+                        </div>
+                        <div class="col-12">
+                            <label for="student_filter" class="form-label">{% trans "Student" %}</label>
+                            <input type="text" class="form-control" id="student_filter" name="student"
+                                   value="{{ request.GET.student }}" placeholder="{% trans 'Search student...' %}">
+                        </div>
+                        <div class="col-12">
+                            <label for="relationship_type_filter" class="form-label">{% trans "Relationship Type" %}</label>
+                            <select class="form-select" id="relationship_type_filter" name="relationship_type">
+                                <option value="">{% trans "All Types" %}</option>
+                                {% for value, label in relationship_types %}
+                                    <option value="{{ value }}" {% if request.GET.relationship_type == value %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label for="primary_contact_filter" class="form-label">{% trans "Primary Contact" %}</label>
+                            <select class="form-select" id="primary_contact_filter" name="is_primary_contact">
+                                <option value="">{% trans "All" %}</option>
+                                <option value="true" {% if request.GET.is_primary_contact == 'true' %}selected{% endif %}>
+                                    {% trans "Yes" %}
+                                </option>
+                                <option value="false" {% if request.GET.is_primary_contact == 'false' %}selected{% endif %}>
+                                    {% trans "No" %}
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-filter me-2"></i>{% trans "Apply Filters" %}
+                                </button>
+                                <a href="{% url 'users:parent_student_relationships' %}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-x-circle me-2"></i>{% trans "Clear All" %}
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <h5 class="card-title mb-0">{% trans "Quick Actions" %}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if user.is_superuser or perms.users.manage_relationships %}
+                        <a href="{% url 'users:parent_student_relationship_create' %}" class="btn btn-primary">
+                            <i class="bi bi-plus-lg me-2"></i>
+                            {% trans "Create Relationship" %}
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'users:dashboard' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-house me-2"></i>
+                            {% trans "Back to Dashboard" %}
+                        </a>
+                        <button class="btn btn-outline-success" onclick="window.print()">
+                            <i class="bi bi-printer me-2"></i>
+                            {% trans "Print View" %}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Relationship Insights -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <h5 class="card-title mb-0">{% trans "Insights" %}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted small">{% trans "Primary Contacts" %}</span>
+                            <span class="fw-bold">{{ primary_contacts }}/{{ total_relationships }}</span>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar bg-success" style="width: {% widthratio primary_contacts total_relationships 100 %}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted small">{% trans "Pickup Authorized" %}</span>
+                            <span class="fw-bold">{{ can_pickup_count }}/{{ total_relationships }}</span>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar bg-info" style="width: {% widthratio can_pickup_count total_relationships 100 %}%"></div>
+                        </div>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <div class="text-center">
+                        <small class="text-muted">
+                            {% trans "Last updated:" %}<br>
+                            {% now "M j, Y g:i A" %}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -499,6 +585,18 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
+.relationships-container {
+    background-color: #f8f9fa;
+}
+
+.avatar {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .avatar-sm {
     width: 40px;
     height: 40px;
@@ -527,15 +625,40 @@ document.addEventListener('DOMContentLoaded', function() {
     font-size: 0.75em;
 }
 
-/* Responsive adjustments */
+/* Dashboard-like responsive adjustments */
+@media (max-width: 992px) {
+    .relationships-container .row > .col-lg-8,
+    .relationships-container .row > .col-lg-4 {
+        margin-bottom: 2rem;
+    }
+}
+
 @media (max-width: 768px) {
     .table-responsive {
         font-size: 0.875rem;
     }
-    
+
     .btn-group .dropdown-menu {
         position: absolute !important;
     }
+
+    .relationships-container {
+        padding: 1rem;
+    }
+}
+
+/* Dark theme support */
+[data-bs-theme="dark"] .relationships-container {
+    background-color: #212529;
+}
+
+[data-bs-theme="dark"] .card {
+    background-color: #2d3338;
+    border-color: #495057;
+}
+
+[data-bs-theme="dark"] .text-muted {
+    color: #adb5bd !important;
 }
 </style>
 {% endblock %}

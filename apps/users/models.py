@@ -1169,6 +1169,11 @@ class StudentApplication(CoreBaseModel, AddressModel):
             )
         return None
 
+    @property
+    def parent_full_name(self):
+        """Return the full name of the parent/guardian."""
+        return f"{self.parent_first_name} {self.parent_last_name}".strip()
+
 
 class StaffApplication(CoreBaseModel, AddressModel):
     """

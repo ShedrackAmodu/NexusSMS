@@ -730,6 +730,7 @@ class UserBulkActionForm(forms.Form):
         ('deactivate', _('Deactivate selected users')),
         ('assign_role', _('Assign role to selected users')),
         ('remove_role', _('Remove role from selected users')),
+        ('delete', _('Delete selected users')),
         ('send_email', _('Send email to selected users')),
     ]
 

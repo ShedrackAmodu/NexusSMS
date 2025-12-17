@@ -690,18 +690,18 @@ class MessageSearchForm(forms.Form):
 
 class EmailTestForm(forms.Form):
     """Form for testing email templates."""
-    
+
     template = forms.ModelChoiceField(
         queryset=EmailTemplate.objects.filter(is_active=True),
         widget=forms.Select(attrs={'class': 'form-control'}),
         label=_('Template')
     )
-    
+
     test_recipient = forms.EmailField(
         widget=forms.EmailInput(attrs={'class': 'form-control'}),
         label=_('Test Recipient Email')
     )
-    
+
     test_data = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={
@@ -711,7 +711,7 @@ class EmailTestForm(forms.Form):
         }),
         label=_('Test Data (JSON)')
     )
-    
+
     def clean_test_data(self):
         test_data = self.cleaned_data.get('test_data')
         if test_data:
@@ -721,6 +721,28 @@ class EmailTestForm(forms.Form):
             except json.JSONDecodeError:
                 raise ValidationError(_('Test data must be valid JSON format.'))
         return test_data
+
+
+class ContactTeacherForm(forms.Form):
+    """Form for contacting teachers via email."""
+
+    subject = forms.CharField(
+        max_length=200,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': _('Enter message subject')
+        }),
+        label=_('Subject')
+    )
+
+    message = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 6,
+            'placeholder': _('Enter your message...')
+        }),
+        label=_('Message')
+    )
 
 
 # Custom widgets for better UI

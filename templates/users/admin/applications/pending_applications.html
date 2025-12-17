@@ -416,7 +416,7 @@
                             <option value="">{% trans "All Grades" %}</option>
                             {% for grade in student_applications %}
                                 {% if grade.grade_applying_for %}
-                                <option value="{{ grade.grade_applying_for }}">{{ grade.get_grade_applying_for_display }}</option>
+                                <option value="{{ grade.grade_applying_for }}">{{ grade.grade_applying_for }}</option>
                                 {% endif %}
                             {% endfor %}
                         </select>
@@ -464,11 +464,11 @@
                             <div class="application-details">
                                 <div class="detail-item">
                                     <div class="detail-label">{% trans "Grade Applying" %}</div>
-                                    <div class="detail-value">{{ application.get_grade_applying_for_display }}</div>
+                                    <div class="detail-value">{{ application.grade_applying_for }}</div>
                                 </div>
                                 <div class="detail-item">
                                     <div class="detail-label">{% trans "Parent Name" %}</div>
-                                    <div class="detail-value">{{ application.parent_first_name }} {{ application.parent_last_name }}</div>
+                                    <div class="detail-value">{{ application.parent_full_name }}</div>
                                 </div>
                                 <div class="detail-item">
                                     <div class="detail-label">{% trans "Age" %}</div>

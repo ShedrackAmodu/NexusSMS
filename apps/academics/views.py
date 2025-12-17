@@ -30,6 +30,8 @@ from .forms import (
     StudentSearchForm, TeacherSearchForm, BulkEnrollmentForm
 )
 from apps.users.forms import UserCreationForm, UserUpdateForm, UserProfileForm, RoleForm, UserRoleAssignmentForm # Import user-related forms
+from apps.communication.forms import ContactTeacherForm
+from apps.communication.services import EmailService
 from apps.core.mixins import InstitutionPermissionMixin  # Import for tenant filtering
 
 
@@ -3848,3 +3850,196 @@ class GradeLevelDetailView(StaffRequiredMixin, DetailView):
             context['enrollment_count'] = 0
 
         return context
+
+
+# =============================================================================
+# SUBJECT ASSIGNMENT VIEWS
+# =============================================================================
+
+class SubjectAssignmentListView(StaffRequiredMixin, ListView):
+    """List all subject assignments."""
+    model = SubjectAssignment
+    template_name = 'academics/subject_assignments/subject_assignment_list.html'
+    context_object_name = 'subject_assignments'
+    paginate_by = 20
+
+    def get_queryset(self):
+        queryset = SubjectAssignment.objects.select_related(
+            'teacher__user', 'subject', 'class_assigned', 'academic_session'
+        ).order_by('academic_session', 'teacher__user__first_name', 'subject__name')
+
+        # Filter by teacher if provided
+        teacher_id = self.request.GET.get('teacher')
+        if teacher_id:
+            queryset = queryset.filter(teacher_id=teacher_id)
+
+        # Filter by academic session if provided
+        session_id = self.request.GET.get('session')
+        if session_id:
+            queryset = queryset.filter(academic_session_id=session_id)
+        else:
+            # Default to current session
+            current_session = AcademicSession.objects.filter(is_current=True).first()
+            if current_session:
+                queryset = queryset.filter(academic_session=current_session)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['teachers'] = Teacher.objects.filter(status='active').select_related('user')
+        context['sessions'] = AcademicSession.objects.all().order_by('-start_date')
+
+        # Get filter values for form pre-population
+        context['current_teacher'] = self.request.GET.get('teacher', '')
+        context['current_session'] = self.request.GET.get('session', '')
+
+        return context
+
+
+class SubjectAssignmentCreateView(StaffRequiredMixin, CreateView):
+    """Create a new subject assignment."""
+    model = SubjectAssignment
+    form_class = SubjectAssignmentForm
+    template_name = 'academics/subject_assignments/subject_assignment_form.html'
+    success_url = reverse_lazy('academics:subject_assignment_list')
+
+    def get_initial(self):
+        """Pre-populate form with teacher from query parameter."""
+        initial = super().get_initial()
+        teacher_id = self.request.GET.get('teacher')
+        if teacher_id:
+            try:
+                teacher = Teacher.objects.get(id=teacher_id)
+                initial['teacher'] = teacher
+            except Teacher.DoesNotExist:
+                pass
+
+        # Set current session as default
+        current_session = AcademicSession.objects.filter(is_current=True).first()
+        if current_session:
+            initial['academic_session'] = current_session
+
+        return initial
+
+    def form_valid(self, form):
+        messages.success(self.request, _('Subject assignment created successfully.'))
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form_title'] = _("Create Subject Assignment")
+        context['submit_text'] = _("Create Assignment")
+        return context
+
+
+class SubjectAssignmentUpdateView(StaffRequiredMixin, UpdateView):
+    """Update a subject assignment."""
+    model = SubjectAssignment
+    form_class = SubjectAssignmentForm
+    template_name = 'academics/subject_assignments/subject_assignment_form.html'
+    success_url = reverse_lazy('academics:subject_assignment_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, _('Subject assignment updated successfully.'))
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form_title'] = _("Update Subject Assignment")
+        context['submit_text'] = _("Update Assignment")
+        return context
+
+
+class SubjectAssignmentDeleteView(StaffRequiredMixin, DeleteView):
+    """Delete a subject assignment."""
+    model = SubjectAssignment
+    template_name = 'academics/subject_assignments/subject_assignment_confirm_delete.html'
+    success_url = reverse_lazy('academics:subject_assignment_list')
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, _('Subject assignment deleted successfully.'))
+        return super().delete(request, *args, **kwargs)
+
+
+# =============================================================================
+# CONTACT TEACHER VIEWS
+# =============================================================================
+
+class ContactTeacherView(AcademicsAccessMixin, View):
+    """View for contacting teachers via email."""
+
+    def post(self, request, pk):
+        teacher = get_object_or_404(Teacher, pk=pk)
+
+        # Check if user has permission to contact this teacher
+        # Allow all authenticated users to contact teachers
+
+        form = ContactTeacherForm(request.POST)
+        if form.is_valid():
+            subject = form.cleaned_data['subject']
+            message = form.cleaned_data['message']
+
+            # Send email using EmailService
+            success, email_message, sent_email = EmailService.send_email(
+                recipient_email=teacher.user.email,
+                subject=f"School Contact: {subject}",
+                html_content=f"""
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2>New Message from {request.user.get_full_name()}</h2>
+                    <p><strong>From:</strong> {request.user.get_full_name()} ({request.user.email})</p>
+                    <p><strong>To:</strong> {teacher.user.get_full_name()}</p>
+                    <p><strong>Subject:</strong> {subject}</p>
+                    <hr>
+                    <div style="background: #f9f9f9; padding: 15px; border-radius: 5px;">
+                        <h3>Message:</h3>
+                        <p style="white-space: pre-wrap;">{message}</p>
+                    </div>
+                    <hr>
+                    <p style="color: #666; font-size: 12px;">
+                        This message was sent through the School Management System.
+                    </p>
+                </div>
+                """,
+                text_content=f"""
+New Message from {request.user.get_full_name()}
+
+From: {request.user.get_full_name()} ({request.user.email})
+To: {teacher.user.get_full_name()}
+Subject: {subject}
+
+Message:
+{message}
+
+---
+This message was sent through the School Management System.
+                """,
+                recipient_user=teacher.user,
+                sender_user=request.user,
+            )
+
+            if success:
+                if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        'success': True,
+                        'message': 'Message sent successfully!'
+                    })
+                messages.success(request, 'Your message has been sent successfully!')
+                return redirect('academics:teacher_detail', pk=pk)
+            else:
+                if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        'success': False,
+                        'message': f'Failed to send message: {email_message}'
+                    }, status=500)
+                messages.error(request, f'Failed to send message: {email_message}')
+                return redirect('academics:teacher_detail', pk=pk)
+        else:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Please correct the errors in the form.',
+                    'errors': form.errors
+                }, status=400)
+            messages.error(request, 'Please correct the errors in the form.')
+            return redirect('academics:teacher_detail', pk=pk)
