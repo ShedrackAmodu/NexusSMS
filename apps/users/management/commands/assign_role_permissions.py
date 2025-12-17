@@ -17,6 +17,7 @@ class Command(BaseCommand):
             'teacher': self._get_teacher_permissions(),
             'accountant': self._get_accountant_permissions(),
             'librarian': self._get_librarian_permissions(),
+            'activities_coordinator': self._get_activities_coordinator_permissions(),
             'driver': self._get_driver_permissions(),
             'support': self._get_support_permissions(),
             'transport_manager': self._get_transport_manager_permissions(),
@@ -52,7 +53,7 @@ class Command(BaseCommand):
 
                     except Permission.DoesNotExist:
                         self.stdout.write(
-                            self.style.WARNING(f'Permission not found: {perm_codename}')
+                            self.style.WARNING(f'Permission not found: {perm_codename} - skipping')
                         )
                     except ValueError:
                         self.stdout.write(
@@ -178,59 +179,60 @@ class Command(BaseCommand):
         ]
 
     def _get_admin_permissions(self):
-        """Admin gets most permissions except super admin only permissions"""
-        permissions = self._get_teacher_permissions() + self._get_accountant_permissions() + self._get_librarian_permissions()
-        permissions.extend([
-            # Users management
+        """School Admin gets permissions aligned with Features.md: Staff, Finance, Communication"""
+        permissions = [
+            # Users management (Staff)
             'users.add_user', 'users.change_user', 'users.delete_user', 'users.view_user',
             'users.add_role', 'users.change_role', 'users.view_role',
 
-            # Application management
+            # Application management (Staff)
             'users.add_studentapplication', 'users.change_studentapplication', 'users.delete_studentapplication', 'users.view_studentapplication',
             'users.add_staffapplication', 'users.change_staffapplication', 'users.delete_staffapplication', 'users.view_staffapplication',
             'users.approve_applications', 'users.add_applicationstatus', 'users.change_applicationstatus', 'users.delete_applicationstatus', 'users.view_applicationstatus',
 
-            # Transport
-            'transport.add_vehicle', 'transport.change_vehicle', 'transport.view_vehicle',
-            'transport.add_driver', 'transport.change_driver', 'transport.view_driver',
-            'transport.add_route', 'transport.change_route', 'transport.view_route',
-            'transport.add_routeschedule', 'transport.change_routeschedule', 'transport.view_routeschedule',
-            'transport.add_transportallocation', 'transport.change_transportallocation', 'transport.view_transportallocation',
+            # Finance (aligned with Features.md)
+            'finance.add_invoice', 'finance.change_invoice', 'finance.delete_invoice', 'finance.view_invoice',
+            'finance.add_payment', 'finance.change_payment', 'finance.delete_payment', 'finance.view_payment',
+            'finance.add_feestructure', 'finance.change_feestructure', 'finance.delete_feestructure', 'finance.view_feestructure',
+            'finance.add_expense', 'finance.change_expense', 'finance.delete_expense', 'finance.view_expense',
+            'finance.add_financialreport', 'finance.change_financialreport', 'finance.delete_financialreport', 'finance.view_financialreport',
 
-            # Hostels
-            'hostels.add_hostel', 'hostels.change_hostel', 'hostels.view_hostel',
-            'hostels.add_room', 'hostels.change_room', 'hostels.view_room',
-            'hostels.add_hostelallocation', 'hostels.change_hostelallocation', 'hostels.view_hostelallocation',
-
-            # Activities
-            'activities.add_activity', 'activities.change_activity', 'activities.view_activity',
-            'activities.add_activityenrollment', 'activities.change_activityenrollment', 'activities.view_activityenrollment',
-
-            # Communication
-            'communication.add_announcement', 'communication.change_announcement', 'communication.view_announcement',
-            'communication.add_noticeboard', 'communication.change_noticeboard', 'communication.view_noticeboard',
-        ])
+            # Communication (aligned with Features.md)
+            'communication.add_announcement', 'communication.change_announcement', 'communication.delete_announcement', 'communication.view_announcement',
+            'communication.add_noticeboard', 'communication.change_noticeboard', 'communication.delete_noticeboard', 'communication.view_noticeboard',
+            'communication.add_emailtemplate', 'communication.change_emailtemplate', 'communication.delete_emailtemplate', 'communication.view_emailtemplate',
+            'communication.add_smstemplate', 'communication.change_smstemplate', 'communication.delete_smstemplate', 'communication.view_smstemplate',
+            'communication.add_message', 'communication.change_message', 'communication.delete_message', 'communication.view_message',
+            'communication.add_realtimenotification', 'communication.change_realtimenotification', 'communication.delete_realtimenotification', 'communication.view_realtimenotification',
+        ]
         return permissions
 
     def _get_principal_permissions(self):
-        """Principal gets academic oversight permissions"""
-        permissions = self._get_teacher_permissions()
-        permissions.extend([
-            # Academic oversight
+        """Principal gets academic leadership permissions aligned with Features.md"""
+        return [
+            # Academic leadership and oversight (Features.md: Academic Leadership, Performance, Teacher Management)
+            'academics.view_department', 'academics.view_subject', 'academics.view_class',
             'academics.add_student', 'academics.change_student', 'academics.view_student',
             'academics.add_teacher', 'academics.change_teacher', 'academics.view_teacher',
             'academics.add_enrollment', 'academics.change_enrollment', 'academics.view_enrollment',
             'academics.add_timetable', 'academics.change_timetable', 'academics.view_timetable',
 
-            # Assessment oversight
-            'assessment.add_exam', 'assessment.change_exam', 'assessment.view_exam',
+            # Assessment and performance monitoring
+            'assessment.view_exam', 'assessment.view_assignment', 'assessment.view_mark',
             'assessment.add_result', 'assessment.change_result', 'assessment.view_result',
             'assessment.add_reportcard', 'assessment.change_reportcard', 'assessment.view_reportcard',
+            'assessment.view_achievement', 'assessment.view_behaviorrecord',
 
-            # Communication
+            # Attendance oversight
+            'attendance.view_dailyattendance', 'attendance.view_attendancesummary',
+
+            # Academic planning (Holiday management, etc.)
+            'academics.add_holiday', 'academics.change_holiday', 'academics.view_holiday',
+
+            # Communication for stakeholder engagement
             'communication.add_announcement', 'communication.change_announcement', 'communication.view_announcement',
-        ])
-        return permissions
+            'communication.add_message', 'communication.view_message',
+        ]
 
     def _get_department_head_permissions(self):
         """Department head gets department-specific permissions"""
@@ -327,6 +329,24 @@ class Command(BaseCommand):
             'transport.add_maintenancerecord', 'transport.change_maintenancerecord', 'transport.delete_maintenancerecord', 'transport.view_maintenancerecord',
             'transport.add_fuelrecord', 'transport.change_fuelrecord', 'transport.delete_fuelrecord', 'transport.view_fuelrecord',
             'transport.add_incidentreport', 'transport.change_incidentreport', 'transport.delete_incidentreport', 'transport.view_incidentreport',
+        ]
+
+    def _get_activities_coordinator_permissions(self):
+        """Activities Coordinator gets extracurricular activities permissions aligned with Features.md"""
+        return [
+            # Activities management (Features.md: Planning, Registration)
+            'activities.add_activity', 'activities.change_activity', 'activities.delete_activity', 'activities.view_activity',
+            'activities.add_activityenrollment', 'activities.change_activityenrollment', 'activities.delete_activityenrollment', 'activities.view_activityenrollment',
+            'activities.add_equipment', 'activities.change_equipment', 'activities.delete_equipment', 'activities.view_equipment',
+            'activities.add_activitybudget', 'activities.change_activitybudget', 'activities.delete_activitybudget', 'activities.view_activitybudget',
+            'activities.add_competition', 'activities.change_competition', 'activities.delete_competition', 'activities.view_competition',
+
+            # Student access for registration management
+            'academics.view_student', 'academics.view_class',
+
+            # Communication for activity coordination
+            'communication.add_announcement', 'communication.change_announcement', 'communication.view_announcement',
+            'communication.add_message', 'communication.view_message',
         ]
 
     def _get_hostel_warden_permissions(self):

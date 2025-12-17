@@ -25,6 +25,7 @@ from .forms import (
 )
 from apps.academics.models import BehaviorRecord, Student, Class, AcademicSession
 from apps.users.models import User
+from apps.core.mixins import TeacherRequiredMixin
 
 
 # ==================== MIXIN CLASSES ====================
@@ -47,14 +48,7 @@ class AttendancePermissionMixin:
         return super().dispatch(request, *args, **kwargs)
 
 
-class TeacherRequiredMixin:
-    """Mixin to ensure only teachers can access certain views"""
-    
-    def dispatch(self, request, *args, **kwargs):
-        if not hasattr(request.user, 'teacher_profile'):
-            messages.error(request, "This feature is only available for teachers.")
-            return redirect('users:dashboard')
-        return super().dispatch(request, *args, **kwargs)
+
 
 
 # ==================== CONFIGURATION VIEWS ====================

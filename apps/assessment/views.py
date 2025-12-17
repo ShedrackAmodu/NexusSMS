@@ -26,6 +26,7 @@ from .forms import (
 from .ai_generator import generate_questions_with_ai
 from apps.academics.models import Student, Teacher, Class, Subject, AcademicSession
 from apps.users.models import User
+from apps.core.mixins import StudentRequiredMixin, TeacherRequiredMixin, AdminOrTeacherRequiredMixin
 
 
 # =============================================================================
@@ -44,20 +45,7 @@ def is_admin_or_teacher(user):
     """Check if user is admin or teacher."""
     return user.is_staff or hasattr(user, 'teacher_profile')
 
-class TeacherRequiredMixin(UserPassesTestMixin):
-    """Mixin to ensure user is a teacher."""
-    def test_func(self):
-        return is_teacher(self.request.user)
 
-class StudentRequiredMixin(UserPassesTestMixin):
-    """Mixin to ensure user is a student."""
-    def test_func(self):
-        return is_student(self.request.user)
-
-class AdminOrTeacherRequiredMixin(UserPassesTestMixin):
-    """Mixin to ensure user is admin or teacher."""
-    def test_func(self):
-        return is_admin_or_teacher(self.request.user)
 
 
 # =============================================================================
@@ -3130,18 +3118,24 @@ def result_sheet_pdf_view(request, course_id):
 
 @login_required
 def quiz_bank_list(request):
-    """List quiz banks for students or teachers (enhanced from clue system)."""
+    """List quiz banks for students, teachers, administrators, and principals (enhanced from clue system)."""
     is_teacher = hasattr(request.user, 'teacher_profile')
+    is_admin_or_principal = request.user.user_roles.filter(role__role_type__in=['super_admin', 'admin', 'principal'], status='active').exists()
 
-    if is_teacher:
-        # Teacher view - show quiz banks they can manage
-        teacher = request.user.teacher_profile
-
-        # Get classes taught by this teacher
-        taught_classes = Class.objects.filter(
-            subject_assignments__teacher=teacher,
-            subject_assignments__academic_session__is_current=True
-        ).distinct()
+    if is_teacher or is_admin_or_principal:
+        # Teacher/Admin/Principal view - show quiz banks they can manage
+        if is_teacher:
+            teacher = request.user.teacher_profile
+            # Get classes taught by this teacher
+            taught_classes = Class.objects.filter(
+                subject_assignments__teacher=teacher,
+                subject_assignments__academic_session__is_current=True
+            ).distinct()
+        else:
+            # Admin/Principal can see all classes
+            taught_classes = Class.objects.filter(
+                academic_session__is_current=True
+            ).distinct()
 
         # Get quiz banks for these classes
         quiz_banks = QuestionBank.objects.filter(

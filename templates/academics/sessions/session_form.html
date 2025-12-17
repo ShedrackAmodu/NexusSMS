@@ -64,8 +64,28 @@
                         {% endif %}
 
                         <div class="row">
-                            <!-- Session Name -->
+                            <!-- Institution -->
+                            {% if form.institution %}
                             <div class="col-md-6 mb-3">
+                                <label for="{{ form.institution.id_for_label }}" class="form-label">
+                                    {{ form.institution.label }} *
+                                </label>
+                                {{ form.institution }}
+                                {% if form.institution.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.institution.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    {% trans "Select the school/institution this session belongs to" %}
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- Session Name -->
+                            <div class="{% if form.institution %}col-md-6{% else %}col-md-12{% endif %} mb-3">
                                 <label for="{{ form.name.id_for_label }}" class="form-label">
                                     {{ form.name.label }} *
                                 </label>
@@ -81,6 +101,9 @@
                                     {% trans "e.g., Academic Year 2024-2025, Spring Semester 2024" %}
                                 </div>
                             </div>
+                        </div>
+
+                        <div class="row">
 
                             <!-- Number of Semesters -->
                             <div class="col-md-6 mb-3">
@@ -244,6 +267,10 @@
                     <ul class="list-unstyled mb-0">
                         <li class="mb-2">
                             <i class="bi bi-check-circle text-success me-2"></i>
+                            <strong>{% trans "Institution:" %}</strong> {% trans "Select the school/institution this session belongs to. This ensures proper multi-tenant data separation." %}
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
                             <strong>{% trans "Naming Convention:" %}</strong> {% trans "Use clear, descriptive names like 'Academic Year 2024-2025' or 'Spring Semester 2024'" %}
                         </li>
                         <li class="mb-2">
@@ -295,12 +322,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const errors = [];
 
         // Get form inputs
+        const institutionInput = document.querySelector('select[name="institution"]');
         const nameInput = document.querySelector('input[name="name"]');
         const startDateInput = document.querySelector('input[name="start_date"]');
         const endDateInput = document.querySelector('input[name="end_date"]');
         const isCurrentCheckbox = document.querySelector('input[name="is_current"]');
 
-        // Validate required fields
+        // Validate required fields - only check institution if field exists
+        if (institutionInput && (!institutionInput || !institutionInput.value)) {
+            showFieldError(institutionInput, 'Institution is required');
+            isValid = false;
+        }
+
         if (nameInput && !nameInput.value.trim()) {
             showFieldError(nameInput, 'Session name is required');
             isValid = false;

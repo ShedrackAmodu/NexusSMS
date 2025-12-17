@@ -23,7 +23,7 @@ from .models import (
 )
 from apps.assessment.models import Assignment
 from .forms import (
-    AcademicSessionForm, DepartmentForm, SubjectForm, GradeLevelForm, ClassForm, StudentForm,
+    DepartmentForm, SubjectForm, GradeLevelForm, ClassForm, StudentForm,
     TeacherForm, EnrollmentForm, SubjectAssignmentForm, TimetableForm, ClassMaterialForm,
     BehaviorRecordForm, AchievementForm, ParentGuardianForm, StudentParentRelationshipForm,
     ClassTransferHistoryForm, AcademicWarningForm, HolidayForm, FileAttachmentForm, SchoolPolicyForm,
@@ -32,70 +32,25 @@ from .forms import (
 from apps.users.forms import UserCreationForm, UserUpdateForm, UserProfileForm, RoleForm, UserRoleAssignmentForm # Import user-related forms
 from apps.communication.forms import ContactTeacherForm
 from apps.communication.services import EmailService
-from apps.core.mixins import InstitutionPermissionMixin  # Import for tenant filtering
+from apps.core.forms import AcademicSessionForm
+from apps.core.mixins import (
+    InstitutionPermissionMixin,  # Import for tenant filtering
+    StudentRequiredMixin,
+    TeacherRequiredMixin,
+    StaffRequiredMixin,
+    AdminRequiredMixin,
+    CounselorRequiredMixin,
+    CommitteeRequiredMixin,
+    DepartmentHeadRequiredMixin,
+    AcademicsAccessMixin,
+)
 
 
 # =============================================================================
 # MIXINS AND BASE CLASSES
 # =============================================================================
 
-class AcademicsAccessMixin(LoginRequiredMixin):
-    """Base mixin for academics app access control."""
-    
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return self.handle_no_permission()
-        
-        # Check if user has any academic-related role
-        user_roles = request.user.user_roles.all()
-        academic_roles = ['student', 'teacher', 'admin', 'principal', 'super_admin']
-        
-        if not any(role.role.role_type in academic_roles for role in user_roles):
-            if not request.user.is_staff:
-                messages.error(request, _("You don't have permission to access academic resources."))
-                return redirect('users:dashboard')
-        
-        return super().dispatch(request, *args, **kwargs)
 
-
-class TeacherRequiredMixin(UserPassesTestMixin):
-    """Mixin to ensure user is a teacher, staff, or admin."""
-
-    def test_func(self):
-        user = self.request.user
-        if hasattr(user, 'teacher_profile') or user.is_staff:
-            return True
-
-        # Check if user has admin, principal, or super_admin role
-        user_roles = user.user_roles.all()
-        admin_roles = ['admin', 'principal', 'super_admin']
-        return any(role.role.role_type in admin_roles for role in user_roles)
-
-
-class StudentRequiredMixin(UserPassesTestMixin):
-    """Mixin to ensure user is a student."""
-    
-    def test_func(self):
-        return hasattr(self.request.user, 'student_profile')
-
-
-class StaffRequiredMixin(UserPassesTestMixin):
-    """Mixin to ensure user is staff."""
-
-    def test_func(self):
-        return self.request.user.is_staff
-
-
-class AdminRequiredMixin(UserPassesTestMixin):
-    """Mixin to ensure user has admin, principal, or super_admin role."""
-
-    def test_func(self):
-        user = self.request.user
-
-        # Check if user has admin, principal, or super_admin role
-        user_roles = user.user_roles.all()
-        admin_roles = ['admin', 'principal', 'super_admin']
-        return any(role.role.role_type in admin_roles for role in user_roles)
 
 
 # =============================================================================
@@ -760,12 +715,21 @@ class StudentAttendanceView(StudentRequiredMixin, View):
         return monthly_data
 
 
-class AcademicsDashboardView(AcademicsAccessMixin, View):
+class AcademicsDashboardView(LoginRequiredMixin, View):
     """Academic dashboard view with role-based content."""
 
     def get(self, request):
-        context = {}
         user = request.user
+
+        # For admin/staff users, redirect directly to sessions management
+        # to avoid institution selection requirement
+        if user.is_staff or user.user_roles.filter(
+            role__role_type__in=['admin', 'principal', 'super_admin'],
+            status='active'
+        ).exists():
+            return redirect('academics:session_list')
+
+        context = {}
 
         # Common context for all users
         current_session = AcademicSession.objects.filter(is_current=True).first()
@@ -776,8 +740,6 @@ class AcademicsDashboardView(AcademicsAccessMixin, View):
             context.update(self._get_student_context(user))
         elif hasattr(user, 'teacher_profile'):
             context.update(self._get_teacher_context(user))
-        elif user.is_staff:
-            context.update(self._get_staff_context(user))
 
         return render(request, 'academics/dashboard/dashboard.html', context)
     
@@ -894,7 +856,7 @@ class AcademicsDashboardView(AcademicsAccessMixin, View):
 
 # apps/academics/views.py - Updated Academic Session Views
 
-class AcademicSessionListView(AcademicsAccessMixin, ListView):
+class AcademicSessionListView(InstitutionPermissionMixin, LoginRequiredMixin, ListView):
     """List all academic sessions with role-based access."""
     model = AcademicSession
     template_name = 'academics/sessions/session_list.html'
@@ -905,9 +867,17 @@ class AcademicSessionListView(AcademicsAccessMixin, ListView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         today = timezone.now().date()
-        
-        # Role-based permissions
-        context['can_manage_sessions'] = user.is_staff or user.is_superuser
+
+        # Role-based permissions - allow admin/principal roles to manage sessions
+        can_manage_sessions = user.is_staff or user.is_superuser
+        if not can_manage_sessions:
+            # Check if user has admin or principal role
+            can_manage_sessions = user.user_roles.filter(
+                role__role_type__in=['admin', 'principal'],
+                status='active'
+            ).exists()
+
+        context['can_manage_sessions'] = can_manage_sessions
         context['is_teacher'] = hasattr(user, 'teacher_profile')
         context['is_student'] = hasattr(user, 'student_profile')
         context['today'] = today
@@ -989,25 +959,36 @@ class AcademicSessionListView(AcademicsAccessMixin, ListView):
         return redirect('academics:session_list')
 
 
-class AcademicSessionCreateView(AdminRequiredMixin, CreateView):
+class AcademicSessionCreateView(InstitutionPermissionMixin, AdminRequiredMixin, CreateView):
     """Create a new academic session."""
     model = AcademicSession
     form_class = AcademicSessionForm
     template_name = 'academics/sessions/session_form.html'
     success_url = reverse_lazy('academics:session_list')
-    
+
+    def get_form_kwargs(self):
+        """Pass the current user to the form."""
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
         messages.success(self.request, _('Academic session created successfully.'))
         return super().form_valid(form)
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['form_title'] = _("Create New Academic Session")
         context['submit_text'] = _("Create Session")
+        # Pass user role info to template
+        context['is_super_admin'] = self.request.user.user_roles.filter(
+            role__role_type='super_admin',
+            status='active'
+        ).exists() or self.request.user.is_superuser
         return context
 
 
-class AcademicSessionDetailView(AcademicsAccessMixin, DetailView):
+class AcademicSessionDetailView(LoginRequiredMixin, DetailView):
     """Display details of a single academic session."""
     model = AcademicSession
     template_name = 'academics/sessions/session_detail.html'
@@ -1034,7 +1015,7 @@ class AcademicSessionDetailView(AcademicsAccessMixin, DetailView):
         return context
 
 
-class AcademicSessionUpdateView(AdminRequiredMixin, UpdateView):
+class AcademicSessionUpdateView(InstitutionPermissionMixin, AdminRequiredMixin, UpdateView):
     """Update an academic session."""
     model = AcademicSession
     form_class = AcademicSessionForm
@@ -1048,15 +1029,102 @@ class AcademicSessionUpdateView(AdminRequiredMixin, UpdateView):
             return redirect('academics:dashboard')
         return super().dispatch(request, *args, **kwargs)
 
+    def get_form_kwargs(self):
+        """Pass the current user to the form."""
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
         messages.success(self.request, _('Academic session updated successfully.'))
         return super().form_valid(form)
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['form_title'] = _("Update Academic Session")
         context['submit_text'] = _("Update Session")
+        # Pass user role info to template
+        context['is_super_admin'] = self.request.user.user_roles.filter(
+            role__role_type='super_admin',
+            status='active'
+        ).exists() or self.request.user.is_superuser
         return context
+
+
+class AcademicSessionDeleteView(AdminRequiredMixin, DeleteView):
+    """Delete an academic session with safety checks."""
+    model = AcademicSession
+    template_name = 'academics/sessions/session_confirm_delete.html'
+    success_url = reverse_lazy('academics:session_list')
+
+    def dispatch(self, request, *args, **kwargs):
+        # Additional permission check for deletion
+        user = request.user
+        if not (user.is_superuser or user.user_roles.filter(
+            role__role_type__in=['super_admin', 'admin'],
+            status='active'
+        ).exists()):
+            messages.error(request, _("Only super administrators can delete academic sessions."))
+            return redirect('academics:session_list')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        session = self.object
+
+        # Check for related data that would be deleted
+        related_counts = self._get_related_data_counts(session)
+        context['related_counts'] = related_counts
+        context['total_related_items'] = sum(related_counts.values())
+        context['can_delete_safely'] = self._can_delete_safely(session)
+
+        return context
+
+    def _get_related_data_counts(self, session):
+        """Get counts of related data that would be affected by deletion."""
+        return {
+            'classes': session.classes.count(),
+            'enrollments': session.enrollments.count(),
+            'subject_assignments': session.subject_assignments.count(),
+            'timetables': session.timetables.count(),
+            'materials': session.materials.count(),
+            'academic_records': session.academic_records.count(),
+            'holidays': session.holidays.count(),
+            'counseling_sessions': session.counseling_sessions.count(),
+            'career_guidance': session.career_guidance.count(),
+            'counseling_referrals': session.counseling_referrals.count(),
+            'department_budgets': session.department_budgets.count(),
+        }
+
+    def _can_delete_safely(self, session):
+        """Check if the session can be safely deleted."""
+        # Don't allow deletion of current session
+        if session.is_current:
+            return False
+
+        # Check for critical data that should prevent deletion
+        critical_counts = self._get_related_data_counts(session)
+
+        # If there are enrollments or academic records, it's not safe to delete
+        if (critical_counts['enrollments'] > 0 or
+            critical_counts['academic_records'] > 0 or
+            critical_counts['classes'] > 0):
+            return False
+
+        return True
+
+    def delete(self, request, *args, **kwargs):
+        session = self.get_object()
+
+        # Final safety check
+        if not self._can_delete_safely(session):
+            messages.error(request, _("Cannot delete this session as it contains critical academic data."))
+            return redirect('academics:session_list')
+
+        # Log the deletion
+        messages.warning(request, _(f"Academic session '{session.name}' has been permanently deleted."))
+
+        return super().delete(request, *args, **kwargs)
 
 
 
@@ -1174,7 +1242,7 @@ class SubjectDetailView(AcademicsAccessMixin, DetailView):
         return context
 
 
-class SubjectCreateView(StaffRequiredMixin, CreateView):
+class SubjectCreateView(InstitutionPermissionMixin, AdminRequiredMixin, CreateView):
     """Create a new subject."""
     model = Subject
     form_class = SubjectForm
@@ -1313,37 +1381,45 @@ class StudentListView(AcademicsAccessMixin, ListView):
     
     def get_queryset(self):
         queryset = Student.objects.filter(status='active').select_related('user')
-        
+
         # Apply search filters
         form = StudentSearchForm(self.request.GET)
         if form.is_valid():
             name = form.cleaned_data.get('name')
             student_id = form.cleaned_data.get('student_id')
             class_enrolled = form.cleaned_data.get('class_enrolled')
+            department = form.cleaned_data.get('department')
             student_type = form.cleaned_data.get('student_type')
             status = form.cleaned_data.get('status')
-            
+
             if name:
                 queryset = queryset.filter(
                     Q(user__first_name__icontains=name) |
                     Q(user__last_name__icontains=name)
                 )
-            
+
             if student_id:
                 queryset = queryset.filter(student_id__icontains=student_id)
-            
+
             if class_enrolled:
                 queryset = queryset.filter(
                     enrollments__class_enrolled=class_enrolled,
                     enrollments__enrollment_status='active'
                 )
-            
+
+            if department:
+                # Filter by department (either primary department or enrollment department)
+                queryset = queryset.filter(
+                    Q(department=department) |
+                    Q(enrollments__department=department, enrollments__enrollment_status='active')
+                )
+
             if student_type:
                 queryset = queryset.filter(student_type=student_type)
-            
+
             if status:
                 queryset = queryset.filter(status=status)
-        
+
         return queryset.distinct()
     
     def get_context_data(self, **kwargs):
@@ -1527,24 +1603,24 @@ class EnrollmentListView(StaffRequiredMixin, ListView):
     
     def get_queryset(self):
         queryset = Enrollment.objects.select_related(
-            'student__user', 'class_enrolled', 'academic_session'
+            'student__user', 'class_enrolled', 'academic_session', 'department'
         )
-        
+
         # Filter by class if provided
         class_id = self.request.GET.get('class')
         if class_id:
             queryset = queryset.filter(class_enrolled_id=class_id)
-        
+
         # Filter by academic session if provided
         session_id = self.request.GET.get('session')
         if session_id:
             queryset = queryset.filter(academic_session_id=session_id)
-        
+
         # Filter by status if provided
         status = self.request.GET.get('status')
         if status:
             queryset = queryset.filter(enrollment_status=status)
-        
+
         return queryset.order_by('-enrollment_date')
     
     def get_context_data(self, **kwargs):
@@ -2069,6 +2145,52 @@ class SchoolPolicyUpdateView(StaffRequiredMixin, UpdateView):
 # =============================================================================
 # API AND AJAX VIEWS
 # =============================================================================
+
+class GetClassInfoView(AcademicsAccessMixin, View):
+    """API view to get detailed class information including grade level education stage."""
+
+    def get(self, request):
+        class_id = request.GET.get('class_id')
+
+        if not class_id:
+            return JsonResponse({'success': False, 'message': 'Class ID is required'}, status=400)
+
+        try:
+            class_obj = Class.objects.select_related(
+                'grade_level', 'class_teacher__user', 'academic_session'
+            ).get(id=class_id)
+
+            # Get current enrollment count
+            current_students = class_obj.enrollments.filter(
+                enrollment_status='active'
+            ).count()
+
+            class_info = {
+                'id': str(class_obj.id),
+                'name': class_obj.name,
+                'code': class_obj.code,
+                'grade_level': class_obj.grade_level.name if class_obj.grade_level else '',
+                'education_stage': class_obj.grade_level.education_stage if class_obj.grade_level else '',
+                'class_type': class_obj.get_class_type_display(),
+                'capacity': class_obj.capacity,
+                'current_students': current_students,
+                'available_seats': class_obj.capacity - current_students,
+                'teacher': class_obj.class_teacher.user.get_full_name() if class_obj.class_teacher else None,
+                'room_number': class_obj.room_number,
+                'academic_session': class_obj.academic_session.name,
+                'is_tertiary': class_obj.grade_level.is_tertiary_level if class_obj.grade_level else False
+            }
+
+            return JsonResponse({
+                'success': True,
+                'class_info': class_info
+            })
+
+        except Class.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Class not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
 
 class GetClassesByGradeView(AcademicsAccessMixin, View):
     """AJAX view to get classes by grade level."""
@@ -4032,8 +4154,8 @@ This message was sent through the School Management System.
                         'success': False,
                         'message': f'Failed to send message: {email_message}'
                     }, status=500)
-                messages.error(request, f'Failed to send message: {email_message}')
-                return redirect('academics:teacher_detail', pk=pk)
+            messages.error(request, f'Failed to send message: {email_message}')
+            return redirect('academics:teacher_detail', pk=pk)
         else:
             if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 return JsonResponse({

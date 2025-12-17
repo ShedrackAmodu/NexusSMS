@@ -900,7 +900,8 @@ class MaintenanceRequest(CoreBaseModel):
         ]
 
     def __str__(self):
-        return f"{self.title} - {self.hostel.name}"
+        hostel_name = self.hostel.name if self.hostel_id else "No Hostel Assigned"
+        return f"{self.title} - {hostel_name}"
 
     @property
     def is_overdue(self):

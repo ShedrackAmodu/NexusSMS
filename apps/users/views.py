@@ -237,6 +237,54 @@ def create_user_from_student_application(application, reviewed_by):
                 student.status = 'active'
                 student.save()
 
+            # Create enrollment if this is for tertiary education and department is specified
+            from apps.academics.models import GradeLevel
+            grade_obj = GradeLevel.objects.filter(name=application.grade_applying_for).first()
+
+            if grade_obj and grade_obj.education_stage in ['undergraduate', 'graduate', 'postgraduate', 'diploma'] and application.department:
+                # This is a tertiary application with department specified
+                current_session = AcademicSession.objects.filter(is_current=True).first()
+
+                if current_session:
+                    # Find or create appropriate class for the department and grade level
+                    # For now, we'll create a basic enrollment - this would need refinement based on specific requirements
+                    from apps.academics.models import Class, Enrollment
+
+                    # Try to find existing class for this department and grade level
+                    class_obj = Class.objects.filter(
+                        grade_level=grade_obj,
+                        academic_session=current_session,
+                        # Additional filtering might be needed based on department
+                    ).first()
+
+                    if class_obj:
+                        # Check if student is already enrolled
+                        existing_enrollment = Enrollment.objects.filter(
+                            student=student,
+                            academic_session=current_session,
+                            enrollment_status='active'
+                        ).first()
+
+                        if not existing_enrollment:
+                            # Create enrollment with department
+                            last_roll = Enrollment.objects.filter(
+                                class_enrolled=class_obj,
+                                academic_session=current_session
+                            ).order_by('-roll_number').first()
+
+                            roll_number = last_roll.roll_number + 1 if last_roll else 1
+
+                            Enrollment.objects.create(
+                                student=student,
+                                class_enrolled=class_obj,
+                                academic_session=current_session,
+                                department=application.department,
+                                enrollment_date=timezone.now().date(),
+                                roll_number=roll_number,
+                                enrollment_status='active',
+                                notes=f'Enrolled from application {application.application_number}'
+                            )
+
             student_role = Role.objects.filter(role_type='student').first()
             if not student_role:
                 student_role = Role.objects.create(

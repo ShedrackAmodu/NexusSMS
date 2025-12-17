@@ -260,6 +260,7 @@
                             <th>{% trans "Student" %}</th>
                             <th>{% trans "Student ID" %}</th>
                             <th>{% trans "Class" %}</th>
+                            <th>{% trans "Department" %}</th>
                             <th>{% trans "Roll No." %}</th>
                             <th>{% trans "Session" %}</th>
                             <th>{% trans "Enrollment Date" %}</th>
@@ -306,6 +307,13 @@
                                 </a>
                                 <br>
                                 <small class="text-muted">{{ enrollment.class_enrolled.grade_level.name }}</small>
+                            </td>
+                            <td>
+                                {% if enrollment.department %}
+                                    <span class="badge bg-secondary">{{ enrollment.department.name }}</span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
                             </td>
                             <td>
                                 <span class="badge bg-primary fs-6">{{ enrollment.roll_number }}</span>

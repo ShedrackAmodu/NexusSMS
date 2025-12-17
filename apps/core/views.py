@@ -8,6 +8,7 @@ from django.db.models import Q
 from django.core.paginator import Paginator
 from django.urls import reverse_lazy
 from django.views import View
+from django.utils import timezone
 import json
 
 from .models import SystemConfig, Institution, InstitutionConfig
@@ -15,7 +16,7 @@ from .forms import (
     SystemConfigForm, SystemConfigBulkUpdateForm,
     InstitutionForm, InstitutionConfigForm, InstitutionConfigOverrideForm
 )
-from .mixins import MultiInstitutionMixin
+from .mixins import MultiInstitutionMixin, InstitutionPermissionMixin
 
 
 class SystemConfigListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
@@ -688,7 +689,7 @@ class SuperAdminDashboardView(MultiInstitutionMixin, LoginRequiredMixin, Permiss
             }
 
 
-class SchoolAdminDashboardView(LoginRequiredMixin, View):
+class SchoolAdminDashboardView(InstitutionPermissionMixin, LoginRequiredMixin, View):
     """
     School Administrator dashboard showing school-specific metrics and operations overview.
     """
@@ -707,11 +708,15 @@ class SchoolAdminDashboardView(LoginRequiredMixin, View):
         # Check if user is a principal for role-specific content
         is_principal = user.user_roles.filter(role__role_type='principal').exists()
 
+        # Get current institution
+        from .middleware import get_current_institution
+        current_institution = get_current_institution()
+
         # Get current academic session
         from apps.academics.models import AcademicSession
         current_session = AcademicSession.objects.filter(is_current=True).first()
 
-        # School Statistics
+        # School Statistics - FILTERED BY INSTITUTION
         total_students = 0
         total_teachers = 0
         total_classes = 0
@@ -719,12 +724,20 @@ class SchoolAdminDashboardView(LoginRequiredMixin, View):
 
         if current_session:
             from apps.academics.models import Student, Teacher, Class, Subject
-            total_students = Student.objects.filter(status='active').count()
-            total_teachers = Teacher.objects.filter(status='active').count()
-            total_classes = Class.objects.filter(status='active').count()
-            total_subjects = Subject.objects.filter(status='active').count()
+            total_students = Student.objects.filter(
+                institution=current_institution, status='active'
+            ).count()
+            total_teachers = Teacher.objects.filter(
+                institution=current_institution, status='active'
+            ).count()
+            total_classes = Class.objects.filter(
+                institution=current_institution, status='active'
+            ).count()
+            total_subjects = Subject.objects.filter(
+                institution=current_institution, status='active'
+            ).count()
 
-        # Financial Overview
+        # Financial Overview - FILTERED BY INSTITUTION
         from apps.finance.models import Invoice, Payment, Expense
         total_revenue = 0
         total_expenses = 0
@@ -734,13 +747,15 @@ class SchoolAdminDashboardView(LoginRequiredMixin, View):
             # Calculate total revenue from paid invoices
             paid_invoices = Invoice.objects.filter(
                 academic_session=current_session,
+                student__institution=current_institution,
                 status='paid'
             )
             total_revenue = sum(invoice.amount_paid for invoice in paid_invoices)
 
-            # Calculate total expenses
+            # Calculate total expenses (filter by expense date range within current session)
             expenses = Expense.objects.filter(
-                academic_session=current_session,
+                expense_date__range=(current_session.start_date, current_session.end_date),
+                institution=current_institution,
                 status='active'
             )
             total_expenses = sum(expense.amount for expense in expenses)
@@ -748,6 +763,7 @@ class SchoolAdminDashboardView(LoginRequiredMixin, View):
             # Calculate pending payments
             pending_invoices = Invoice.objects.filter(
                 academic_session=current_session,
+                student__institution=current_institution,
                 status__in=['issued', 'partial']
             )
             pending_payments = sum(invoice.balance_due for invoice in pending_invoices)
@@ -770,21 +786,24 @@ class SchoolAdminDashboardView(LoginRequiredMixin, View):
                 total_percentage = sum(summary.attendance_percentage for summary in monthly_summaries)
                 attendance_rate = round(total_percentage / monthly_summaries.count(), 1)
 
-        # Recent Applications
+        # Recent Applications - FILTERED BY INSTITUTION
         from apps.users.models import StudentApplication, StaffApplication
         pending_student_applications = StudentApplication.objects.filter(
-            application_status__in=['pending', 'under_review']
+            application_status__in=['pending', 'under_review'],
+            institution=current_institution
         ).order_by('-application_date')[:5]
 
         pending_staff_applications = StaffApplication.objects.filter(
-            application_status__in=['pending', 'under_review']
+            application_status__in=['pending', 'under_review'],
+            institution=current_institution
         ).order_by('-application_date')[:5]
 
-        # Recent Announcements
+        # Recent Announcements - FILTERED BY INSTITUTION
         from apps.communication.models import Announcement
         recent_announcements = Announcement.objects.filter(
             is_published=True,
-            status='active'
+            status='active',
+            institution=current_institution
         ).order_by('-published_at')[:5]
 
         # System Health

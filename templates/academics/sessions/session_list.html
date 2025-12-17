@@ -423,7 +423,7 @@
                                     </button>
                                     <ul class="dropdown-menu">
                                         <li>
-                                            <a class="dropdown-item" href="#">
+                                            <a class="dropdown-item" href="{% url 'academics:session_detail' session.pk %}">
                                                 <i class="bi bi-eye me-2"></i>{% trans "View Details" %}
                                             </a>
                                         </li>
@@ -443,6 +443,15 @@
                                                     <i class="bi bi-check-lg me-2"></i>{% trans "Set as Current" %}
                                                 </button>
                                             </form>
+                                        </li>
+                                        {% endif %}
+                                        {% if not session.is_current %}
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <button type="button" class="dropdown-item text-danger"
+                                                    onclick="showDeleteModal('{{ session.pk }}', '{{ session.name }}', '{% url 'academics:session_delete' session.pk %}')">
+                                                <i class="bi bi-trash me-2"></i>{% trans "Delete" %}
+                                            </button>
                                         </li>
                                         {% endif %}
                                         {% endif %}
@@ -478,17 +487,18 @@
                                     {{ session.classes.count }} {% trans "classes" %}
                                 </span>
                                 <div class="session-actions">
+                                    <a href="{% url 'academics:session_detail' session.pk %}"
+                                       class="btn btn-sm btn-outline-info"
+                                       title="{% trans 'View Details' %}">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
                                     {% if can_manage_sessions %}
-                                    <a href="{% url 'academics:session_update' session.pk %}" 
-                                       class="btn btn-sm btn-outline-primary" 
+                                    <a href="{% url 'academics:session_update' session.pk %}"
+                                       class="btn btn-sm btn-outline-primary"
                                        title="{% trans 'Edit' %}">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     {% endif %}
-                                    <button type="button" class="btn btn-sm btn-outline-info" 
-                                            title="{% trans 'View Details' %}">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -567,9 +577,9 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
-                                        <button type="button" class="btn btn-outline-info" title="{% trans 'View Details' %}">
+                                        <a href="{% url 'academics:session_detail' session.pk %}" class="btn btn-outline-info" title="{% trans 'View Details' %}">
                                             <i class="bi bi-eye"></i>
-                                        </button>
+                                        </a>
                                         {% if can_manage_sessions %}
                                         <a href="{% url 'academics:session_update' session.pk %}" class="btn btn-outline-primary" title="{% trans 'Edit' %}">
                                             <i class="bi bi-pencil"></i>
@@ -583,6 +593,11 @@
                                                 <i class="bi bi-check-lg"></i>
                                             </button>
                                         </form>
+                                        <button type="button" class="btn btn-outline-danger"
+                                                onclick="showDeleteModal('{{ session.pk }}', '{{ session.name }}', '{% url 'academics:session_delete' session.pk %}')"
+                                                title="{% trans 'Delete' %}">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
                                         {% endif %}
                                         {% endif %}
                                     </div>
@@ -658,6 +673,35 @@
     </div>
 </div>
 
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>{% trans "Confirm Deletion" %}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>{% trans "Are you sure you want to delete the academic session" %} <strong id="sessionName"></strong>?</p>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    {% trans "This action cannot be undone. The session and all associated data will be permanently deleted." %}
+                </div>
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>{% trans "Note:" %}</strong> {% trans "If the session contains enrollments, academic records, or active classes, deletion will be blocked for data safety. Current sessions cannot be deleted." %}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">{% trans "Delete Session" %}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Filter Modal -->
 <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -701,6 +745,18 @@
 
 {% block extra_js %}
 <script>
+    let sessionToDelete = null;
+    let deleteUrl = null;
+
+    // Function to show delete confirmation modal
+    function showDeleteModal(sessionId, sessionName, url) {
+        sessionToDelete = sessionId;
+        deleteUrl = url;
+        document.getElementById('sessionName').textContent = sessionName;
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        deleteModal.show();
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         // View Toggle
         const gridViewBtn = document.getElementById('gridViewBtn');
@@ -733,10 +789,78 @@
             });
         });
 
+        // Handle delete confirmation
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        confirmDeleteBtn.addEventListener('click', function() {
+            if (sessionToDelete && deleteUrl) {
+                // Disable the button to prevent double-clicks
+                confirmDeleteBtn.disabled = true;
+                confirmDeleteBtn.innerHTML = '<i class="bi bi-hourglass me-2"></i>Deleting...';
+
+                // Close the modal first
+                const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
+                deleteModal.hide();
+
+                try {
+                    // Create and submit a form to delete the session
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = deleteUrl;
+                    form.style.display = 'none'; // Hide the form
+
+                    // Add CSRF token
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+                    if (csrfToken) {
+                        const csrfInput = document.createElement('input');
+                        csrfInput.type = 'hidden';
+                        csrfInput.name = 'csrfmiddlewaretoken';
+                        csrfInput.value = csrfToken.value;
+                        form.appendChild(csrfInput);
+                    }
+
+                    // Add the form to the body and submit it
+                    document.body.appendChild(form);
+                    form.submit();
+
+                } catch (error) {
+                    console.error('Error during deletion:', error);
+                    // Re-enable button and show error
+                    confirmDeleteBtn.disabled = false;
+                    confirmDeleteBtn.innerHTML = '<i class="bi bi-trash me-2"></i>Delete Session';
+
+                    // Show error message
+                    showAlert('An error occurred while deleting the session. Please try again.', 'danger');
+                }
+            } else {
+                console.error('Missing session data for deletion');
+                showAlert('Session information is missing. Please refresh the page and try again.', 'warning');
+            }
+        });
+
+        // Helper function to show alerts
+        function showAlert(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+
+            document.body.appendChild(alertDiv);
+
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+
         // Auto-submit filter form when selections change
         const statusFilter = document.getElementById('statusFilter');
         const yearFilter = document.getElementById('yearFilter');
-        
+
         statusFilter.addEventListener('change', function() {
             document.getElementById('filterForm').submit();
         });

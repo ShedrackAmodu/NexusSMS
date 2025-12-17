@@ -19,34 +19,51 @@ class InstitutionFormMixin:
     """
 
     def __init__(self, *args, **kwargs):
+        # Extract user from kwargs if provided, otherwise store for later
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
-        if self.user and not self.user.is_superuser:
-            # Get user's accessible institutions
-            accessible_institutions = get_user_accessible_institutions(self.user)
+        # Filter institution field and related fields based on user permissions
+        self._filter_institution_fields()
 
-            # Filter Institution fields
-            for field_name, field in self.fields.items():
-                if hasattr(field, 'queryset') and field.queryset is not None:
-                    model = field.queryset.model
-                    if model == Institution:
-                        field.queryset = field.queryset.filter(id__in=accessible_institutions.values_list('id', flat=True))
-                    # Automatically filter models that inherit from CoreBaseModel
-                    elif hasattr(model, 'institution'):
-                        field.queryset = field.queryset.filter(institution__in=accessible_institutions)
+    def _filter_institution_fields(self):
+        """Filter institution and related fields based on user permissions."""
+        if not self.user:
+            return
+
+        # For superusers, show all institutions
+        if self.user.is_superuser:
+            return
+
+        # Get user's accessible institutions
+        accessible_institutions = get_user_accessible_institutions(self.user)
+
+        # Filter Institution fields
+        for field_name, field in self.fields.items():
+            if hasattr(field, 'queryset') and field.queryset is not None:
+                model = field.queryset.model
+                if model == Institution:
+                    field.queryset = field.queryset.filter(id__in=accessible_institutions.values_list('id', flat=True))
+                # Automatically filter models that inherit from CoreBaseModel
+                elif hasattr(model, 'institution'):
+                    field.queryset = field.queryset.filter(institution__in=accessible_institutions)
 
 class AcademicSessionForm(InstitutionFormMixin, forms.ModelForm):
     """
     Form for creating and updating AcademicSession instances.
+    For school admins (admin/principal), institution is auto-set to their primary institution.
+    Only super admins can choose institutions.
     """
     class Meta:
         model = AcademicSession
         fields = [
-            'name', 'number_of_semesters', 'term_number', 
+            'institution', 'name', 'number_of_semesters', 'term_number',
             'start_date', 'end_date', 'is_current', 'status'
         ]
         widgets = {
+            'institution': forms.Select(attrs={
+                'class': 'form-control'
+            }),
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': _('e.g., Academic Year 2024-2025')
@@ -79,6 +96,50 @@ class AcademicSessionForm(InstitutionFormMixin, forms.ModelForm):
             'term_number': _('Leave blank for full session models'),
             'number_of_semesters': _('Select 2 for two semesters or 3 for three semesters'),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Check if user has super_admin role
+        is_super_admin = False
+        if self.user:
+            is_super_admin = self.user.user_roles.filter(
+                role__role_type='super_admin',
+                status='active'
+            ).exists() or self.user.is_superuser
+
+        if not is_super_admin:
+            # For non-super-admins, hide institution field and auto-set to primary institution
+            if 'institution' in self.fields:
+                self.fields.pop('institution')
+
+            # Auto-set institution if not already set
+            if not self.instance.pk:
+                primary_institution = self._get_user_primary_institution()
+                if primary_institution:
+                    self.instance.institution = primary_institution
+        else:
+            # For super-admins, ensure institution field is shown and required
+            if 'institution' in self.fields:
+                self.fields['institution'].required = True
+
+    def _get_user_primary_institution(self):
+        """Get the user's primary institution."""
+        if not self.user:
+            return None
+
+        # Try to get from institution membership
+        try:
+            primary_membership = self.user.institution_memberships.filter(is_primary=True).first()
+            if primary_membership:
+                return primary_membership.institution
+        except:
+            pass
+
+        # Fallback: get first accessible institution
+        from apps.core.middleware import get_user_accessible_institutions
+        accessible_institutions = get_user_accessible_institutions(self.user)
+        return accessible_institutions.first() if accessible_institutions.exists() else None
 
     def clean(self):
         cleaned_data = super().clean()

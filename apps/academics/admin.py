@@ -16,6 +16,8 @@ from .models import (
     StudentParentRelationship, ClassTransferHistory, AcademicWarning, Holiday, FileAttachment, AcademicSession
 )
 from apps.academics.forms import AcademicSessionForm
+from apps.core.admin import InstitutionModelAdmin
+from django.contrib.admin import ModelAdmin
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +40,7 @@ class TeacherInline(admin.TabularInline):
 
 
 @admin.register(Department)
-class DepartmentAdmin(admin.ModelAdmin):
+class DepartmentAdmin(InstitutionModelAdmin):
     """
     Admin interface for Department model.
     """
@@ -63,7 +65,7 @@ class DepartmentAdmin(admin.ModelAdmin):
 
 
 @admin.register(Subject)
-class SubjectAdmin(admin.ModelAdmin):
+class SubjectAdmin(InstitutionModelAdmin):
     """
     Admin interface for Subject model.
     """
@@ -108,7 +110,7 @@ class SubjectAdmin(admin.ModelAdmin):
 
 
 @admin.register(GradeLevel)
-class GradeLevelAdmin(admin.ModelAdmin):
+class GradeLevelAdmin(InstitutionModelAdmin):
     """
     Admin interface for GradeLevel model.
     """
@@ -162,7 +164,7 @@ class EnrollmentInline(admin.TabularInline):
 
 
 @admin.register(Class)
-class ClassAdmin(admin.ModelAdmin):
+class ClassAdmin(InstitutionModelAdmin):
     """
     Admin interface for Class model.
     """
@@ -636,18 +638,21 @@ class FileAttachmentAdmin(admin.ModelAdmin):
     display_file_size.short_description = _('Size')
 
 @admin.register(AcademicSession)
-class AcademicSessionAdmin(admin.ModelAdmin):
+class AcademicSessionAdmin(InstitutionModelAdmin):
     """
     Admin interface for AcademicSession model.
     """
     form = AcademicSessionForm
-    list_display = ('name', 'number_of_semesters', 'term_number', 'start_date', 'end_date', 'is_current', 'status')
-    list_filter = ('number_of_semesters', 'is_current', 'status', 'start_date')
-    search_fields = ('name',)
+    list_display = ('name', 'institution', 'number_of_semesters', 'term_number', 'start_date', 'end_date', 'is_current', 'status')
+    list_filter = ('number_of_semesters', 'is_current', 'status', 'start_date', 'institution')
+    search_fields = ('name', 'institution__name')
     readonly_fields = ('created_at', 'updated_at')
     date_hierarchy = 'start_date'
 
     fieldsets = (
+        (_('Institution'), {
+            'fields': ('institution',)
+        }),
         (_('Session Information'), {
             'fields': ('name', 'number_of_semesters', 'term_number')
         }),
@@ -659,6 +664,114 @@ class AcademicSessionAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+    def has_delete_permission(self, request, obj=None):
+        """
+        Allow deletion for authorized users with proper institution access.
+        """
+        if not request.user.is_authenticated:
+            return False
+
+        # Superusers can delete anything
+        if request.user.is_superuser:
+            return True
+
+        # Staff users can delete any session
+        if request.user.is_staff:
+            return True
+
+        # Check if user has admin or principal role
+        has_admin_role = hasattr(request.user, 'user_roles') and request.user.user_roles.filter(
+            role__role_type__in=['admin', 'principal'],
+            status='active'
+        ).exists()
+
+        if has_admin_role:
+            # For admin/principal users, check institution access
+            if obj and hasattr(obj, 'institution'):
+                from apps.core.middleware import get_user_accessible_institutions
+                accessible_institutions = get_user_accessible_institutions(request.user)
+                return obj.institution in accessible_institutions
+            # If no object specified (bulk delete permission), allow it
+            return True
+
+        # Regular users - use parent class logic with institution restrictions
+        return super().has_delete_permission(request, obj)
+
+    def has_add_permission(self, request):
+        """
+        Allow adding for staff users, superusers, and admin/principal roles.
+        """
+        if not request.user.is_authenticated:
+            return False
+
+        # Superusers can add anything
+        if request.user.is_superuser:
+            return True
+
+        # Staff users can add sessions
+        if request.user.is_staff:
+            return True
+
+        # Check if user has admin or principal role
+        if hasattr(request.user, 'user_roles') and request.user.user_roles.filter(
+            role__role_type__in=['admin', 'principal'],
+            status='active'
+        ).exists():
+            return True
+
+        # Fallback to parent class logic
+        return super().has_add_permission(request)
+
+    def has_change_permission(self, request, obj=None):
+        """
+        Allow editing for staff users and superusers.
+        """
+        if not request.user.is_authenticated:
+            return False
+
+        # Superusers can change anything
+        if request.user.is_superuser:
+            return True
+
+        # Staff users can change sessions
+        if request.user.is_staff:
+            return True
+
+        # Check if user has admin or principal role
+        if hasattr(request.user, 'user_roles') and request.user.user_roles.filter(
+            role__role_type__in=['admin', 'principal'],
+            status='active'
+        ).exists():
+            return True
+
+        # Fallback to parent class logic
+        return super().has_change_permission(request, obj)
+
+    def get_queryset(self, request):
+        """
+        Allow school admins to see all sessions or filter appropriately.
+        """
+        if request.user.is_superuser or request.user.is_staff:
+            # Superusers and staff see all sessions
+            return super().get_queryset(request)
+
+        # Check if user has admin/principal role
+        if hasattr(request.user, 'user_roles') and request.user.user_roles.filter(
+            role__role_type__in=['admin', 'principal'],
+            status='active'
+        ).exists():
+            # For admin/principal users, show sessions from institutions they can access
+            from apps.core.middleware import get_user_accessible_institutions
+            accessible_institutions = get_user_accessible_institutions(request.user)
+            if accessible_institutions:
+                return self.model.objects.filter(institution__in=accessible_institutions)
+            else:
+                # If no accessible institutions, show all (fallback)
+                return self.model.objects.all()
+
+        # Regular users get filtered queryset
+        return super().get_queryset(request)
 
     def save_model(self, request, obj, form, change):
         """Enhanced save method with comprehensive error handling."""

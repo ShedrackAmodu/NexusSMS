@@ -25,8 +25,9 @@ class AcademicSessionForm(forms.ModelForm):
     """
     class Meta:
         model = AcademicSession
-        fields = ['name', 'number_of_semesters', 'term_number', 'start_date', 'end_date', 'is_current', 'status']
+        fields = ['institution', 'name', 'number_of_semesters', 'term_number', 'start_date', 'end_date', 'is_current', 'status']
         widgets = {
+            'institution': forms.Select(attrs={'class': 'form-control'}),
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('e.g., 2023/2024 Academic Year')}),
             'number_of_semesters': forms.Select(attrs={'class': 'form-control'}),
             'term_number': forms.Select(attrs={'class': 'form-control'}),
@@ -36,9 +37,36 @@ class AcademicSessionForm(forms.ModelForm):
             'status': forms.Select(attrs={'class': 'form-control'}),
         }
         help_texts = {
+            'institution': _('Institution this session belongs to'),
             'is_current': _('Only one academic session can be marked as current.'),
-            'term_number': _('Leave blank for full academic year sessions.'),
+            'term_number': _('Leave blank for whole-session models.'),
         }
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+        # Set institution queryset based on user permissions
+        from apps.core.middleware import get_user_accessible_institutions
+        from apps.core.models import Institution
+
+        if self.user:
+            if self.user.is_superuser:
+                # Superuser can access all institutions
+                self.fields['institution'].queryset = Institution.objects.filter(is_active=True)
+            else:
+                # Regular users can only access their institutions
+                accessible_institutions = get_user_accessible_institutions(self.user)
+                self.fields['institution'].queryset = accessible_institutions
+
+            # Set default if only one institution available
+            if self.fields['institution'].queryset.count() == 1:
+                self.fields['institution'].initial = self.fields['institution'].queryset.first()
+        else:
+            # Fallback for admin interface
+            self.fields['institution'].queryset = Institution.objects.filter(is_active=True)
+
+        self.fields['institution'].empty_label = _("Select Institution")
 
     def clean(self):
         """Enhanced form validation with detailed error logging."""
@@ -268,7 +296,7 @@ class StudentForm(forms.ModelForm):
             'user', 'student_id', 'admission_number', 'admission_date', 'date_of_birth',
             'place_of_birth', 'gender', 'blood_group', 'nationality', 'religion',
             'student_type', 'is_boarder', 'has_special_needs', 'special_needs_description',
-            'previous_school', 'photo',
+            'department', 'previous_school', 'photo',
             'father_name', 'father_occupation', 'father_phone', 'father_email',
             'mother_name', 'mother_occupation', 'mother_phone', 'mother_email',
             'guardian_name', 'guardian_relation', 'guardian_occupation', 'guardian_phone', 'guardian_email',
@@ -290,6 +318,7 @@ class StudentForm(forms.ModelForm):
             'is_boarder': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'has_special_needs': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'special_needs_description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'department': forms.Select(attrs={'class': 'form-control'}),
             'previous_school': forms.TextInput(attrs={'class': 'form-control'}),
             'photo': forms.FileInput(attrs={'class': 'form-control'}),
             'father_name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -329,6 +358,13 @@ class StudentForm(forms.ModelForm):
         else:
             self.fields['user'].queryset = User.objects.filter(student_profile__isnull=True, is_active=True)
         self.fields['user'].empty_label = _("Select User Account")
+
+        # Configure department field
+        self.fields['department'].queryset = Department.objects.filter(status='active')
+        self.fields['department'].empty_label = _("Select Department (for tertiary education)")
+
+        # Make department required for tertiary education students only
+        # This will be handled by JavaScript in the template or by checking the grade level during enrollment
 
 class TeacherForm(forms.ModelForm):
     """
@@ -400,11 +436,12 @@ class EnrollmentForm(forms.ModelForm):
     """
     class Meta:
         model = Enrollment
-        fields = ['student', 'class_enrolled', 'academic_session', 'enrollment_date', 'enrollment_status', 'roll_number', 'remarks', 'status']
+        fields = ['student', 'class_enrolled', 'academic_session', 'department', 'enrollment_date', 'enrollment_status', 'roll_number', 'remarks', 'status']
         widgets = {
             'student': forms.Select(attrs={'class': 'form-control'}),
             'class_enrolled': forms.Select(attrs={'class': 'form-control'}),
             'academic_session': forms.Select(attrs={'class': 'form-control'}),
+            'department': forms.Select(attrs={'class': 'form-control'}),
             'enrollment_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'enrollment_status': forms.Select(attrs={'class': 'form-control'}),
             'roll_number': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
@@ -417,17 +454,30 @@ class EnrollmentForm(forms.ModelForm):
         self.fields['student'].queryset = Student.objects.filter(status='active').select_related('user')
         self.fields['class_enrolled'].queryset = Class.objects.filter(status='active').select_related('grade_level', 'academic_session')
         self.fields['academic_session'].queryset = AcademicSession.objects.filter(status='active')
+        self.fields['department'].queryset = Department.objects.filter(status='active')
 
         self.fields['student'].empty_label = _("Select Student")
         self.fields['class_enrolled'].empty_label = _("Select Class")
         self.fields['academic_session'].empty_label = _("Select Academic Session (Optional)")
         self.fields['academic_session'].required = False
+        self.fields['department'].empty_label = _("Select Department (for tertiary education)")
+
+        # Make department field conditional based on class grade level
+        if self.instance and self.instance.class_enrolled:
+            is_tertiary = self.instance.class_enrolled.grade_level.is_tertiary_level if self.instance.class_enrolled.grade_level else False
+            self.fields['department'].required = is_tertiary
+            if not is_tertiary:
+                self.fields['department'].widget = forms.HiddenInput()
+        else:
+            # For new enrollments, department is optional by default
+            self.fields['department'].required = False
 
     def clean(self):
         cleaned_data = super().clean()
         student = cleaned_data.get('student')
         class_enrolled = cleaned_data.get('class_enrolled')
         academic_session = cleaned_data.get('academic_session')
+        department = cleaned_data.get('department')
         enrollment_date = cleaned_data.get('enrollment_date')
         roll_number = cleaned_data.get('roll_number')
 
@@ -453,6 +503,12 @@ class EnrollmentForm(forms.ModelForm):
         if enrollment_date and academic_session:
             if enrollment_date < academic_session.start_date or enrollment_date > academic_session.end_date:
                 raise forms.ValidationError(_('Enrollment date must be within the academic session dates.'))
+
+        # Validate department for tertiary education
+        if class_enrolled and class_enrolled.grade_level:
+            is_tertiary = class_enrolled.grade_level.is_tertiary_level
+            if is_tertiary and not department:
+                raise forms.ValidationError(_('Department is required for tertiary education enrollments.'))
 
         return cleaned_data
 
@@ -1204,6 +1260,13 @@ class StudentSearchForm(forms.Form):
         queryset=Class.objects.filter(status='active').order_by('name'),
         required=False,
         empty_label=_('All Classes'),
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    department = forms.ModelChoiceField(
+        label=_('Department'),
+        queryset=Department.objects.filter(status='active').order_by('name'),
+        required=False,
+        empty_label=_('All Departments'),
         widget=forms.Select(attrs={'class': 'form-control'})
     )
     student_type = forms.ChoiceField(

@@ -168,6 +168,28 @@
                                 </div>
                             </div>
 
+                            <!-- Department Field (for tertiary education) -->
+                            <div class="row" id="department-row" style="display: none;">
+                                <div class="col-md-12">
+                                    <div class="mb-3">
+                                        <label for="{{ form.department.id_for_label }}" class="form-label">
+                                            {{ form.department.label }} *
+                                        </label>
+                                        {{ form.department }}
+                                        {% if form.department.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.department.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                        <div class="form-text">
+                                            {% trans "Department for tertiary education enrollments" %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Class Information Preview -->
                             <div id="class-preview" class="class-preview-card card bg-light d-none">
                                 <div class="card-body">

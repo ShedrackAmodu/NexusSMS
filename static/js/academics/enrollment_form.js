@@ -21,16 +21,20 @@ class EnrollmentForm {
             studentSelect: document.getElementById('id_student'),
             classSelect: document.getElementById('id_class_enrolled'),
             sessionSelect: document.getElementById('id_academic_session'),
+            departmentSelect: document.getElementById('id_department'),
             rollNumberInput: document.getElementById('id_roll_number'),
             enrollmentDateInput: document.getElementById('id_enrollment_date'),
-            
+
+            // Department field container
+            departmentRow: document.getElementById('department-row'),
+
             // Preview elements
             studentPreview: document.getElementById('student-preview'),
             studentInitials: document.getElementById('student-initials'),
             studentName: document.getElementById('student-name'),
             studentDetails: document.getElementById('student-details'),
             studentStatus: document.getElementById('student-status'),
-            
+
             classPreview: document.getElementById('class-preview'),
             className: document.getElementById('class-name'),
             classDetails: document.getElementById('class-details'),
@@ -38,13 +42,13 @@ class EnrollmentForm {
             classCapacity: document.getElementById('class-capacity'),
             classCurrent: document.getElementById('class-current'),
             classAvailable: document.getElementById('class-available'),
-            
+
             // Information elements
             availableClassesList: document.getElementById('available-classes-list'),
             currentSessionInfo: document.getElementById('current-session-info'),
             totalEnrollments: document.getElementById('total-enrollments'),
             activeStudents: document.getElementById('active-students'),
-            
+
             // Modals
             loadingModal: new bootstrap.Modal(document.getElementById('loadingModal'))
         };
@@ -189,21 +193,55 @@ class EnrollmentForm {
 
     displayClassInfo(classInfo) {
         this.selectedClass = classInfo;
-        
+
         this.elements.className.textContent = classInfo.name;
         this.elements.classDetails.textContent = `${classInfo.grade_level} • ${classInfo.class_type}`;
         this.elements.classTeacher.innerHTML = `<i class="bi bi-person me-1"></i>${classInfo.teacher || 'No teacher assigned'}`;
         this.elements.classCapacity.textContent = classInfo.capacity;
         this.elements.classCurrent.textContent = classInfo.current_students;
         this.elements.classAvailable.textContent = classInfo.available_seats;
-        
+
         // Update available seats color based on availability
         const availableElement = this.elements.classAvailable;
-        availableElement.className = 'stat-number ' + 
-            (classInfo.available_seats < 5 ? 'text-danger' : 
+        availableElement.className = 'stat-number ' +
+            (classInfo.available_seats < 5 ? 'text-danger' :
              classInfo.available_seats < 10 ? 'text-warning' : 'text-success');
-        
+
+        // Handle department field visibility for tertiary education
+        this.handleDepartmentFieldVisibility(classInfo);
+
         this.elements.classPreview.classList.remove('d-none');
+    }
+
+    handleDepartmentFieldVisibility(classInfo) {
+        // Check if this is a tertiary education class
+        const tertiaryStages = ['undergraduate', 'graduate', 'postgraduate', 'diploma'];
+        const isTertiary = classInfo.education_stage && tertiaryStages.includes(classInfo.education_stage.toLowerCase());
+
+        if (isTertiary) {
+            // Show department field and make it required
+            this.elements.departmentRow.style.display = 'block';
+            if (this.elements.departmentSelect) {
+                this.elements.departmentSelect.required = true;
+                // Update label to show it's required
+                const label = this.elements.departmentSelect.previousElementSibling;
+                if (label && label.tagName === 'LABEL') {
+                    label.innerHTML = label.innerHTML.replace('*', '') + ' *';
+                }
+            }
+        } else {
+            // Hide department field and make it not required
+            this.elements.departmentRow.style.display = 'none';
+            if (this.elements.departmentSelect) {
+                this.elements.departmentSelect.required = false;
+                this.elements.departmentSelect.value = '';
+                // Remove required indicator from label
+                const label = this.elements.departmentSelect.previousElementSibling;
+                if (label && label.tagName === 'LABEL') {
+                    label.innerHTML = label.innerHTML.replace(' *', '');
+                }
+            }
+        }
     }
 
     async loadSessionInfo(sessionId) {
@@ -413,6 +451,14 @@ class EnrollmentForm {
                 isValid = false;
             }
         });
+
+        // Check department field if it's required for tertiary education
+        if (this.elements.departmentSelect && this.elements.departmentSelect.required) {
+            if (!this.elements.departmentSelect.value.trim()) {
+                this.markFieldInvalid(this.elements.departmentSelect, 'Department is required for tertiary education enrollments');
+                isValid = false;
+            }
+        }
 
         return isValid;
     }

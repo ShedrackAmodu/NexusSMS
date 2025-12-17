@@ -495,7 +495,7 @@
                                 <div class="preview-item">
                                     <span>Item Identifier:</span>
                                     <span id="previewIdentifier" class="fw-bold">
-                                        {% if form.instance.pk %}
+                                        {% if form.instance.pk and form.instance.hostel_id %}
                                             {{ form.instance.hostel.code }}-{{ form.instance.category|slice:":3"|upper }}-{{ form.instance.name|slice:":10"|upper }}
                                         {% else %}
                                             [Hostel]-[CAT]-[Item]
@@ -507,7 +507,7 @@
                                     <span id="previewLocation">
                                         {% if form.instance.room %}
                                             {{ form.instance.room.hostel.name }} - Room {{ form.instance.room.room_number }}
-                                        {% elif form.instance.hostel %}
+                                        {% elif form.instance.hostel_id %}
                                             {{ form.instance.hostel.name }}
                                         {% else %}
                                             Not specified

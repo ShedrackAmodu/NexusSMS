@@ -814,6 +814,12 @@
                         <span class="info-label">{% trans "Class" %}</span>
                         <span class="info-value">{{ current_enrollment.class_enrolled.name }}</span>
                     </div>
+                    {% if current_enrollment.department %}
+                    <div class="info-item">
+                        <span class="info-label">{% trans "Department" %}</span>
+                        <span class="info-value">{{ current_enrollment.department.name }}</span>
+                    </div>
+                    {% endif %}
                     <div class="info-item">
                         <span class="info-label">{% trans "Roll Number" %}</span>
                         <span class="info-value">{{ current_enrollment.roll_number }}</span>
@@ -1033,6 +1039,12 @@
                             {% endif %}
                         </span>
                     </div>
+                    {% if student.department %}
+                    <div class="info-item">
+                        <span class="info-label">{% trans "Department" %}</span>
+                        <span class="info-value">{{ student.department.name }}</span>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 

@@ -818,9 +818,9 @@ class UserRoleAdmin(admin.ModelAdmin):
         if user.is_superuser:
             return True
 
-        # Check if user has admin or principal role
-        return user.user_roles.filter(
-            role__role_type__in=['admin', 'principal'],
+        # Check if user has admin, principal, or school_admin role
+        return hasattr(user, 'user_roles') and user.user_roles.filter(
+            role__role_type__in=['admin', 'principal', 'school_admin'],
             status='active'
         ).exists()
 

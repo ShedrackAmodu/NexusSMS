@@ -65,37 +65,47 @@ class DashboardView(AccountantRequiredMixin, View):
 
     def get(self, request):
         current_session = AcademicSession.objects.filter(is_current=True).first()
-        
-        # Fee Collection Summary
+
+        # Get current institution for filtering
+        from apps.core.middleware import get_current_institution
+        current_institution = get_current_institution()
+
+        # Fee Collection Summary - FILTERED BY INSTITUTION
         total_invoiced = Invoice.objects.filter(
-            academic_session=current_session
+            academic_session=current_session,
+            student__institution=current_institution
         ).aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0.00')
-        
+
         total_paid = Invoice.objects.filter(
-            academic_session=current_session
+            academic_session=current_session,
+            student__institution=current_institution
         ).aggregate(Sum('amount_paid'))['amount_paid__sum'] or Decimal('0.00')
-        
+
         total_outstanding = total_invoiced - total_paid
-        
-        # Recent Invoices
+
+        # Recent Invoices - FILTERED BY INSTITUTION
         recent_invoices = Invoice.objects.filter(
-            academic_session=current_session
+            academic_session=current_session,
+            student__institution=current_institution
         ).select_related('student__user').order_by('-issue_date')[:5]
-        
-        # Recent Payments
+
+        # Recent Payments - FILTERED BY INSTITUTION
         recent_payments = Payment.objects.filter(
-            invoice__academic_session=current_session
+            invoice__academic_session=current_session,
+            invoice__student__institution=current_institution
         ).select_related('student__user', 'invoice').order_by('-payment_date')[:5]
-        
-        # Expense Summary
+
+        # Expense Summary - FILTERED BY INSTITUTION
         total_expenses = Expense.objects.filter(
             expense_date__year=timezone.now().year,
-            expense_date__month=timezone.now().month
+            expense_date__month=timezone.now().month,
+            institution=current_institution
         ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-        
-        # Overdue Invoices
+
+        # Overdue Invoices - FILTERED BY INSTITUTION
         overdue_invoices_count = Invoice.objects.filter(
             academic_session=current_session,
+            student__institution=current_institution,
             due_date__lt=timezone.now().date(),
             balance_due__gt=Decimal('0.00')
         ).count()

@@ -25,6 +25,7 @@ urlpatterns = [
     path('sessions/', views.AcademicSessionListView.as_view(), name='session_list'),
     path('sessions/create/', views.AcademicSessionCreateView.as_view(), name='session_create'),
     path('sessions/<uuid:pk>/update/', views.AcademicSessionUpdateView.as_view(), name='session_update'),
+    path('sessions/<uuid:pk>/delete/', views.AcademicSessionDeleteView.as_view(), name='session_delete'),
     path('sessions/<uuid:pk>/', views.AcademicSessionDetailView.as_view(), name='session_detail'),
 
     # Department URLs
@@ -99,8 +100,9 @@ urlpatterns = [
     # Calendar
     path('calendar/', views.AcademicCalendarView.as_view(), name='academic_calendar'),
 
-    # API/AJAX URLs
+# API/AJAX URLs
     path('api/classes-by-grade/', views.GetClassesByGradeView.as_view(), name='api_classes_by_grade'),
+    path('api/class-info/', views.GetClassInfoView.as_view(), name='api_class_info'),
     path('api/timetable-by-class/<uuid:class_id>/', views.GetTimetableByClassView.as_view(), name='api_timetable_by_class'),
 
     # Enrollment API URLs

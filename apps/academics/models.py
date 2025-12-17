@@ -467,6 +467,17 @@ class Student(CoreBaseModel, AddressModel, ContactModel):
         blank=True
     )
 
+    # Department (for tertiary education students)
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='students',
+        verbose_name=_('department'),
+        help_text=_('Primary department for tertiary education students')
+    )
+
     # Parent/Guardian Information
     father_name = models.CharField(_('father name'), max_length=100, blank=True)
     father_occupation = models.CharField(_('father occupation'), max_length=100, blank=True)
@@ -533,6 +544,15 @@ class Student(CoreBaseModel, AddressModel, ContactModel):
             academic_session__is_current=True
         ).first()
         return current_enrollment.class_enrolled if current_enrollment else None
+
+    @property
+    def current_department(self):
+        """Get current department enrollment for active session."""
+        current_enrollment = self.enrollments.filter(
+            status='active',
+            academic_session__is_current=True
+        ).first()
+        return current_enrollment.department if current_enrollment else None
 
     @property
     def age(self):
@@ -699,6 +719,15 @@ class Enrollment(CoreBaseModel):
         verbose_name=_('academic session'),
         null=True,
         blank=True
+    )
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='enrollments',
+        verbose_name=_('department'),
+        help_text=_('Department for tertiary education enrollments')
     )
     enrollment_date = models.DateField(_('enrollment date'))
     enrollment_status = models.CharField(

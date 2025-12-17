@@ -241,6 +241,7 @@ class Role(CoreBaseModel):
     """
     class RoleType(models.TextChoices):
         SUPER_ADMIN = 'super_admin', _('Super Administrator')
+        SCHOOL_ADMIN = 'school_admin', _('School Administrator')
         ADMIN = 'admin', _('Administrator')
         PRINCIPAL = 'principal', _('Principal')
         DEPARTMENT_HEAD = 'department_head', _('Department Head')
@@ -256,7 +257,7 @@ class Role(CoreBaseModel):
         HOSTEL_WARDEN = 'hostel_warden', _('Hostel Warden')
 
     STAFF_ROLES = [
-        RoleType.SUPER_ADMIN, RoleType.ADMIN, RoleType.PRINCIPAL,
+        RoleType.SUPER_ADMIN, RoleType.SCHOOL_ADMIN, RoleType.ADMIN, RoleType.PRINCIPAL,
         RoleType.DEPARTMENT_HEAD, RoleType.COUNSELOR, RoleType.TEACHER,
         RoleType.ACCOUNTANT, RoleType.LIBRARIAN, RoleType.DRIVER,
         RoleType.SUPPORT, RoleType.TRANSPORT_MANAGER, RoleType.HOSTEL_WARDEN
@@ -1056,6 +1057,17 @@ class StudentApplication(CoreBaseModel, AddressModel):
     medical_conditions = models.TextField(_('medical conditions'), blank=True)
     special_needs = models.TextField(_('special educational needs'), blank=True)
     extracurricular_interests = models.TextField(_('extracurricular interests'), blank=True)
+
+    # Department for tertiary education applications
+    department = models.ForeignKey(
+        'academics.Department',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='student_applications',
+        verbose_name=_('department'),
+        help_text=_('Department for tertiary education applications')
+    )
 
     # Parent/Guardian Information
     parent_first_name = models.CharField(_('parent first name'), max_length=50)

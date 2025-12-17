@@ -1,9 +1,9 @@
 <!-- templates/hostels/allocations/allocation_form.html -->
 {% extends 'base.html' %}
-{% load static %}
+{% load static i18n %}
 
 {% block title %}
-    {% if form.instance.pk %}Edit Allocation - {{ form.instance.student.user.get_full_name }}{% else %}Create New Allocation{% endif %}
+    {% if form.instance.pk and form.instance.student %}Edit Allocation - {{ form.instance.student.user.get_full_name }}{% else %}Create New Allocation{% endif %}
 {% endblock %}
 
 {% block extra_css %}
@@ -320,7 +320,7 @@
 {% endblock %}
 
 {% block page_title %}
-    {% if form.instance.pk %}Edit Allocation - {{ form.instance.student.user.get_full_name }}{% else %}Create New Allocation{% endif %}
+    {% if form.instance.pk and form.instance.student %}Edit Allocation - {{ form.instance.student.user.get_full_name }}{% else %}Create New Allocation{% endif %}
 {% endblock %}
 
 {% block breadcrumb_items %}

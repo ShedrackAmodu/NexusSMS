@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 
-from apps.academics.models import AcademicSession
+from apps.academics.models import AcademicSession, Department
 
 from .models import User, UserProfile, Role, UserRole, LoginHistory, PasswordHistory, ParentStudentRelationship, StudentApplication, StaffApplication, InstitutionTransferRequest
 from apps.core.models import Institution
@@ -926,6 +926,17 @@ class StudentApplicationForm(forms.ModelForm):
         }),
         help_text=_('Select the grade level you are applying for.')
     )
+    # Department selection field for tertiary education
+    department = forms.ModelChoiceField(
+        queryset=Department.objects.filter(status='active'),
+        required=False,
+        empty_label=_('Select department (for tertiary education)'),
+        label=_('Department'),
+        widget=forms.Select(attrs={
+            'class': 'form-control'
+        }),
+        help_text=_('Select your preferred department for tertiary education applications.')
+    )
     # Institution selection field with enhanced filtering
     institution = forms.ModelChoiceField(
         queryset=Institution.objects.filter(
@@ -951,7 +962,7 @@ class StudentApplicationForm(forms.ModelForm):
             'postal_code', 'country',
 
             # Academic Information
-            'grade_applying_for', 'previous_school', 'previous_grade',
+            'grade_applying_for', 'department', 'previous_school', 'previous_grade',
             'academic_achievements',
 
             # Parent/Guardian Information
@@ -1134,6 +1145,9 @@ class StudentApplicationForm(forms.ModelForm):
 
         self.fields['grade_applying_for'].choices = grouped_choices
         self.fields['grade_applying_for'].empty_label = _("Select grade level")
+
+        # Make department conditional based on grade level selection
+        # This will be handled by JavaScript on the frontend
 
     def clean(self):
         cleaned_data = super().clean()

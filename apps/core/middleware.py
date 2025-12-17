@@ -168,32 +168,20 @@ def user_can_access_institution(user, institution):
     Check if a user can access a specific institution.
     Returns True if:
     - User is superuser (platform admin)
-    - User is institution admin (or higher role)
     - User belongs to the institution via InstitutionUser
     """
     # Superuser can access all institutions
     if user.is_superuser:
         return True
 
-    # Check if user has institution-level admin role
-    from .models import InstitutionUser, Role
+    # Check if user belongs to this institution
+    from .models import InstitutionUser
     try:
-        user_membership = InstitutionUser.objects.filter(
+        return InstitutionUser.objects.filter(
             user=user,
             institution=institution,
             institution__is_active=True
-        ).first()
-
-        if user_membership:
-            # Check user roles for admin-level access
-            user_roles = user.user_roles.filter(
-                role__hierarchy_level__gte=70,  # Principal level and above
-                academic_session__is_current=True
-            )
-            if user_roles.exists():
-                return True
-
-        return False
+        ).exists()
     except:
         return False
 
@@ -201,21 +189,20 @@ def user_can_access_institution(user, institution):
 def filter_queryset_by_institution(queryset, user, institution_field='institution'):
     """
     Filter a queryset by institution access permissions.
-    For superusers: no filtering (access all)
-    For regular users: filter to their accessible institutions
+    Superusers can access all institutions.
+    Admin/principal users can access their primary institution.
+    Regular users can access institutions they belong to.
     """
+    # Superusers can access all institutions
     if user.is_superuser:
         return queryset
 
-    # Get institutions the user can access
-    from .models import InstitutionUser
-    accessible_institutions = InstitutionUser.objects.filter(
-        user=user,
-        institution__is_active=True
-    ).values_list('institution_id', flat=True)
+    # Get accessible institutions for this user
+    accessible_institutions = get_user_accessible_institutions(user)
 
     if accessible_institutions:
-        filter_kwargs = {f'{institution_field}__in': list(accessible_institutions)}
+        accessible_ids = list(accessible_institutions.values_list('id', flat=True))
+        filter_kwargs = {f'{institution_field}__in': accessible_ids}
         return queryset.filter(**filter_kwargs)
     else:
         # No accessible institutions, return empty queryset
@@ -226,11 +213,37 @@ def get_user_accessible_institutions(user):
     """
     Get all institutions a user can access.
     Superusers get all institutions.
+    Admin/principal users get only their primary institution.
     Regular users get institutions they belong to.
     """
     if user.is_superuser:
         return Institution.objects.filter(is_active=True)
 
+    # Check if user has admin, principal, or school_admin role
+    if user.user_roles.filter(
+        role__role_type__in=['admin', 'principal', 'school_admin'],
+        status='active'
+    ).exists():
+        # Admin/principal users only get their primary institution
+        from .models import InstitutionUser
+        primary_membership = InstitutionUser.objects.filter(
+            user=user,
+            is_primary=True,
+            institution__is_active=True
+        ).select_related('institution').first()
+        if primary_membership:
+            return Institution.objects.filter(id=primary_membership.institution.id)
+        else:
+            # Fallback to first institution if no primary set
+            first_membership = InstitutionUser.objects.filter(
+                user=user,
+                institution__is_active=True
+            ).select_related('institution').first()
+            if first_membership:
+                return Institution.objects.filter(id=first_membership.institution.id)
+        return Institution.objects.none()
+
+    # Regular users get all institutions they belong to
     from .models import InstitutionUser
     accessible_institution_ids = InstitutionUser.objects.filter(
         user=user,

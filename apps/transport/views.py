@@ -946,45 +946,68 @@ class IncidentReportDeleteView(LoginRequiredMixin, PermissionRequiredMixin, Dele
 
 class TransportDashboardView(LoginRequiredMixin, View):
     template_name = 'transport/dashboard/dashboard.html'
-    
+
     def get(self, request):
         context = {}
-        
-        # Vehicle Statistics
-        context['total_vehicles'] = Vehicle.objects.count()
-        context['active_vehicles'] = Vehicle.objects.filter(status='active').count()
-        context['maintenance_vehicles'] = Vehicle.objects.filter(status='maintenance').count()
-        context['out_of_service_vehicles'] = Vehicle.objects.filter(status='out_of_service').count()
-        
-        # Driver Statistics
-        context['total_drivers'] = Driver.objects.count()
-        context['active_drivers'] = Driver.objects.filter(status='active').count()
+
+        # Get current institution for filtering
+        from apps.core.middleware import get_current_institution
+        current_institution = get_current_institution()
+
+        # Vehicle Statistics - FILTERED BY INSTITUTION
+        context['total_vehicles'] = Vehicle.objects.filter(institution=current_institution).count()
+        context['active_vehicles'] = Vehicle.objects.filter(
+            institution=current_institution, status='active'
+        ).count()
+        context['maintenance_vehicles'] = Vehicle.objects.filter(
+            institution=current_institution, status='maintenance'
+        ).count()
+        context['out_of_service_vehicles'] = Vehicle.objects.filter(
+            institution=current_institution, status='out_of_service'
+        ).count()
+
+        # Driver Statistics - FILTERED BY INSTITUTION
+        context['total_drivers'] = Driver.objects.filter(institution=current_institution).count()
+        context['active_drivers'] = Driver.objects.filter(
+            institution=current_institution, status='active'
+        ).count()
         context['drivers_with_expired_license'] = Driver.objects.filter(
+            institution=current_institution,
             license_expiry__lt=timezone.now().date()
         ).count()
-        
-        # Route Statistics
-        context['total_routes'] = Route.objects.count()
-        context['active_routes'] = Route.objects.filter(is_active=True).count()
-        
-        # Allocation Statistics
-        context['total_allocations'] = TransportAllocation.objects.count()
-        context['active_allocations'] = TransportAllocation.objects.filter(status='active').count()
-        
-        # Maintenance Statistics
+
+        # Route Statistics - FILTERED BY INSTITUTION
+        context['total_routes'] = Route.objects.filter(institution=current_institution).count()
+        context['active_routes'] = Route.objects.filter(
+            institution=current_institution, is_active=True
+        ).count()
+
+        # Allocation Statistics - FILTERED BY INSTITUTION
+        context['total_allocations'] = TransportAllocation.objects.filter(
+            route_schedule__academic_session__institution=current_institution
+        ).count()
+        context['active_allocations'] = TransportAllocation.objects.filter(
+            route_schedule__academic_session__institution=current_institution,
+            status='active'
+        ).count()
+
+        # Maintenance Statistics - FILTERED BY INSTITUTION
         context['pending_maintenance'] = MaintenanceRecord.objects.filter(
+            vehicle__institution=current_institution,
             next_due_date__lte=timezone.now().date() + timezone.timedelta(days=7)
         ).count()
-        
-        # Recent Incidents
-        context['recent_incidents'] = IncidentReport.objects.all()[:5]
-        
-        # Vehicle Status Distribution
-        vehicle_status = Vehicle.objects.values('status').annotate(count=Count('id'))
+
+        # Recent Incidents - FILTERED BY INSTITUTION
+        context['recent_incidents'] = IncidentReport.objects.filter(
+            route_schedule__academic_session__institution=current_institution
+        )[:5]
+
+        # Vehicle Status Distribution - FILTERED BY INSTITUTION
+        vehicle_status = Vehicle.objects.filter(institution=current_institution).values('status').annotate(count=Count('id'))
         context['vehicle_status_distribution'] = {
             item['status']: item['count'] for item in vehicle_status
         }
-        
+
         return render(request, self.template_name, context)
 
 

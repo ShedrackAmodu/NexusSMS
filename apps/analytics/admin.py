@@ -29,6 +29,38 @@ class ReportInline(admin.TabularInline):
 
 @admin.register(ReportType)
 class ReportTypeAdmin(admin.ModelAdmin):
+    def has_view_permission(self, request, obj=None):
+        """Deny access to school_admin users."""
+        if self._user_has_school_admin_role(request.user):
+            return False
+        return super().has_view_permission(request, obj)
+
+    def has_add_permission(self, request):
+        """Deny access to school_admin users."""
+        if self._user_has_school_admin_role(request.user):
+            return False
+        return super().has_add_permission(request)
+
+    def has_change_permission(self, request, obj=None):
+        """Deny access to school_admin users."""
+        if self._user_has_school_admin_role(request.user):
+            return False
+        return super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        """Deny access to school_admin users."""
+        if self._user_has_school_admin_role(request.user):
+            return False
+        return super().has_delete_permission(request, obj)
+
+    def _user_has_school_admin_role(self, user):
+        """Check if user has school_admin role."""
+        if not user.is_authenticated:
+            return False
+        return user.user_roles.filter(
+            role__role_type='school_admin',
+            status='active'
+        ).exists()
     """
     Admin interface for ReportType model.
     """
@@ -101,7 +133,7 @@ class ReportAdmin(admin.ModelAdmin):
     autocomplete_fields = ('report_type', 'academic_session', 'generated_by')
     raw_id_fields = ('generated_by',)
     date_hierarchy = 'created_at'
-    
+
     fieldsets = (
         (_('Report Information'), {
             'fields': ('name', 'report_type', 'academic_session', 'generated_by')
@@ -157,9 +189,74 @@ class ReportAdmin(admin.ModelAdmin):
         self.message_user(request, f'Access statistics updated for {queryset.count()} reports.', messages.SUCCESS)
     update_access_stats.short_description = _('Update access statistics for selected reports')
 
+    def has_view_permission(self, request, obj=None):
+        """Deny access to school_admin users."""
+        if self._user_has_school_admin_role(request.user):
+            return False
+        return super().has_view_permission(request, obj)
+
+    def has_add_permission(self, request):
+        """Deny access to school_admin users."""
+        if self._user_has_school_admin_role(request.user):
+            return False
+        return super().has_add_permission(request)
+
+    def has_change_permission(self, request, obj=None):
+        """Deny access to school_admin users."""
+        if self._user_has_school_admin_role(request.user):
+            return False
+        return super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        """Deny access to school_admin users."""
+        if self._user_has_school_admin_role(request.user):
+            return False
+        return super().has_delete_permission(request, obj)
+
+    def _user_has_school_admin_role(self, user):
+        """Check if user has school_admin role."""
+        if not user.is_authenticated:
+            return False
+        return user.user_roles.filter(
+            role__role_type='school_admin',
+            status='active'
+        ).exists()
+
 
 @admin.register(Dashboard)
 class DashboardAdmin(admin.ModelAdmin):
+    def has_view_permission(self, request, obj=None):
+        """Deny access to school_admin users."""
+        if self._user_has_school_admin_role(request.user):
+            return False
+        return super().has_view_permission(request, obj)
+
+    def has_add_permission(self, request):
+        """Deny access to school_admin users."""
+        if self._user_has_school_admin_role(request.user):
+            return False
+        return super().has_add_permission(request)
+
+    def has_change_permission(self, request, obj=None):
+        """Deny access to school_admin users."""
+        if self._user_has_school_admin_role(request.user):
+            return False
+        return super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        """Deny access to school_admin users."""
+        if self._user_has_school_admin_role(request.user):
+            return False
+        return super().has_delete_permission(request, obj)
+
+    def _user_has_school_admin_role(self, user):
+        """Check if user has school_admin role."""
+        if not user.is_authenticated:
+            return False
+        return user.user_roles.filter(
+            role__role_type='school_admin',
+            status='active'
+        ).exists()
     """
     Admin interface for Dashboard model.
     """
@@ -215,7 +312,7 @@ class KPIAdmin(admin.ModelAdmin):
     list_filter = ('category', 'value_type', 'refresh_frequency', 'is_trending', 'status', 'created_at')
     search_fields = ('name', 'code', 'description', 'data_source')
     readonly_fields = ('created_at', 'updated_at')
-    
+
     fieldsets = (
         (_('KPI Information'), {
             'fields': ('name', 'code', 'category', 'description', 'value_type')
@@ -254,6 +351,39 @@ class KPIAdmin(admin.ModelAdmin):
         self.message_user(request, f'Refresh initiated for {queryset.count()} KPIs.', messages.INFO)
     refresh_kpis.short_description = _('Refresh selected KPIs')
 
+    def has_view_permission(self, request, obj=None):
+        """Deny access to school_admin users."""
+        if self._user_has_school_admin_role(request.user):
+            return False
+        return super().has_view_permission(request, obj)
+
+    def has_add_permission(self, request):
+        """Deny access to school_admin users."""
+        if self._user_has_school_admin_role(request.user):
+            return False
+        return super().has_add_permission(request)
+
+    def has_change_permission(self, request, obj=None):
+        """Deny access to school_admin users."""
+        if self._user_has_school_admin_role(request.user):
+            return False
+        return super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        """Deny access to school_admin users."""
+        if self._user_has_school_admin_role(request.user):
+            return False
+        return super().has_delete_permission(request, obj)
+
+    def _user_has_school_admin_role(self, user):
+        """Check if user has school_admin role."""
+        if not user.is_authenticated:
+            return False
+        return user.user_roles.filter(
+            role__role_type='school_admin',
+            status='active'
+        ).exists()
+
 
 @admin.register(KPIMeasurement)
 class KPIMeasurementAdmin(admin.ModelAdmin):
@@ -267,7 +397,7 @@ class KPIMeasurementAdmin(admin.ModelAdmin):
     autocomplete_fields = ('kpi', 'academic_session')
     raw_id_fields = ('kpi',)
     date_hierarchy = 'measured_at'
-    
+
     fieldsets = (
         (_('Measurement Information'), {
             'fields': ('kpi', 'academic_session', 'measured_at')
@@ -290,6 +420,39 @@ class KPIMeasurementAdmin(admin.ModelAdmin):
         self.message_user(request, f'Change percentages recalculated for {queryset.count()} measurements.', messages.SUCCESS)
     recalculate_change_percentage.short_description = _('Recalculate change percentages for selected measurements')
 
+    def has_view_permission(self, request, obj=None):
+        """Deny access to school_admin users."""
+        if self._user_has_school_admin_role(request.user):
+            return False
+        return super().has_view_permission(request, obj)
+
+    def has_add_permission(self, request):
+        """Deny access to school_admin users."""
+        if self._user_has_school_admin_role(request.user):
+            return False
+        return super().has_add_permission(request)
+
+    def has_change_permission(self, request, obj=None):
+        """Deny access to school_admin users."""
+        if self._user_has_school_admin_role(request.user):
+            return False
+        return super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        """Deny access to school_admin users."""
+        if self._user_has_school_admin_role(request.user):
+            return False
+        return super().has_delete_permission(request, obj)
+
+    def _user_has_school_admin_role(self, user):
+        """Check if user has school_admin role."""
+        if not user.is_authenticated:
+            return False
+        return user.user_roles.filter(
+            role__role_type='school_admin',
+            status='active'
+        ).exists()
+
 
 @admin.register(DataExport)
 class DataExportAdmin(admin.ModelAdmin):
@@ -303,7 +466,7 @@ class DataExportAdmin(admin.ModelAdmin):
     autocomplete_fields = ('requested_by',)
     raw_id_fields = ('requested_by',)
     date_hierarchy = 'created_at'
-    
+
     fieldsets = (
         (_('Export Information'), {
             'fields': ('name', 'description', 'requested_by', 'data_source')
@@ -353,6 +516,39 @@ class DataExportAdmin(admin.ModelAdmin):
         expired.delete()
         self.message_user(request, f'{count} expired exports cleaned up.', messages.SUCCESS)
     cleanup_expired_exports.short_description = _('Cleanup expired exports')
+
+    def has_view_permission(self, request, obj=None):
+        """Deny access to school_admin users."""
+        if self._user_has_school_admin_role(request.user):
+            return False
+        return super().has_view_permission(request, obj)
+
+    def has_add_permission(self, request):
+        """Deny access to school_admin users."""
+        if self._user_has_school_admin_role(request.user):
+            return False
+        return super().has_add_permission(request)
+
+    def has_change_permission(self, request, obj=None):
+        """Deny access to school_admin users."""
+        if self._user_has_school_admin_role(request.user):
+            return False
+        return super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        """Deny access to school_admin users."""
+        if self._user_has_school_admin_role(request.user):
+            return False
+        return super().has_delete_permission(request, obj)
+
+    def _user_has_school_admin_role(self, user):
+        """Check if user has school_admin role."""
+        if not user.is_authenticated:
+            return False
+        return user.user_roles.filter(
+            role__role_type='school_admin',
+            status='active'
+        ).exists()
 
 
 @admin.register(AnalyticsCache)

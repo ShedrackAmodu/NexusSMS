@@ -362,7 +362,7 @@ class HostelAllocationForm(forms.ModelForm):
         )
         
         # Auto-set current class if student is selected
-        if self.instance and self.instance.student:
+        if self.instance and self.instance.student_id:
             current_class = self.instance.student.current_class
             if current_class:
                 self.fields['class_enrolled'].initial = current_class
@@ -606,17 +606,17 @@ class MaintenanceRequestForm(forms.ModelForm):
                 self.fields['room'].queryset = Room.objects.filter(hostel_id=hostel_id)
             except (ValueError, TypeError):
                 pass
-        elif self.instance and self.instance.hostel:
-            self.fields['room'].queryset = Room.objects.filter(hostel=self.instance.hostel)
-        
+        elif self.instance and self.instance.hostel_id:
+            self.fields['room'].queryset = Room.objects.filter(hostel_id=self.instance.hostel_id)
+
         if 'room' in self.data:
             try:
                 room_id = int(self.data.get('room'))
                 self.fields['bed'].queryset = Bed.objects.filter(room_id=room_id)
             except (ValueError, TypeError):
                 pass
-        elif self.instance and self.instance.room:
-            self.fields['bed'].queryset = Bed.objects.filter(room=self.instance.room)
+        elif self.instance and self.instance.room_id:
+            self.fields['bed'].queryset = Bed.objects.filter(room_id=self.instance.room_id)
 
 
 class InventoryItemForm(forms.ModelForm):
@@ -676,8 +676,8 @@ class InventoryItemForm(forms.ModelForm):
                 self.fields['room'].queryset = Room.objects.filter(hostel_id=hostel_id)
             except (ValueError, TypeError):
                 pass
-        elif self.instance and self.instance.hostel:
-            self.fields['room'].queryset = Room.objects.filter(hostel=self.instance.hostel)
+        elif self.instance and self.instance.hostel_id:
+            self.fields['room'].queryset = Room.objects.filter(hostel_id=self.instance.hostel_id)
 
 
 class BulkAllocationForm(forms.Form):
