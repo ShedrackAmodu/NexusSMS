@@ -11,3 +11,10 @@ def filter_by_category(queryset, category):
     if category is None:
         return queryset.filter(category__isnull=True)
     return queryset.filter(category=category)
+
+@register.filter
+def get_item(dictionary, key):
+    """
+    Gets an item from a dictionary by key.
+    """
+    return dictionary.get(key, 0)

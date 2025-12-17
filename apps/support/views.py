@@ -116,6 +116,13 @@ class HelpCenterArticleListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['categories'] = Category.objects.filter(is_active=True)
+
+        # Add statistics for the template
+        all_articles = HelpCenterArticle.objects.filter(is_published=True)
+        context['total_articles'] = all_articles.count()
+        context['total_categories'] = Category.objects.filter(is_active=True).count()
+        context['general_articles'] = all_articles.filter(category__isnull=True).count()
+
         return context
 
 
@@ -169,6 +176,28 @@ class ResourceListView(ListView):
         if resource_type:
             queryset = queryset.filter(resource_type=resource_type)
         return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Add statistics for the template
+        all_resources = Resource.objects.filter(is_published=True)
+        context['total_resources'] = all_resources.count()
+        context['resource_types'] = dict(Resource.ResourceType.choices)
+
+        # Create a list of resource type statistics for easier template access
+        resource_type_stats = []
+        for resource_type, type_label in Resource.ResourceType.choices:
+            count = all_resources.filter(resource_type=resource_type).count()
+            if count > 0:
+                resource_type_stats.append({
+                    'type': resource_type,
+                    'label': type_label,
+                    'count': count
+                })
+        context['resource_type_stats'] = resource_type_stats
+
+        return context
 
 
 class ResourceCreateView(LoginRequiredMixin, SupportStaffRequiredMixin, SuccessMessageMixin, CreateView):

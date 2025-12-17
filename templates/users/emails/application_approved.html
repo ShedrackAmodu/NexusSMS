@@ -41,6 +41,9 @@
                 {% if admission_number %}
                 <p><strong>{% trans "Admission Number:" %}</strong> {{ admission_number }}</p>
                 {% endif %}
+                {% if application.grade_applying_for %}
+                <p><strong>{% trans "Grade/Class:" %}</strong> {{ application.grade_applying_for }}</p>
+                {% endif %}
                 <p><strong>{% trans "Email:" %}</strong> {{ user.email }}</p>
                 <p><strong>{% trans "Temporary Password:" %}</strong> {{ temporary_password }}</p>
 
