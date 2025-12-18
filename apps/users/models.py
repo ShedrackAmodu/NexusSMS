@@ -251,6 +251,7 @@ class Role(CoreBaseModel):
         PARENT = 'parent', _('Parent')
         ACCOUNTANT = 'accountant', _('Accountant')
         LIBRARIAN = 'librarian', _('Librarian')
+        ACTIVITIES_COORDINATOR = 'activities_coordinator', _('Activities Coordinator')
         DRIVER = 'driver', _('Driver')
         SUPPORT = 'support', _('Support Staff')
         TRANSPORT_MANAGER = 'transport_manager', _('Transport Manager')
@@ -259,14 +260,14 @@ class Role(CoreBaseModel):
     STAFF_ROLES = [
         RoleType.SUPER_ADMIN, RoleType.SCHOOL_ADMIN, RoleType.ADMIN, RoleType.PRINCIPAL,
         RoleType.DEPARTMENT_HEAD, RoleType.COUNSELOR, RoleType.TEACHER,
-        RoleType.ACCOUNTANT, RoleType.LIBRARIAN, RoleType.DRIVER,
+        RoleType.ACCOUNTANT, RoleType.LIBRARIAN, RoleType.ACTIVITIES_COORDINATOR, RoleType.DRIVER,
         RoleType.SUPPORT, RoleType.TRANSPORT_MANAGER, RoleType.HOSTEL_WARDEN
     ]
 
     name = models.CharField(_('role name'), max_length=50, unique=True)
     role_type = models.CharField(
         _('role type'),
-        max_length=20,
+        max_length=25,
         choices=RoleType.choices,
         unique=True
     )
@@ -1567,7 +1568,7 @@ def auto_map_user_to_institution(sender, instance, created, **kwargs):
     # Only process if this is a staff role that requires institution mapping
     staff_role_types = [
         'super_admin', 'admin', 'principal', 'department_head', 'counselor',
-        'teacher', 'accountant', 'librarian', 'driver', 'support',
+        'teacher', 'accountant', 'librarian', 'activities_coordinator', 'driver', 'support',
         'transport_manager', 'hostel_warden'
     ]
 

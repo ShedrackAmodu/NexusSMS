@@ -1,752 +1,1196 @@
-# 🏫 School Management System - Comprehensive User Stories
+# 🏫 School Management System - Complete Feature Specification
 
 ## 📋 Table of Contents
+
+### 🎯 Core System Roles
 - [👑 Super Administrator](#-super-administrator)
 - [👨‍💼 School Administrator](#-school-administrator)
 - [📚 Principal](#-principal)
 - [👨‍🏫 Teacher](#-teacher)
 - [🎓 Student](#-student)
 - [👨‍👩‍👧‍👦 Parent](#-parent)
+
+### 🛠️ Support & Specialized Roles
 - [👨‍💻 Support Staff](#-support-staff)
 - [🚌 Transport Manager](#-transport-manager)
 - [🏠 Hostel Warden](#-hostel-warden)
 - [📖 Librarian](#-librarian)
-- [⚽ Extracurricular Activities Coordinator](#-extracurricular-activities-coordinator)
-- [🎯 Cross-Role Collaboration](#-cross-role-collaboration)
+- [⚽ Activities Coordinator](#-activities-coordinator)
+
+### 📚 Academic Leadership Roles
+- [👨‍🏫 Department Head](#-department-head)
+- [👨‍⚕️ School Counselor](#-school-counselor)
+
+### 💰 Administrative Roles
+- [💼 Accountant](#-accountant)
+
+### 🚗 Operational Roles
+- [🚗 Driver](#-driver)
+
+### 🤝 Cross-Role Collaboration
+- [Emergency Communication Protocol](#-emergency-communication-protocol)
+- [Student Support Team Collaboration](#-student-support-team-collaboration)
+- [Academic Planning Committee](#-academic-planning-committee)
+- [Parent-Teacher Association Coordination](#-parent-teacher-association-coordination)
+- [Extracurricular Activities Coordination](#-extracurricular-activities-coordination)
+
+### 🏗️ System Architecture
+- [Core Models & Components](#-core-models--components)
+- [Testing Strategy Summary](#-testing-strategy-summary)
+
+---
+
+## 🎯 Role-Based Features Overview
+
+| Role | Primary Focus | Key Features | Hierarchy Level |
+|------|---------------|--------------|-----------------|
+| 👑 **Super Admin** | System Management | Multi-institution, Security, Config | 100 |
+| 👨‍💼 **School Admin** | Operations | Staff, Finance, Communication | 90 |
+| 📚 **Principal** | Academic Leadership | Performance, Teacher Management | 85 |
+| 👨‍🏫 **Department Head** | Department Leadership | Subject coordination, Staff oversight | 80 |
+| 👨‍⚕️ **Counselor** | Student Support | Guidance, Welfare monitoring | 75 |
+| 👨‍🏫 **Teacher** | Classroom Management | Attendance, Grading, Materials | 70 |
+| 💼 **Accountant** | Financial Management | Budgeting, Payments, Reporting | 65 |
+| 📖 **Librarian** | Library Management | Collection, Circulation | 60 |
+| ⚽ **Activities Coordinator** | Extracurricular | Planning, Registration | 60 |
+| 👨‍💻 **Support Staff** | Technical Support | Help Desk, Knowledge Base | 55 |
+| 🚌 **Transport Manager** | Transportation | Fleet, Routes, Safety | 55 |
+| 🏠 **Hostel Warden** | Residential Life | Facilities, Student Welfare | 55 |
+| 🚗 **Driver** | Transportation Services | Route execution, Safety | 50 |
+| 🎓 **Student** | Learning | Schedule, Materials, Performance | 10 |
+| 👨‍👩‍👧‍👦 **Parent** | Child Monitoring | Progress, Communication, Fees | 10 |
 
 ---
 
 ## 👑 Super Administrator
 
-### 🎯 System Management & Configuration
-**As a Super Administrator, I want to manage system-wide configurations so that I can ensure optimal performance and security across all institutions.**
+**🎯 System Management & Configuration**
 
-### 📋 User Stories:
+As a Super Administrator, I want to manage system-wide configurations so that I can ensure optimal performance and security across all institutions.
+
+### 📋 User Stories
 
 #### ⚙️ 1. System Configuration Management
-- **I want to** configure global system settings through `SystemConfig` model
-- **So that** I can customize the platform for different educational institutions
-- **✅ Acceptance Criteria:**
+• **Goal**: Configure global system settings through SystemConfig model
+• **Purpose**: Customize the platform for different educational institutions
+• **Acceptance Criteria**:
   - Can modify academic, financial, security, and UI configurations
   - Changes apply across all connected institutions
   - Audit trail maintained for all configuration changes
-  
 
 #### 🏫 2. Multi-Institution Management
-- **I want to** manage multiple school instances under one platform
-- **So that** educational chains can operate efficiently with centralized control
-- **✅ Acceptance Criteria:**
+• **Goal**: Manage multiple school instances under one platform
+• **Purpose**: Educational chains operate efficiently with centralized control
+• **Acceptance Criteria**:
   - Can create and configure new school instances
   - Set institution-specific parameters and limits
   - Monitor system-wide performance metrics
 
 #### 🛡️ 3. User Role Hierarchy Management
-- **I want to** define and modify role hierarchies and permissions
-- **So that** access control remains consistent and secure across the platform
-- **✅ Acceptance Criteria:**
+• **Goal**: Define and modify role hierarchies and permissions
+• **Purpose**: Access control remains consistent and secure across the platform
+• **Acceptance Criteria**:
   - Can create new roles with specific permission levels (0-100)
   - Modify existing role permissions and hierarchies
-  - Audit role assignment activities through `UserRoleActivity`
+  - Audit role assignment activities through UserRoleActivity
 
 #### 🔒 4. Security & Compliance Monitoring
-- **I want to** monitor security events and compliance across all institutions
-- **So that** I can ensure data protection and regulatory compliance
-- **✅ Acceptance Criteria:**
-  - Access comprehensive `AuditLog` reports
+• **Goal**: Monitor security events and compliance across all institutions
+• **Purpose**: Ensure data protection and regulatory compliance
+• **Acceptance Criteria**:
+  - Access comprehensive AuditLog reports
   - Monitor login patterns and security incidents
   - Generate compliance reports for regulatory bodies
 
 #### 📊 5. System Performance Analytics
-- **I want to** track system performance and usage metrics
-- **So that** I can optimize resources and plan for scalability
-- **✅ Acceptance Criteria:**
-  - Access `Dashboard` with real-time system KPIs
-  - Monitor `KPIMeasurement` trends for critical metrics
-  - Generate `DataExport` reports for capacity planning
+• **Goal**: Track system performance and usage metrics
+• **Purpose**: Optimize resources and plan for scalability
+• **Acceptance Criteria**:
+  - Access Dashboard with real-time system KPIs
+  - Monitor KPIMeasurement trends for critical metrics
+  - Generate DataExport reports for capacity planning
+
+### 🧪 Testing-Focused Feature Specification
+
+#### ⚙️ Feature 1.1: System Configuration Management
+• **Testing Focus**: Verify global settings modification and universal application with audit trails
+• **Test Scenarios**:
+  1. **Modify global setting**: Change language → Verify across institutions
+  2. **Audit trail**: Check configuration change logs
+
+#### 🏫 Feature 1.2: Multi-Institution Management
+• **Testing Focus**: Verify school instance creation and data isolation
+• **Test Scenarios**:
+  1. **Create institution**: Fill details → Verify appearance in list
+  2. **Data isolation**: Test cross-institution data access prevention
+
+#### 🛡️ Feature 1.3: User Role Hierarchy Management
+• **Testing Focus**: Verify role creation and permission modifications
+• **Test Scenarios**:
+  1. **Create custom role**: Define permissions → Verify availability
+  2. **Audit role assignment**: Check UserRoleActivity logs
 
 ---
 
 ## 👨‍💼 School Administrator
 
-### 🎯 School Operations Management
-**As a School Administrator, I want to manage daily school operations and administrative functions so that the institution runs smoothly and efficiently.**
+**🎯 School Operations Management**
 
-### 📋 User Stories:
+As a School Administrator, I want to manage daily school operations and administrative functions so that the institution runs smoothly and efficiently.
+
+### 📋 User Stories
 
 #### 👥 1. Staff Recruitment & Management
-- **I want to** process `StaffApplication` and manage employee lifecycle
-- **So that** we maintain qualified teaching and support staff
-- **✅ Acceptance Criteria:**
+• **Goal**: Process StaffApplication and manage employee lifecycle
+• **Purpose**: Maintain qualified teaching and support staff
+• **Acceptance Criteria**:
   - Review applications through defined workflow stages
-  - Generate employee IDs using `SequenceGenerator`
+  - Generate employee IDs using SequenceGenerator
   - Manage staff profiles and assignments
 
 #### 💰 2. Financial Management & Billing
-- **I want to** oversee school finances through the `Finance` app
-- **So that** the institution remains financially sustainable
-- **✅ Acceptance Criteria:**
-  - Configure `FeeStructure` for different classes and programs
-  - Monitor `Invoice` generation and `Payment` tracking
-  - Approve `Expense` requests and manage budgets
+• **Goal**: Oversee school finances through the Finance app
+• **Purpose**: Ensure financial sustainability
+• **Acceptance Criteria**:
+  - Configure FeeStructure for different classes and programs
+  - Monitor Invoice generation and Payment tracking
+  - Approve Expense requests and manage budgets
 
 #### 🏫 3. System Configuration & Academic Setup
-- **I want to** configure academic sessions and institutional settings
-- **So that** the academic year is properly structured
-- **✅ Acceptance Criteria:**
-  - Create and manage `AcademicSession` with terms
-  - Set up `Department` structures and assign heads
+• **Goal**: Configure academic sessions and institutional settings
+• **Purpose**: Properly structure the academic year
+• **Acceptance Criteria**:
+  - Create and manage AcademicSession with terms
+  - Set up Department structures and assign heads
   - Configure school-wide policies and schedules
 
 #### 💬 4. Communication Management
-- **I want to** manage institutional communications
-- **So that** important information reaches stakeholders effectively
-- **✅ Acceptance Criteria:**
-  - Create and publish `Announcement` for targeted audiences
-  - Monitor `Message` delivery through confirmation system
-  - Manage `NoticeBoard` displays and content
+• **Goal**: Manage institutional communications
+• **Purpose**: Reach stakeholders effectively with important information
+• **Acceptance Criteria**:
+  - Create and publish Announcement for targeted audiences
+  - Monitor Message delivery through confirmation system
+  - Manage NoticeBoard displays and content
 
 #### 📈 5. Reporting & Analytics
-- **I want to** access comprehensive operational reports
-- **So that** I can make data-driven decisions for school improvement
-- **✅ Acceptance Criteria:**
-  - Generate `FinancialReport` for budget analysis
-  - Access `AttendanceSummary` and academic performance reports
-  - Customize `Dashboard` views for different stakeholders
+• **Goal**: Access comprehensive operational reports
+• **Purpose**: Make data-driven decisions for school improvement
+• **Acceptance Criteria**:
+  - Generate FinancialReport for budget analysis
+  - Access AttendanceSummary and academic performance reports
+  - Customize Dashboard views for different stakeholders
+
+### 🧪 Testing-Focused Feature Specification
+
+#### 👥 Feature 2.1: Staff Recruitment & Management
+• **Testing Focus**: Complete StaffApplication workflow to employee creation
+• **Test Scenarios**:
+  1. **Process application**: Move through stages → Verify employee creation
+  2. **Rejection handling**: Cancel workflow appropriately
+
+#### 💰 Feature 2.2: Financial Management & Billing
+• **Testing Focus**: FeeStructure setup and invoice/payment processing
+• **Test Scenarios**:
+  1. **Create FeeStructure**: Apply to student → Verify invoice generation
+  2. **Fee modification**: Test existing invoice protection
 
 ---
 
 ## 📚 Principal
 
-### 🎯 Academic Leadership & Oversight
-**As a Principal, I want to monitor academic performance and provide leadership so that educational standards are maintained and improved.**
+**🎯 Academic Leadership & Oversight**
 
-### 📋 User Stories:
+As a Principal, I want to monitor academic performance and provide leadership so that educational standards are maintained and improved.
+
+### 📋 User Stories
 
 #### 📊 1. Academic Performance Monitoring
-- **I want to** track student and teacher performance metrics
-- **So that** I can identify areas for improvement and celebrate successes
-- **✅ Acceptance Criteria:**
-  - Access `Result` and `ReportCard` analytics
-  - Monitor `AcademicRecord` trends across classes
-  - Review `Assessment` outcomes and grading patterns
+• **Goal**: Track student and teacher performance metrics
+• **Purpose**: Identify improvement areas and celebrate successes
+• **Acceptance Criteria**:
+  - Access Result and ReportCard analytics
+  - Monitor AcademicRecord trends across classes
+  - Review Assessment outcomes and grading patterns
 
 #### 👨‍🏫 2. Teacher Management & Support
-- **I want to** oversee teacher assignments and performance
-- **So that** teaching quality is optimized across the institution
-- **✅ Acceptance Criteria:**
-  - Review `SubjectAssignment` and teaching loads
-  - Monitor `Class` performance under different teachers
+• **Goal**: Oversee teacher assignments and performance
+• **Purpose**: Optimize teaching quality across the institution
+• **Acceptance Criteria**:
+  - Review SubjectAssignment and teaching loads
+  - Monitor Class performance under different teachers
   - Access teacher contribution metrics and professional development needs
 
 #### 🎓 3. Student Welfare & Behavior Management
-- **I want to** monitor student behavior and welfare issues
-- **So that** we maintain a positive and productive learning environment
-- **✅ Acceptance Criteria:**
-  - Review `BehaviorRecord` and intervention outcomes
-  - Monitor `AcademicWarning` and support mechanisms
-  - Oversee `Attendance` patterns and early intervention
+• **Goal**: Monitor student behavior and welfare issues
+• **Purpose**: Maintain positive and productive learning environment
+• **Acceptance Criteria**:
+  - Review BehaviorRecord and intervention outcomes
+  - Monitor AcademicWarning and support mechanisms
+  - Oversee Attendance patterns and early intervention
 
 #### 📚 4. Curriculum & Academic Planning
-- **I want to** oversee curriculum implementation and academic planning
-- **So that** educational programs meet standards and student needs
-- **✅ Acceptance Criteria:**
-  - Review `Subject` offerings and `GradingSystem` effectiveness
-  - Monitor `Timetable` efficiency and resource utilization
-  - Plan academic calendar with `Holiday` scheduling
+• **Goal**: Oversee curriculum implementation and academic planning
+• **Purpose**: Meet standards and student needs
+• **Acceptance Criteria**:
+  - Review Subject offerings and GradingSystem effectiveness
+  - Monitor Timetable efficiency and resource utilization
+  - Plan academic calendar with Holiday scheduling
 
 #### 💬 5. Stakeholder Communication
-- **I want to** communicate with parents and community stakeholders
-- **So that** we maintain strong partnerships for student success
-- **✅ Acceptance Criteria:**
-  - Send targeted communications through `Message` system
-  - Publish principal updates via `Announcement`
+• **Goal**: Communicate with parents and community stakeholders
+• **Purpose**: Maintain strong partnerships for student success
+• **Acceptance Criteria**:
+  - Send targeted communications through Message system
+  - Publish principal updates via Announcement
   - Receive and respond to parent feedback
+
+### 🧪 Testing-Focused Feature Specification
+
+#### 📊 Feature 3.1: Academic Performance Monitoring
+• **Testing Focus**: Access and accuracy of academic reports and analytics
+• **Test Scenarios**:
+  1. **Generate class report**: Select class → Verify Result/ReportCard data
+  2. **No data handling**: Test empty report graceful handling
+
+#### 👨‍🏫 Feature 3.2: Teacher Management & Support
+• **Testing Focus**: Teacher assignment oversight and performance metrics access
+• **Test Scenarios**:
+  1. **Review teacher workload**: View SubjectAssignments and summaries
+  2. **Conflict detection**: Test scheduling conflict warnings
+
+---
+
+## 👨‍🏫 Department Head
+
+**🎯 Department Leadership & Academic Coordination**
+
+As a Department Head, I want to coordinate departmental activities and support academic excellence so that my department meets institutional goals and standards.
+
+### 📋 User Stories
+
+#### 📚 1. Subject & Curriculum Management
+• **Goal**: Oversee subject offerings and curriculum implementation
+• **Purpose**: Ensure departmental academic standards and consistency
+• **Acceptance Criteria**:
+  - Manage Subject assignments within department
+  - Review curriculum alignment and standards compliance
+  - Coordinate teaching resources and materials
+
+#### 👥 2. Staff Coordination & Development
+• **Goal**: Coordinate departmental staff and support professional growth
+• **Purpose**: Maintain high teaching quality and team collaboration
+• **Acceptance Criteria**:
+  - Oversee teacher assignments and workloads
+  - Facilitate professional development opportunities
+  - Conduct departmental meetings and planning
+
+#### 📊 3. Department Performance Monitoring
+• **Goal**: Monitor departmental academic performance and outcomes
+• **Purpose**: Identify improvement areas and celebrate achievements
+• **Acceptance Criteria**:
+  - Access departmental performance analytics
+  - Review assessment results and trends
+  - Generate department-specific reports
+
+#### 🎓 4. Student Academic Support
+• **Goal**: Support struggling students within department
+• **Purpose**: Provide timely academic intervention and assistance
+• **Acceptance Criteria**:
+  - Identify at-risk students through performance data
+  - Coordinate tutoring and support programs
+  - Communicate with parents about student progress
+
+### 🧪 Testing-Focused Feature Specification
+
+#### 📚 Feature 4.1: Subject & Curriculum Management
+• **Testing Focus**: Subject assignment management and curriculum oversight
+• **Test Scenarios**:
+  1. **Manage subject assignments**: Assign teachers → Verify updates
+  2. **Curriculum review**: Access departmental curriculum data
+
+---
+
+## 👨‍⚕️ School Counselor
+
+**🎯 Student Support & Guidance Services**
+
+As a School Counselor, I want to provide comprehensive support services so that students receive guidance for academic, personal, and social development.
+
+### 📋 User Stories
+
+#### 💬 1. Student Counseling Sessions
+• **Goal**: Conduct individual and group counseling sessions
+• **Purpose**: Address student concerns and provide guidance
+• **Acceptance Criteria**:
+  - Schedule and manage counseling appointments
+  - Maintain confidential counseling records
+  - Track session outcomes and follow-ups
+
+#### 📊 2. Academic & Career Guidance
+• **Goal**: Provide academic advising and career counseling
+• **Purpose**: Help students make informed educational and career decisions
+• **Acceptance Criteria**:
+  - Access student academic records and performance data
+  - Provide course selection and program guidance
+  - Assist with college/university applications and career planning
+
+#### ❤️ 3. Personal & Social Support
+• **Goal**: Support students with personal and social challenges
+• **Purpose**: Foster emotional well-being and positive relationships
+• **Acceptance Criteria**:
+  - Monitor student mental health and well-being indicators
+  - Provide crisis intervention and referral services
+  - Facilitate peer support and conflict resolution
+
+#### 👨‍👩‍👧‍👦 4. Parent & Teacher Collaboration
+• **Goal**: Collaborate with parents and teachers on student support
+• **Purpose**: Create comprehensive support networks for students
+• **Acceptance Criteria**:
+  - Communicate with parents about student progress and concerns
+  - Coordinate with teachers on intervention strategies
+  - Participate in multidisciplinary student support teams
+
+### 🧪 Testing-Focused Feature Specification
+
+#### 💬 Feature 5.1: Student Counseling Sessions
+• **Testing Focus**: Counseling appointment scheduling and record management
+• **Test Scenarios**:
+  1. **Schedule session**: Book appointment → Verify calendar updates
+  2. **Record session**: Document counseling → Verify record creation
 
 ---
 
 ## 👨‍🏫 Teacher
 
-### 🎯 Classroom Management & Instruction
-**As a Teacher, I want to manage my classes and deliver effective instruction so that my students achieve their learning goals.**
+**🎯 Classroom Management & Instruction**
 
-### 📋 User Stories:
+As a Teacher, I want to manage my classes and deliver effective instruction so that my students achieve their learning goals.
+
+### 📋 User Stories
 
 #### ✅ 1. Classroom Management & Attendance
-- **I want to** take attendance and monitor student presence
-- **So that** I can track engagement and follow up on absences
-- **✅ Acceptance Criteria:**
-  - Record `DailyAttendance` for my classes
-  - Mark `PeriodAttendance` for subject-specific sessions
-  - Access `AttendanceSummary` reports for parent meetings
+• **Goal**: Take attendance and monitor student presence
+• **Purpose**: Track engagement and follow up on absences
+• **Acceptance Criteria**:
+  - Record DailyAttendance for my classes
+  - Mark PeriodAttendance for subject-specific sessions
+  - Access AttendanceSummary reports for parent meetings
 
 #### 📖 2. Lesson Planning & Material Management
-- **I want to** create and share teaching materials
-- **So that** my students have access to quality learning resources
-- **✅ Acceptance Criteria:**
-  - Upload and organize `ClassMaterial` with proper access levels
+• **Goal**: Create and share teaching materials
+• **Purpose**: Provide quality learning resources for students
+• **Acceptance Criteria**:
+  - Upload and organize ClassMaterial with proper access levels
   - Share resources through subject and class assignments
   - Track material usage and effectiveness
 
 #### 📝 3. Assessment & Grading
-- **I want to** create assessments and evaluate student performance
-- **So that** learning progress is properly measured and documented
-- **✅ Acceptance Criteria:**
-  - Create `Exam` and `Assignment` with appropriate parameters
-  - Enter `Mark` and apply grading through `GradingSystem`
-  - Generate `Result` summaries and `ReportCard` inputs
+• **Goal**: Create assessments and evaluate student performance
+• **Purpose**: Measure learning progress and document outcomes
+• **Acceptance Criteria**:
+  - Create Exam and Assignment with appropriate parameters
+  - Enter Mark and apply grading through GradingSystem
+  - Generate Result summaries and ReportCard inputs
 
 #### 📈 4. Student Progress Monitoring
-- **I want to** track individual student progress and provide feedback
-- **So that** I can offer timely support and intervention
-- **✅ Acceptance Criteria:**
-  - Access `AcademicRecord` for each student
-  - Record `BehaviorRecord` and positive `Achievement`
-  - Issue `AcademicWarning` when performance concerns arise
+• **Goal**: Track individual student progress and provide feedback
+• **Purpose**: Offer timely support and intervention
+• **Acceptance Criteria**:
+  - Access AcademicRecord for each student
+  - Record BehaviorRecord and positive Achievement
+  - Issue AcademicWarning when performance concerns arise
 
 #### 👨‍👩‍👧‍👦 5. Parent Communication & Collaboration
-- **I want to** communicate with parents about student progress
-- **So that** we can work together to support student success
-- **✅ Acceptance Criteria:**
-  - Send updates through `Message` system with read receipts
-  - Share `Attendance` and performance reports
+• **Goal**: Communicate with parents about student progress
+• **Purpose**: Work together to support student success
+• **Acceptance Criteria**:
+  - Send updates through Message system with read receipts
+  - Share Attendance and performance reports
   - Schedule and document parent-teacher meetings
 
 #### 🕐 6. Timetable & Schedule Management
-- **I want to** access my teaching schedule and room assignments
-- **So that** I can be prepared and organized for my classes
-- **✅ Acceptance Criteria:**
-  - View personalized `Timetable` with room details
+• **Goal**: Access my teaching schedule and room assignments
+• **Purpose**: Stay organized and prepared for classes
+• **Acceptance Criteria**:
+  - View personalized Timetable with room details
   - Receive notifications for schedule changes
-  - Track `Room` utilization and resource needs
+  - Track Room utilization and resource needs
+
+### 🧪 Testing-Focused Feature Specification
+
+#### ✅ Feature 4.1: Classroom Attendance Management
+• **Testing Focus**: Accurate DailyAttendance and PeriodAttendance recording
+• **Test Scenarios**:
+  1. **Take class attendance**: Mark students → Verify AttendanceSummary updates
+  2. **Validation**: Test empty submission prevention
+
+#### 📝 Feature 4.2: Assessment & Grading
+• **Testing Focus**: Assessment creation, marking, and GradingSystem application
+• **Test Scenarios**:
+  1. **Create and grade assignment**: Enter marks → Verify correct grade application
+  2. **Validation**: Test maximum marks enforcement
+
+---
+
+## 💼 Accountant
+
+**🎯 Financial Management & Reporting**
+
+As an Accountant, I want to manage school financial operations so that the institution maintains fiscal responsibility and transparency.
+
+### 📋 User Stories
+
+#### 💰 1. Financial Transaction Processing
+• **Goal**: Process and record all financial transactions
+• **Purpose**: Maintain accurate financial records and compliance
+• **Acceptance Criteria**:
+  - Process Payment receipts and disbursements
+  - Record Expense transactions with proper approvals
+  - Maintain transaction audit trails
+
+#### 📊 2. Budget Management & Monitoring
+• **Goal**: Create and monitor departmental and institutional budgets
+• **Purpose**: Ensure financial planning and control
+• **Acceptance Criteria**:
+  - Create and modify budget allocations
+  - Monitor budget utilization and variances
+  - Generate budget vs actual reports
+
+#### 🧾 3. Financial Reporting & Analysis
+• **Goal**: Generate comprehensive financial reports
+• **Purpose**: Provide stakeholders with financial insights
+• **Acceptance Criteria**:
+  - Generate FinancialReport for different time periods
+  - Create custom financial analytics and dashboards
+  - Export financial data for external audits
+
+#### 💳 4. Fee Collection & Arrears Management
+• **Goal**: Manage fee collection and outstanding payments
+• **Purpose**: Ensure timely revenue collection and minimize arrears
+• **Acceptance Criteria**:
+  - Monitor Invoice status and payment schedules
+  - Send payment reminders and notices
+  - Manage payment plans and fee concessions
+
+### 🧪 Testing-Focused Feature Specification
+
+#### 💰 Feature 7.1: Financial Transaction Processing
+• **Testing Focus**: Transaction recording and audit trail maintenance
+• **Test Scenarios**:
+  1. **Process payment**: Record transaction → Verify audit log creation
+  2. **Expense approval**: Submit expense → Test approval workflow
 
 ---
 
 ## 🎓 Student
 
-### 🎯 Learning & Academic Engagement
-**As a Student, I want to access my academic information and learning resources so that I can succeed in my studies and stay organized.**
+**🎯 Learning & Academic Engagement**
 
-### 📋 User Stories:
+As a Student, I want to access my academic information and learning resources so that I can succeed in my studies and stay organized.
+
+### 📋 User Stories
 
 #### 📅 1. Academic Dashboard & Schedule
-- **I want to** view my personalized timetable and academic information
-- **So that** I can manage my daily schedule and be prepared for classes
-- **✅ Acceptance Criteria:**
-  - Access personalized `Timetable` with subject and room details
-  - View `Class` assignments and teacher information
+• **Goal**: View my personalized timetable and academic information
+• **Purpose**: Manage daily schedule and stay prepared for classes
+• **Acceptance Criteria**:
+  - Access personalized Timetable with subject and room details
+  - View Class assignments and teacher information
   - Receive notifications for schedule changes
 
 #### 📚 2. Learning Materials Access
-- **I want to** access course materials and resources
-- **So that** I can study effectively and complete assignments
-- **✅ Acceptance Criteria:**
-  - Browse and download `ClassMaterial` for enrolled subjects
-  - Access library resources through `BorrowRecord` system
+• **Goal**: Access course materials and resources
+• **Purpose**: Study effectively and complete assignments
+• **Acceptance Criteria**:
+  - Browse and download ClassMaterial for enrolled subjects
+  - Access library resources through BorrowRecord system
   - Submit assignments through online portal
 
 #### 📊 3. Performance Tracking
-- **I want to** view my grades and academic progress
-- **So that** I can understand my strengths and areas for improvement
-- **✅ Acceptance Criteria:**
-  - Access `Mark` and `Result` information for each assessment
-  - View `ReportCard` and academic standing
-  - Track `AcademicRecord` progression over time
+• **Goal**: View my grades and academic progress
+• **Purpose**: Understand strengths and areas for improvement
+• **Acceptance Criteria**:
+  - Access Mark and Result information for each assessment
+  - View ReportCard and academic standing
+  - Track AcademicRecord progression over time
 
 #### ✅ 4. Attendance & Participation
-- **I want to** check my attendance record and participation
-- **So that** I can maintain good standing and avoid issues
-- **✅ Acceptance Criteria:**
-  - View `DailyAttendance` and `PeriodAttendance` records
+• **Goal**: Check my attendance record and participation
+• **Purpose**: Maintain good standing and avoid issues
+• **Acceptance Criteria**:
+  - View DailyAttendance and PeriodAttendance records
   - Monitor attendance percentages and patterns
   - Receive notifications for attendance concerns
 
 #### 💬 5. Communication & Collaboration
-- **I want to** communicate with teachers and peers
-- **So that** I can get help when needed and collaborate on learning
-- **✅ Acceptance Criteria:**
-  - Send and receive `Message` with teachers
-  - Access class `Announcement` and updates
+• **Goal**: Communicate with teachers and peers
+• **Purpose**: Get help when needed and collaborate on learning
+• **Acceptance Criteria**:
+  - Send and receive Message with teachers
+  - Access class Announcement and updates
   - Participate in academic discussions and groups
 
 #### 🎯 6. Resource Booking & Management
-- **I want to** access school resources and facilities
-- **So that** I can make the most of available learning opportunities
-- **✅ Acceptance Criteria:**
-  - Reserve library books through `Reservation` system
+• **Goal**: Access school resources and facilities
+• **Purpose**: Make the most of available learning opportunities
+• **Acceptance Criteria**:
+  - Reserve library books through Reservation system
   - Access transport and hostel services if applicable
   - Book special facilities for projects and study groups
+
+### 🧪 Testing-Focused Feature Specification
+
+#### 📅 Feature 5.1: Academic Dashboard & Schedule
+• **Testing Focus**: Personalized timetable display and accuracy
+• **Test Scenarios**:
+  1. **View timetable**: Access dashboard → Verify enrolled class display
+  2. **Holiday handling**: Check holiday indication on schedule
+
+#### 📊 Feature 5.2: Performance Tracking
+• **Testing Focus**: Access to personal grades and results
+• **Test Scenarios**:
+  1. **Check results**: View subject grades → Verify Mark and Result display
+  2. **Access control**: Test unpublished grade visibility restrictions
 
 ---
 
 ## 👨‍👩‍👧‍👦 Parent
 
-### 🎯 Child Monitoring & School Engagement
-**As a Parent, I want to monitor my child's progress and communicate with the school so that I can support their education effectively.**
+**🎯 Child Monitoring & School Engagement**
 
-### 📋 User Stories:
+As a Parent, I want to monitor my child's progress and communicate with the school so that I can support their education effectively.
+
+### 📋 User Stories
 
 #### 📈 1. Child Progress Monitoring
-- **I want to** track my child's academic performance and attendance
-- **So that** I can provide appropriate support and intervention
-- **✅ Acceptance Criteria:**
-  - Access `AttendanceSummary` and daily records
-  - View `ReportCard` and assessment results
-  - Monitor `AcademicRecord` and teacher feedback
+• **Goal**: Track my child's academic performance and attendance
+• **Purpose**: Provide appropriate support and intervention
+• **Acceptance Criteria**:
+  - Access AttendanceSummary and daily records
+  - View ReportCard and assessment results
+  - Monitor AcademicRecord and teacher feedback
 
 #### 💬 2. School Communication
-- **I want to** communicate with teachers and school administration
-- **So that** I can stay informed and address concerns promptly
-- **✅ Acceptance Criteria:**
-  - Receive and send `Message` through secure portal
-  - Access important `Announcement` and school updates
+• **Goal**: Communicate with teachers and school administration
+• **Purpose**: Stay informed and address concerns promptly
+• **Acceptance Criteria**:
+  - Receive and send Message through secure portal
+  - Access important Announcement and school updates
   - Confirm receipt of important communications
 
 #### 💰 3. Fee Management & Payments
-- **I want to** view and pay school fees online
-- **So that** I can manage educational expenses conveniently
-- **✅ Acceptance Criteria:**
-  - Access `Invoice` details and payment history
-  - Make online `Payment` through integrated gateway
-  - View `FeeStructure` and upcoming payment schedules
+• **Goal**: View and pay school fees online
+• **Purpose**: Manage educational expenses conveniently
+• **Acceptance Criteria**:
+  - Access Invoice details and payment history
+  - Make online Payment through integrated gateway
+  - View FeeStructure and upcoming payment schedules
 
 #### 📅 4. Appointment Scheduling
-- **I want to** schedule meetings with teachers and staff
-- **So that** I can discuss my child's progress and concerns
-- **✅ Acceptance Criteria:**
+• **Goal**: Schedule meetings with teachers and staff
+• **Purpose**: Discuss my child's progress and concerns
+• **Acceptance Criteria**:
   - Request parent-teacher meetings through system
   - Receive confirmation and reminder notifications
   - Access meeting notes and follow-up actions
 
 #### 🎉 5. School Event Participation
-- **I want to** stay informed about school events and activities
-- **So that** I can support my child's participation and engagement
-- **✅ Acceptance Criteria:**
-  - View school calendar with `Holiday` and event schedules
+• **Goal**: Stay informed about school events and activities
+• **Purpose**: Support my child's participation and engagement
+• **Acceptance Criteria**:
+  - View school calendar with Holiday and event schedules
   - Receive notifications about special events and deadlines
   - Access permission slips and event details
 
 #### 👨‍👩‍👧‍👦 6. Multiple Child Management
-- **I want to** manage information for all my children in one place
-- **So that** I can efficiently track multiple students' progress
-- **✅ Acceptance Criteria:**
+• **Goal**: Manage information for all my children in one place
+• **Purpose**: Efficiently track multiple students' progress
+• **Acceptance Criteria**:
   - Switch between children's profiles easily
   - View consolidated information for all children
   - Receive combined notifications and updates
+
+### 🧪 Testing-Focused Feature Specification
+
+#### 📈 Feature 6.1: Child Progress Monitoring
+• **Testing Focus**: Access to child's attendance and academic reports
+• **Test Scenarios**:
+  1. **Monitor progress**: Select child → View AttendanceSummary and ReportCard
+  2. **Multiple children**: Test profile switching and data isolation
+
+#### 💰 Feature 6.2: Fee Management & Payments
+• **Testing Focus**: Invoice viewing and payment processing
+• **Test Scenarios**:
+  1. **Pay invoice**: Select unpaid Invoice → Complete payment flow
+  2. **Duplicate prevention**: Test already-paid invoice handling
 
 ---
 
 ## 👨‍💻 Support Staff
 
-### 🎯 Technical & Operational Support
-**As a Support Staff member, I want to provide technical assistance and maintain systems so that all users can work effectively without technical interruptions.**
+**🎯 Technical & Operational Support**
 
-### 📋 User Stories:
+As a Support Staff member, I want to provide technical assistance and maintain systems so that all users can work effectively without technical interruptions.
+
+### 📋 User Stories
 
 #### 🛠️ 1. User Support & Issue Resolution
-- **I want to** manage user support requests and technical issues
-- **So that** system disruptions are minimized and users get timely help
-- **✅ Acceptance Criteria:**
-  - Access `ContactSubmission` from help system
+• **Goal**: Manage user support requests and technical issues
+• **Purpose**: Minimize system disruptions and provide timely help
+• **Acceptance Criteria**:
+  - Access ContactSubmission from help system
   - Track and resolve user issues through ticketing system
-  - Document solutions in `HelpCenterArticle` for future reference
+  - Document solutions in HelpCenterArticle for future reference
 
 #### 📊 2. System Monitoring & Maintenance
-- **I want to** monitor system performance and address technical problems
-- **So that** the platform remains stable and responsive
-- **✅ Acceptance Criteria:**
-  - Monitor system `KPI` and performance metrics
-  - Address `AuditLog` alerts and security notifications
+• **Goal**: Monitor system performance and address technical problems
+• **Purpose**: Maintain stable and responsive platform
+• **Acceptance Criteria**:
+  - Monitor system KPI and performance metrics
+  - Address AuditLog alerts and security notifications
   - Perform routine maintenance and updates
 
 #### 📚 3. Knowledge Base Management
-- **I want to** maintain comprehensive help resources and documentation
-- **So that** users can find answers to common questions independently
-- **✅ Acceptance Criteria:**
-  - Create and update `HelpCenterArticle` with solutions
-  - Organize content using `Category` and `Tag` systems
-  - Maintain `FAQ` for common user questions
+• **Goal**: Maintain comprehensive help resources and documentation
+• **Purpose**: Enable users to find answers independently
+• **Acceptance Criteria**:
+  - Create and update HelpCenterArticle with solutions
+  - Organize content using Category and Tag systems
+  - Maintain FAQ for common user questions
 
 #### 🎓 4. User Training & Onboarding
-- **I want to** provide training and support for new users
-- **So that** they can effectively use the system from day one
-- **✅ Acceptance Criteria:**
+• **Goal**: Provide training and support for new users
+• **Purpose**: Ensure effective system usage from day one
+• **Acceptance Criteria**:
   - Access user activity and login history for troubleshooting
-  - Provide guided support through `UserSession` monitoring
-  - Create training materials and `Resource` documents
+  - Provide guided support through UserSession monitoring
+  - Create training materials and Resource documents
 
 #### 🔒 5. Security & Access Management
-- **I want to** manage user access and security settings
-- **So that** the system remains secure while being accessible
-- **✅ Acceptance Criteria:**
-  - Monitor `LoginHistory` for suspicious activities
+• **Goal**: Manage user access and security settings
+• **Purpose**: Maintain secure yet accessible system
+• **Acceptance Criteria**:
+  - Monitor LoginHistory for suspicious activities
   - Assist with password resets and account recovery
   - Implement security protocols and access controls
+
+### 🧪 Testing-Focused Feature Specification
+
+#### 🛠️ Feature 7.1: User Support & Issue Resolution
+• **Testing Focus**: Support ticket processing from submission to resolution
+• **Test Scenarios**:
+  1. **Resolve ticket**: Update status through workflow → Verify user notifications
+  2. **Validation**: Test resolution note requirements
+
+#### 📚 Feature 7.2: Knowledge Base Management
+• **Testing Focus**: HelpCenterArticle creation and publication
+• **Test Scenarios**:
+  1. **Create article**: Fill details and publish → Verify user accessibility
+  2. **Duplicate handling**: Test title uniqueness or merging logic
 
 ---
 
 ## 🚌 Transport Manager
 
-### 🎯 Transportation Operations Management
-**As a Transport Manager, I want to manage school transportation services so that students have safe and reliable transport to and from school.**
+**🎯 Transportation Operations Management**
 
-### 📋 User Stories:
+As a Transport Manager, I want to manage school transportation services so that students have safe and reliable transport to and from school.
+
+### 📋 User Stories
 
 #### 🚗 1. Fleet Management
-- **I want to** manage the school vehicle fleet and maintenance
-- **So that** transportation services are safe and efficient
-- **✅ Acceptance Criteria:**
-  - Maintain `Vehicle` records with insurance and registration
-  - Schedule `MaintenanceRecord` and track service history
-  - Monitor `FuelRecord` and operational costs
+• **Goal**: Manage the school vehicle fleet and maintenance
+• **Purpose**: Ensure transportation services are safe and efficient
+• **Acceptance Criteria**:
+  - Maintain Vehicle records with insurance and registration
+  - Schedule MaintenanceRecord and track service history
+  - Monitor FuelRecord and operational costs
 
 #### 🗺️ 2. Route Planning & Optimization
-- **I want to** plan and optimize transportation routes
-- **So that** we provide efficient service with minimal delays
-- **✅ Acceptance Criteria:**
-  - Create and modify `Route` with `RouteStop` sequences
-  - Assign `RouteSchedule` with vehicles and staff
+• **Goal**: Plan and optimize transportation routes
+• **Purpose**: Provide efficient service with minimal delays
+• **Acceptance Criteria**:
+  - Create and modify Route with RouteStop sequences
+  - Assign RouteSchedule with vehicles and staff
   - Optimize routes based on student locations and traffic patterns
 
 #### 👨‍✈️ 3. Driver & Attendant Management
-- **I want to** manage transportation staff assignments and performance
-- **So that** we maintain qualified and reliable transportation teams
-- **✅ Acceptance Criteria:**
-  - Assign `Driver` and `Attendant` to specific routes
+• **Goal**: Manage transportation staff assignments and performance
+• **Purpose**: Maintain qualified and reliable transportation teams
+• **Acceptance Criteria**:
+  - Assign Driver and Attendant to specific routes
   - Track staff performance and attendance
   - Manage schedules and shift rotations
 
 #### 🎓 4. Student Transport Allocation
-- **I want to** manage student transport assignments and changes
-- **So that** all eligible students have appropriate transportation
-- **✅ Acceptance Criteria:**
-  - Create and modify `TransportAllocation` for students
+• **Goal**: Manage student transport assignments and changes
+• **Purpose**: Ensure all eligible students have appropriate transportation
+• **Acceptance Criteria**:
+  - Create and modify TransportAllocation for students
   - Handle pickup and drop-off stop assignments
   - Manage transport fee calculations and billing
 
 #### 🛡️ 5. Safety & Incident Management
-- **I want to** monitor transportation safety and handle incidents
-- **So that** we maintain the highest safety standards
-- **✅ Acceptance Criteria:**
-  - Document and manage `IncidentReport` with proper follow-up
+• **Goal**: Monitor transportation safety and handle incidents
+• **Purpose**: Maintain highest safety standards
+• **Acceptance Criteria**:
+  - Document and manage IncidentReport with proper follow-up
   - Implement safety protocols and emergency procedures
   - Communicate with parents about transportation issues
 
 #### 💬 6. Parent Communication & Updates
-- **I want to** communicate transportation information to parents
-- **So that** parents are informed about schedules and changes
-- **✅ Acceptance Criteria:**
-  - Send route and schedule updates through `Message` system
+• **Goal**: Communicate transportation information to parents
+• **Purpose**: Keep parents informed about schedules and changes
+• **Acceptance Criteria**:
+  - Send route and schedule updates through Message system
   - Provide real-time delay notifications when necessary
   - Share safety updates and policy changes
+
+### 🧪 Testing-Focused Feature Specification
+
+#### 🚗 Feature 8.1: Fleet Management
+• **Testing Focus**: Vehicle record and MaintenanceRecord management
+• **Test Scenarios**:
+  1. **Add vehicle**: Enter details and schedule maintenance → Verify record creation
+  2. **Conflict prevention**: Test maintenance scheduling on assigned vehicles
+
+#### 🗺️ Feature 8.2: Route Planning & Optimization
+• **Testing Focus**: Route creation with RouteStops and student assignments
+• **Test Scenarios**:
+  1. **Create route**: Add stops and assign students → Verify allocation creation
+  2. **Capacity limits**: Test over-assignment prevention
 
 ---
 
 ## 🏠 Hostel Warden
 
-### 🎯 Residential Life Management
-**As a Hostel Warden, I want to manage hostel operations and student welfare so that boarding students have a safe and supportive living environment.**
+**🎯 Residential Life Management**
 
-### 📋 User Stories:
+As a Hostel Warden, I want to manage hostel operations and student welfare so that boarding students have a safe and supportive living environment.
+
+### 📋 User Stories
 
 #### 🏢 1. Hostel Facility Management
-- **I want to** manage hostel facilities and room allocations
-- **So that** boarding students have comfortable and appropriate accommodation
-- **✅ Acceptance Criteria:**
-  - Maintain `Hostel` information and amenity details
-  - Manage `Room` and `Bed` assignments and availability
+• **Goal**: Manage hostel facilities and room allocations
+• **Purpose**: Provide comfortable and appropriate accommodation
+• **Acceptance Criteria**:
+  - Maintain Hostel information and amenity details
+  - Manage Room and Bed assignments and availability
   - Track facility usage and capacity
 
 #### 🎓 2. Student Allocation & Management
-- **I want to** manage student hostel assignments and transitions
-- **So that** boarding arrangements meet student needs and preferences
-- **✅ Acceptance Criteria:**
-  - Create and modify `HostelAllocation` for academic sessions
+• **Goal**: Manage student hostel assignments and transitions
+• **Purpose**: Meet student needs and preferences
+• **Acceptance Criteria**:
+  - Create and modify HostelAllocation for academic sessions
   - Handle room changes and special accommodation requests
   - Manage security deposits and rental agreements
 
 #### 👁️ 3. Visitor & Security Management
-- **I want to** manage hostel access and visitor protocols
-- **So that** we maintain security while allowing appropriate visits
-- **✅ Acceptance Criteria:**
-  - Maintain `VisitorLog` with check-in/out procedures
+• **Goal**: Manage hostel access and visitor protocols
+• **Purpose**: Maintain security while allowing appropriate visits
+• **Acceptance Criteria**:
+  - Maintain VisitorLog with check-in/out procedures
   - Implement security protocols and access controls
   - Monitor hostel access and unusual activities
 
 #### 🔧 4. Maintenance & Facility Issues
-- **I want to** manage maintenance requests and facility repairs
-- **So that** hostel facilities remain in good condition
-- **✅ Acceptance Criteria:**
-  - Receive and track `MaintenanceRequest` from students
+• **Goal**: Manage maintenance requests and facility repairs
+• **Purpose**: Keep facilities in good condition
+• **Acceptance Criteria**:
+  - Receive and track MaintenanceRequest from students
   - Assign repairs and monitor completion
-  - Manage `InventoryItem` and facility equipment
+  - Manage InventoryItem and facility equipment
 
 #### ❤️ 5. Student Welfare & Support
-- **I want to** monitor boarding student welfare and address concerns
-- **So that** students feel supported in the residential environment
-- **✅ Acceptance Criteria:**
+• **Goal**: Monitor boarding student welfare and address concerns
+• **Purpose**: Ensure supported residential environment
+• **Acceptance Criteria**:
   - Track student well-being and address concerns
   - Manage curfew compliance and house rules
   - Provide support for homesickness or adjustment issues
 
 #### 💰 6. Fee Management & Billing
-- **I want to** manage hostel fees and payment tracking
-- **So that** financial aspects of boarding are handled efficiently
-- **✅ Acceptance Criteria:**
-  - Track `HostelFee` payments and outstanding balances
+• **Goal**: Manage hostel fees and payment tracking
+• **Purpose**: Handle financial aspects of boarding efficiently
+• **Acceptance Criteria**:
+  - Track HostelFee payments and outstanding balances
   - Manage billing cycles and payment reminders
   - Handle fee adjustments and financial assistance
+
+### 🧪 Testing-Focused Feature Specification
+
+#### 🏢 Feature 9.1: Hostel Facility Management
+• **Testing Focus**: Hostel, Room, and Bed assignment management
+• **Test Scenarios**:
+  1. **Allocate student**: Assign to bed → Verify status and profile updates
+  2. **Conflict prevention**: Test duplicate bed assignment blocking
+
+#### 🔧 Feature 9.2: Maintenance & Facility Issues
+• **Testing Focus**: MaintenanceRequest workflow processing
+• **Test Scenarios**:
+  1. **Process request**: Submit and resolve → Verify status progression
+  2. **Validation**: Test completion requirement enforcement
 
 ---
 
 ## 📖 Librarian
 
-### 🎯 Library Resources Management
-**As a Librarian, I want to manage library resources and services so that students and staff have access to quality learning materials.**
+**🎯 Library Resources Management**
 
-### 📋 User Stories:
+As a Librarian, I want to manage library resources and services so that students and staff have access to quality learning materials.
+
+### 📋 User Stories
 
 #### 📚 1. Library Collection Management
-- **I want to** manage the library book catalog and resources
-- **So that** the collection remains relevant and accessible
-- **✅ Acceptance Criteria:**
-  - Add and update `Book` records with complete metadata
-  - Manage `BookCopy` inventory and status tracking
-  - Organize collection using `BookCategory` hierarchy
+• **Goal**: Manage the library book catalog and resources
+• **Purpose**: Maintain relevant and accessible collection
+• **Acceptance Criteria**:
+  - Add and update Book records with complete metadata
+  - Manage BookCopy inventory and status tracking
+  - Organize collection using BookCategory hierarchy
 
 #### 🔄 2. Circulation Management
-- **I want to** manage book borrowing and returns
-- **So that** resources circulate efficiently among users
-- **✅ Acceptance Criteria:**
-  - Process `BorrowRecord` transactions with due dates
+• **Goal**: Manage book borrowing and returns
+• **Purpose**: Ensure efficient resource circulation among users
+• **Acceptance Criteria**:
+  - Process BorrowRecord transactions with due dates
   - Handle renewals and overdue notifications
-  - Manage `Reservation` system for high-demand items
+  - Manage Reservation system for high-demand items
 
 #### 👥 3. Member Management
-- **I want to** manage library membership and access privileges
-- **So that** appropriate users have access to library resources
-- **✅ Acceptance Criteria:**
-  - Create and maintain `LibraryMember` profiles
+• **Goal**: Manage library membership and access privileges
+• **Purpose**: Provide appropriate access to library resources
+• **Acceptance Criteria**:
+  - Create and maintain LibraryMember profiles
   - Set borrowing limits and privilege levels
   - Manage membership expiration and renewals
 
 #### 💰 4. Fine Management
-- **I want to** manage overdue fines and payment processing
-- **So that** borrowers are accountable for timely returns
-- **✅ Acceptance Criteria:**
+• **Goal**: Manage overdue fines and payment processing
+• **Purpose**: Ensure borrowers are accountable for timely returns
+• **Acceptance Criteria**:
   - Calculate and track overdue fines automatically
-  - Process `FinePayment` through integrated system
+  - Process FinePayment through integrated system
   - Manage fine waivers and exceptional circumstances
 
 #### 🆕 5. Resource Acquisition & Weeding
-- **I want to** manage new acquisitions and collection updates
-- **So that** the library collection evolves with curriculum needs
-- **✅ Acceptance Criteria:**
+• **Goal**: Manage new acquisitions and collection updates
+• **Purpose**: Evolve collection with curriculum needs
+• **Acceptance Criteria**:
   - Track acquisition requests from staff and students
   - Manage budget for new resource purchases
   - Process collection weeding and updates
 
 #### 📊 6. Library Analytics & Reporting
-- **I want to** analyze library usage and resource effectiveness
-- **So that** we can optimize the collection and services
-- **✅ Acceptance Criteria:**
+• **Goal**: Analyze library usage and resource effectiveness
+• **Purpose**: Optimize collection and services
+• **Acceptance Criteria**:
   - Generate circulation reports and usage statistics
   - Analyze popular subjects and resource gaps
   - Report on library service impact and improvements
 
+### 🧪 Testing-Focused Feature Specification
+
+#### 📚 Feature 10.1: Library Collection Management
+• **Testing Focus**: Book record and BookCopy inventory management
+• **Test Scenarios**:
+  1. **Add book**: Enter metadata and copies → Verify catalog and availability
+  2. **Duplicate handling**: Test ISBN conflict resolution
+
+#### 🔄 Feature 10.2: Circulation Management
+• **Testing Focus**: Book borrowing, return, and reservation processes
+• **Test Scenarios**:
+  1. **Issue book**: Create BorrowRecord → Verify status and count updates
+  2. **Limit enforcement**: Test over-borrowing prevention
+
 ---
 
-## ⚽ Extracurricular Activities Coordinator
+## ⚽ Activities Coordinator
 
-### 🎯 Activities Management & Coordination
-**As an Extracurricular Activities Coordinator, I want to manage school activities and programs so that students have diverse opportunities for personal development and skill-building.**
+**🎯 Activities Management & Coordination**
 
-### 📋 User Stories:
+As an Extracurricular Activities Coordinator, I want to manage school activities and programs so that students have diverse opportunities for personal development and skill-building.
+
+### 📋 User Stories
 
 #### 📅 1. Activity Planning & Scheduling
-- **I want to** create and schedule extracurricular activities
-- **So that** students can participate in organized programs throughout the year
-- **✅ Acceptance Criteria:**
-  - Create `Activity` records with categories (Sports, Arts, Clubs, Competitions)
+• **Goal**: Create and schedule extracurricular activities
+• **Purpose**: Provide organized programs throughout the year
+• **Acceptance Criteria**:
+  - Create Activity records with categories (Sports, Arts, Clubs, Competitions)
   - Set up recurring and one-time activity schedules
   - Assign venues, equipment, and time slots
 
 #### 👥 2. Student Registration & Enrollment
-- **I want to** manage student enrollment in activities
-- **So that** activities have appropriate participation levels
-- **✅ Acceptance Criteria:**
-  - Process `ActivityEnrollment` with capacity limits
+• **Goal**: Manage student enrollment in activities
+• **Purpose**: Maintain appropriate participation levels
+• **Acceptance Criteria**:
+  - Process ActivityEnrollment with capacity limits
   - Handle waitlists for popular activities
   - Track enrollment fees and payment status
 
 #### 👨‍🏫 3. Staff & Coach Assignment
-- **I want to** assign coaches, advisors, and supervisors to activities
-- **So that** activities are properly supervised and led
-- **✅ Acceptance Criteria:**
-  - Assign `ActivityCoach` and `ActivityAdvisor` roles
+• **Goal**: Assign coaches, advisors, and supervisors to activities
+• **Purpose**: Ensure proper supervision and leadership
+• **Acceptance Criteria**:
+  - Assign ActivityCoach and ActivityAdvisor roles
   - Track staff availability and qualifications
   - Manage multiple staff assignments per activity
 
 #### 🏆 4. Competition & Event Management
-- **I want to** organize inter-school competitions and special events
-- **So that** students can showcase talents and compete externally
-- **✅ Acceptance Criteria:**
-  - Create `Competition` records with rules and scoring
+• **Goal**: Organize inter-school competitions and special events
+• **Purpose**: Showcase talents and compete externally
+• **Acceptance Criteria**:
+  - Create Competition records with rules and scoring
   - Manage team formations and registrations
   - Track results and generate certificates
 
 #### 💰 5. Budget & Resource Management
-- **I want to** manage activity budgets and equipment
-- **So that** programs are financially sustainable
-- **✅ Acceptance Criteria:**
-  - Track `ActivityBudget` allocations and expenses
-  - Manage `Equipment` inventory and maintenance
+• **Goal**: Manage activity budgets and equipment
+• **Purpose**: Ensure financial sustainability
+• **Acceptance Criteria**:
+  - Track ActivityBudget allocations and expenses
+  - Manage Equipment inventory and maintenance
   - Process reimbursement requests for activity costs
 
 #### 📊 6. Performance Tracking & Reporting
-- **I want to** monitor activity participation and outcomes
-- **So that** we can evaluate program effectiveness
-- **✅ Acceptance Criteria:**
-  - Generate `ActivityReport` with participation statistics
+• **Goal**: Monitor activity participation and outcomes
+• **Purpose**: Evaluate program effectiveness
+• **Acceptance Criteria**:
+  - Generate ActivityReport with participation statistics
   - Track student achievements and awards
   - Analyze activity impact on student development
 
-### 🏃 Sports Coach Sub-Role
-
-#### ⚽ 1. Team Management
-- **I want to** manage sports teams and player assignments
-- **So that** teams are balanced and competitive
-- **✅ Acceptance Criteria:**
-  - Create and manage `SportsTeam` rosters
+#### 🏃 Sports Coach Sub-Role
+##### ⚽ 1. Team Management
+• **Goal**: Manage sports teams and player assignments
+• **Purpose**: Create balanced and competitive teams
+• **Acceptance Criteria**:
+  - Create and manage SportsTeam rosters
   - Track player positions and skills
   - Handle team substitutions and changes
 
-#### 📈 2. Training & Performance Monitoring
-- **I want to** track athlete performance and development
-- **So that** players improve and reach their potential
-- **✅ Acceptance Criteria:**
+##### 📈 2. Training & Performance Monitoring
+• **Goal**: Track athlete performance and development
+• **Purpose**: Help players improve and reach potential
+• **Acceptance Criteria**:
   - Record training attendance and participation
   - Track performance metrics and statistics
   - Monitor player health and fitness levels
 
-#### 🏟️ 3. Match & Tournament Coordination
-- **I want to** organize matches and tournaments
-- **So that** teams compete effectively and safely
-- **✅ Acceptance Criteria:**
-  - Schedule `Match` fixtures and venues
+##### 🏟️ 3. Match & Tournament Coordination
+• **Goal**: Organize matches and tournaments
+• **Purpose**: Ensure effective and safe competition
+• **Acceptance Criteria**:
+  - Schedule Match fixtures and venues
   - Coordinate with opposing teams and officials
   - Manage tournament brackets and playoffs
 
-### 🎨 Club Advisor Sub-Role
-
-#### 📚 1. Club Administration
-- **I want to** oversee club operations and membership
-- **So that** clubs run smoothly and achieve their goals
-- **✅ Acceptance Criteria:**
-  - Manage `Club` information and constitutions
+#### 🎨 Club Advisor Sub-Role
+##### 📚 1. Club Administration
+• **Goal**: Oversee club operations and membership
+• **Purpose**: Ensure clubs run smoothly and achieve goals
+• **Acceptance Criteria**:
+  - Manage Club information and constitutions
   - Process membership applications and approvals
   - Organize club meetings and events
 
-#### 🎯 2. Activity Planning & Execution
-- **I want to** plan and execute club activities
-- **So that** members have engaging and productive experiences
-- **✅ Acceptance Criteria:**
+##### 🎯 2. Activity Planning & Execution
+• **Goal**: Plan and execute club activities
+• **Purpose**: Provide engaging experiences for members
+• **Acceptance Criteria**:
   - Create activity agendas and objectives
   - Coordinate guest speakers and workshops
   - Track activity attendance and feedback
 
-#### 🏆 3. Achievement & Recognition
-- **I want to** recognize club achievements and contributions
-- **So that** members feel valued and motivated
-- **✅ Acceptance Criteria:**
+##### 🏆 3. Achievement & Recognition
+• **Goal**: Recognize club achievements and contributions
+• **Purpose**: Keep members motivated and valued
+• **Acceptance Criteria**:
   - Track club accomplishments and milestones
   - Nominate members for awards and scholarships
   - Generate certificates and recognition letters
 
-### 🎓 Student Extracurricular Participation
-
-#### 🎯 7. Activity Discovery & Registration
-- **I want to** browse and register for extracurricular activities
-- **So that** I can develop new skills and interests
-- **✅ Acceptance Criteria:**
-  - View `Activity` catalog with descriptions and schedules
+#### 🎓 Student Extracurricular Participation
+##### 🎯 7. Activity Discovery & Registration
+• **Goal**: Browse and register for extracurricular activities
+• **Purpose**: Develop new skills and interests
+• **Acceptance Criteria**:
+  - View Activity catalog with descriptions and schedules
   - Register online with automatic confirmation
   - Receive notifications about enrollment status
 
-#### 📅 8. Schedule Management
-- **I want to** manage my activity schedule alongside academics
-- **So that** I can balance commitments effectively
-- **✅ Acceptance Criteria:**
+##### 📅 8. Schedule Management
+• **Goal**: Manage activity schedule alongside academics
+• **Purpose**: Balance commitments effectively
+• **Acceptance Criteria**:
   - View integrated timetable with activities
   - Receive reminders for upcoming sessions
   - Check for scheduling conflicts
 
-#### 🏆 9. Achievement Tracking
-- **I want to** track my extracurricular achievements
-- **So that** I can build a comprehensive profile
-- **✅ Acceptance Criteria:**
-  - View personal `Achievement` records
+##### 🏆 9. Achievement Tracking
+• **Goal**: Track extracurricular achievements
+• **Purpose**: Build comprehensive profile
+• **Acceptance Criteria**:
+  - View personal Achievement records
   - Access certificates and awards
   - Track participation hours and leadership roles
 
-### 👨‍👩‍👧‍👦 Parent Extracurricular Involvement
-
-#### 👶 7. Child Activity Monitoring
-- **I want to** monitor my child's extracurricular participation
-- **So that** I can support their development and interests
-- **✅ Acceptance Criteria:**
+#### 👨‍👩‍👧‍👦 Parent Extracurricular Involvement
+##### 👶 7. Child Activity Monitoring
+• **Goal**: Monitor child's extracurricular participation
+• **Purpose**: Support development and interests
+• **Acceptance Criteria**:
   - View child's enrolled activities and schedules
   - Access activity reports and progress updates
   - Receive notifications about important dates
 
-#### 💰 8. Activity Fee Management
-- **I want to** manage payments for extracurricular activities
-- **So that** I can handle activity-related expenses
-- **✅ Acceptance Criteria:**
+##### 💰 8. Activity Fee Management
+• **Goal**: Manage payments for extracurricular activities
+• **Purpose**: Handle activity-related expenses
+• **Acceptance Criteria**:
   - View activity fee invoices and payment history
   - Make online payments for multiple activities
   - Receive reminders for upcoming fees
-  
 
-#### 🏆 9. Achievement Celebration
-- **I want to** celebrate my child's extracurricular achievements
-- **So that** I can encourage their continued participation
-- **✅ Acceptance Criteria:**
+##### 🏆 9. Achievement Celebration
+• **Goal**: Celebrate child's extracurricular achievements
+• **Purpose**: Encourage continued participation
+• **Acceptance Criteria**:
   - Receive notifications about awards and recognitions
   - Access certificates and achievement records
   - View photos and highlights from events
 
+### 🧪 Testing-Focused Feature Specification
+
+#### 📅 Feature 11.1: Activity Planning & Scheduling
+• **Testing Focus**: Activity record creation and scheduling
+• **Test Scenarios**:
+  1. **Create activity**: Fill details and schedule → Verify publication and coach access
+  2. **Conflict detection**: Test venue double-booking prevention
+
+#### 👥 Feature 11.2: Student Registration & Enrollment
+• **Testing Focus**: ActivityEnrollment processing with capacity limits
+• **Test Scenarios**:
+  1. **Enroll students**: Register within capacity → Verify confirmations
+  2. **Waitlist management**: Test over-capacity handling and automatic promotion
+
 ---
 
-## 🎯 Cross-Role Collaboration
+## 🚗 Driver
 
-### 🤝 Shared User Stories:
+**🎯 Transportation Service Execution**
 
-#### 🚨 1. Emergency Communication Protocol
-- **As** any staff member
-- **I want to** send emergency notifications
-- **So that** critical information reaches relevant stakeholders immediately
-- **👥 Involved Roles:** All staff roles with communication permissions
+As a Driver, I want to safely transport students to and from school so that they arrive at their destinations securely and on time.
 
-#### 🎓 2. Student Support Team Collaboration
-- **As** multiple support staff
-- **I want to** collaborate on student support cases
-- **So that** we provide comprehensive assistance for complex student needs
-- **👥 Involved Roles:** Teachers, Counselors, Administrators, Support Staff
+### 📋 User Stories
 
-#### 📚 3. Academic Planning Committee
-- **As** academic leadership
-- **I want to** collaborate on curriculum planning
-- **So that** we develop cohesive and effective educational programs
-- **👥 Involved Roles:** Principal, Department Heads, Teachers, Administrators
+#### 🚐 1. Route Execution & Safety
+• **Goal**: Follow assigned routes safely and efficiently
+• **Purpose**: Ensure student safety during transportation
+• **Acceptance Criteria**:
+  - Access assigned Route and RouteStop information
+  - Record RouteSchedule adherence and delays
+  - Report safety incidents through IncidentReport
 
-#### 👨‍👩‍👧‍👦 4. Parent-Teacher Association Coordination
-- **As** school community members
-- **I want to** coordinate PTA activities
-- **So that** we maintain strong parent-school partnerships
-- **👥 Involved Roles:** Teachers, Administrators, Parents, Support Staff
+#### 👥 2. Student Management During Transit
+• **Goal**: Manage student boarding and alighting procedures
+• **Purpose**: Maintain orderly and safe transportation
+• **Acceptance Criteria**:
+  - Verify TransportAllocation for pickup/drop-off
+  - Monitor student behavior and safety during transit
+  - Handle emergency situations appropriately
 
-#### ⚽ 5. Extracurricular Activities Coordination
-- **As** activity coordinators and coaches
-- **I want to** collaborate on school-wide activity programs
-- **So that** we provide comprehensive extracurricular opportunities
-- **👥 Involved Roles:** Extracurricular Coordinator, Sports Coaches, Club Advisors, Teachers, Students, Parents
+#### 📊 3. Vehicle Maintenance Reporting
+• **Goal**: Report vehicle issues and maintenance needs
+• **Purpose**: Ensure vehicle safety and reliability
+• **Acceptance Criteria**:
+  - Submit maintenance requests for vehicle issues
+  - Record FuelRecord and usage data
+  - Report vehicle condition and safety concerns
+
+#### 📱 4. Communication & Coordination
+• **Goal**: Communicate with transport management and parents
+• **Purpose**: Keep stakeholders informed and coordinate effectively
+• **Acceptance Criteria**:
+  - Send delay notifications and updates
+  - Report incidents and emergencies promptly
+  - Coordinate with attendants and management
+
+### 🧪 Testing-Focused Feature Specification
+
+#### 🚐 Feature 12.1: Route Execution
+• **Testing Focus**: Route following and incident reporting
+• **Test Scenarios**:
+  1. **Access route**: View assigned stops and schedule
+  2. **Report incident**: Submit IncidentReport → Verify notification creation
+
+---
+
+## 🤝 Cross-Role Collaboration
+
+### 🚨 Emergency Communication Protocol
+• **As any staff member**
+• **I want to send emergency notifications**
+• **So that critical information reaches relevant stakeholders immediately**
+• **👥 Involved Roles**: All staff roles with communication permissions
+
+### 🎓 Student Support Team Collaboration
+• **As multiple support staff**
+• **I want to collaborate on student support cases**
+• **So that we provide comprehensive assistance for complex student needs**
+• **👥 Involved Roles**: Teachers, Counselors, Administrators, Support Staff
+
+### 📚 Academic Planning Committee
+• **As academic leadership**
+• **I want to collaborate on curriculum planning**
+• **So that we develop cohesive and effective educational programs**
+• **👥 Involved Roles**: Principal, Department Heads, Teachers, Administrators
+
+### 👨‍👩‍👧‍👦 Parent-Teacher Association Coordination
+• **As school community members**
+• **I want to coordinate PTA activities**
+• **So that we maintain strong parent-school partnerships**
+• **👥 Involved Roles**: Teachers, Administrators, Parents, Support Staff
+
+### ⚽ Extracurricular Activities Coordination
+• **As activity coordinators and coaches**
+• **I want to collaborate on school-wide activity programs**
+• **So that we provide comprehensive extracurricular opportunities**
+• **👥 Involved Roles**: Extracurricular Coordinator, Sports Coaches, Club Advisors, Teachers, Students, Parents
+
+---
+
+## 🏗️ System Architecture & Technical Overview
+
+### 🏗️ Core Models & Components
+| Component | Purpose | Key Models |
+|-----------|---------|------------|
+| 🔐 Authentication | User access & security | User, Role, Permission, AuditLog |
+| 📚 Academic Core | Curriculum & scheduling | AcademicSession, Subject, Class, Timetable |
+| 👥 User Management | All user types | Student, Teacher, Parent, Staff |
+| 📊 Assessment | Grading & evaluation | Exam, Assignment, Mark, GradingSystem |
+| 💰 Finance | Billing & payments | FeeStructure, Invoice, Payment, Expense |
+| 📅 Attendance | Student presence tracking | DailyAttendance, PeriodAttendance |
+| 🏫 Institution | Multi-school management | School, Department, Room |
+| 📱 Communication | Messaging & announcements | Message, Announcement, NoticeBoard |
+| 🚌 Transportation | Transport services | Vehicle, Route, TransportAllocation |
+| 🏠 Hostel | Boarding management | Hostel, Room, Bed, HostelAllocation |
+| 📖 Library | Resource management | Book, BorrowRecord, Reservation |
+| ⚽ Activities | Extracurricular programs | Activity, ActivityEnrollment, Competition |
+| 🛠️ Analytics | Reporting & insights | Report, Dashboard, KPIMeasurement |
+
+### 🧪 Testing Strategy Summary
+| Test Type | Coverage | Tools/Approach |
+|-----------|----------|----------------|
+| Unit Testing | Individual models & functions | Jest, Pytest, JUnit |
+| Integration Testing | Module interactions | API testing, Database testing |
+| End-to-End Testing | Complete user workflows | Selenium, Cypress, Playwright |
+| Security Testing | Authentication & authorization | OWASP ZAP, Penetration testing |
+| Performance Testing | System scalability | Load testing, Stress testing |
+| User Acceptance Testing | Business requirements validation | UAT scripts, User scenarios |
+
+---
+
+*This comprehensive specification serves as the foundation for implementing and maintaining a robust school management system with clear role definitions, feature requirements, and testing guidelines.*

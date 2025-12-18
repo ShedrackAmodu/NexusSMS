@@ -7,6 +7,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # Define staff roles with their display names and descriptions
+        # Hierarchy levels aligned with Features.md specifications
         staff_roles_data = [
             {
                 'role_type': Role.RoleType.SUPER_ADMIN,
@@ -30,43 +31,37 @@ class Command(BaseCommand):
                 'role_type': Role.RoleType.DEPARTMENT_HEAD,
                 'name': 'Department Head',
                 'description': 'Head of an academic department',
-                'hierarchy_level': 70,
+                'hierarchy_level': 80,
             },
             {
                 'role_type': Role.RoleType.COUNSELOR,
                 'name': 'School Counselor',
                 'description': 'Student counseling and guidance',
-                'hierarchy_level': 60,
+                'hierarchy_level': 75,
             },
             {
                 'role_type': Role.RoleType.TEACHER,
                 'name': 'Teacher',
                 'description': 'Classroom teacher',
-                'hierarchy_level': 50,
+                'hierarchy_level': 70,
             },
             {
                 'role_type': Role.RoleType.ACCOUNTANT,
                 'name': 'Accountant',
                 'description': 'Financial management and accounting',
-                'hierarchy_level': 45,
+                'hierarchy_level': 65,
             },
             {
                 'role_type': Role.RoleType.LIBRARIAN,
                 'name': 'Librarian',
                 'description': 'Library management and services',
-                'hierarchy_level': 40,
+                'hierarchy_level': 60,
             },
             {
-                'role_type': Role.RoleType.DRIVER,
-                'name': 'Driver',
-                'description': 'School transport driver',
-                'hierarchy_level': 30,
-            },
-            {
-                'role_type': Role.RoleType.SUPPORT,
-                'name': 'Support Staff',
-                'description': 'General support staff',
-                'hierarchy_level': 25,
+                'role_type': Role.RoleType.ACTIVITIES_COORDINATOR,
+                'name': 'Activities Coordinator',
+                'description': 'Management of extracurricular activities and programs',
+                'hierarchy_level': 60,
             },
             {
                 'role_type': Role.RoleType.TRANSPORT_MANAGER,
@@ -75,9 +70,21 @@ class Command(BaseCommand):
                 'hierarchy_level': 55,
             },
             {
+                'role_type': Role.RoleType.SUPPORT,
+                'name': 'Support Staff',
+                'description': 'General support staff',
+                'hierarchy_level': 55,
+            },
+            {
                 'role_type': Role.RoleType.HOSTEL_WARDEN,
                 'name': 'Hostel Warden',
                 'description': 'Management of student hostel facilities',
+                'hierarchy_level': 55,
+            },
+            {
+                'role_type': Role.RoleType.DRIVER,
+                'name': 'Driver',
+                'description': 'School transport driver',
                 'hierarchy_level': 50,
             },
         ]

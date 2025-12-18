@@ -74,121 +74,28 @@ class Command(BaseCommand):
         )
 
     def _get_super_admin_permissions(self):
-        """Super admin gets all permissions"""
-        return [
-            # Users
-            'users.add_user', 'users.change_user', 'users.delete_user', 'users.view_user',
-            'users.add_role', 'users.change_role', 'users.delete_role', 'users.view_role',
-
-            # Academics
-            'academics.add_academicsession', 'academics.change_academicsession', 'academics.delete_academicsession', 'academics.view_academicsession',
-            'academics.add_department', 'academics.change_department', 'academics.delete_department', 'academics.view_department',
-            'academics.add_subject', 'academics.change_subject', 'academics.delete_subject', 'academics.view_subject',
-            'academics.add_class', 'academics.change_class', 'academics.delete_class', 'academics.view_class',
-            'academics.add_student', 'academics.change_student', 'academics.delete_student', 'academics.view_student',
-            'academics.add_teacher', 'academics.change_teacher', 'academics.delete_teacher', 'academics.view_teacher',
-            'academics.add_enrollment', 'academics.change_enrollment', 'academics.delete_enrollment', 'academics.view_enrollment',
-            'academics.add_timetable', 'academics.change_timetable', 'academics.delete_timetable', 'academics.view_timetable',
-            'academics.add_classmaterial', 'academics.change_classmaterial', 'academics.delete_classmaterial', 'academics.view_classmaterial',
-
-            # Assessment
-            'assessment.add_exam', 'assessment.change_exam', 'assessment.delete_exam', 'assessment.view_exam',
-            'assessment.add_assignment', 'assessment.change_assignment', 'assessment.delete_assignment', 'assessment.view_assignment',
-            'assessment.add_result', 'assessment.change_result', 'assessment.delete_result', 'assessment.view_result',
-            'assessment.add_reportcard', 'assessment.change_reportcard', 'assessment.delete_reportcard', 'assessment.view_reportcard',
-            'assessment.add_mark', 'assessment.change_mark', 'assessment.delete_mark', 'assessment.view_mark',
-
-            # Attendance
-            'attendance.add_dailyattendance', 'attendance.change_dailyattendance', 'attendance.delete_dailyattendance', 'attendance.view_dailyattendance',
-            'attendance.add_attendancesession', 'attendance.change_attendancesession', 'attendance.delete_attendancesession', 'attendance.view_attendancesession',
-            'attendance.add_periodattendance', 'attendance.change_periodattendance', 'attendance.delete_periodattendance', 'attendance.view_periodattendance',
-            'attendance.add_leaveapplication', 'attendance.change_leaveapplication', 'attendance.delete_leaveapplication', 'attendance.view_leaveapplication',
-            'attendance.add_attendancesummary', 'attendance.change_attendancesummary', 'attendance.delete_attendancesummary', 'attendance.view_attendancesummary',
-
-            # Communication
-            'communication.add_announcement', 'communication.change_announcement', 'communication.delete_announcement', 'communication.view_announcement',
-            'communication.add_noticeboard', 'communication.change_noticeboard', 'communication.delete_noticeboard', 'communication.view_noticeboard',
-            'communication.add_emailtemplate', 'communication.change_emailtemplate', 'communication.delete_emailtemplate', 'communication.view_emailtemplate',
-            'communication.add_smstemplate', 'communication.change_smstemplate', 'communication.delete_smstemplate', 'communication.view_smstemplate',
-            'communication.add_message', 'communication.change_message', 'communication.delete_message', 'communication.view_message',
-            'communication.add_realtimenotification', 'communication.change_realtimenotification', 'communication.delete_realtimenotification', 'communication.view_realtimenotification',
-
-            # Finance
-            'finance.add_invoice', 'finance.change_invoice', 'finance.delete_invoice', 'finance.view_invoice',
-            'finance.add_payment', 'finance.change_payment', 'finance.delete_payment', 'finance.view_payment',
-            'finance.add_feestructure', 'finance.change_feestructure', 'finance.delete_feestructure', 'finance.view_feestructure',
-            'finance.add_expense', 'finance.change_expense', 'finance.delete_expense', 'finance.view_expense',
-            'finance.add_financialreport', 'finance.change_financialreport', 'finance.delete_financialreport', 'finance.view_financialreport',
-
-            # Library
-            'library.add_library', 'library.change_library', 'library.delete_library', 'library.view_library',
-            'library.add_author', 'library.change_author', 'library.delete_author', 'library.view_author',
-            'library.add_publisher', 'library.change_publisher', 'library.delete_publisher', 'library.view_publisher',
-            'library.add_bookcategory', 'library.change_bookcategory', 'library.delete_bookcategory', 'library.view_bookcategory',
-            'library.add_book', 'library.change_book', 'library.delete_book', 'library.view_book',
-            'library.add_bookcopy', 'library.change_bookcopy', 'library.delete_bookcopy', 'library.view_bookcopy',
-            'library.add_librarymember', 'library.change_librarymember', 'library.delete_librarymember', 'library.view_librarymember',
-            'library.add_borrowrecord', 'library.change_borrowrecord', 'library.delete_borrowrecord', 'library.view_borrowrecord',
-            'library.add_reservation', 'library.change_reservation', 'library.delete_reservation', 'library.view_reservation',
-            'library.add_finepayment', 'library.change_finepayment', 'library.delete_finepayment', 'library.view_finepayment',
-
-            # Transport
-            'transport.add_vehicle', 'transport.change_vehicle', 'transport.delete_vehicle', 'transport.view_vehicle',
-            'transport.add_driver', 'transport.change_driver', 'transport.delete_driver', 'transport.view_driver',
-            'transport.add_attendant', 'transport.change_attendant', 'transport.delete_attendant', 'transport.view_attendant',
-            'transport.add_route', 'transport.change_route', 'transport.delete_route', 'transport.view_route',
-            'transport.add_routestop', 'transport.change_routestop', 'transport.delete_routestop', 'transport.view_routestop',
-            'transport.add_routeschedule', 'transport.change_routeschedule', 'transport.delete_routeschedule', 'transport.view_routeschedule',
-            'transport.add_transportallocation', 'transport.change_transportallocation', 'transport.delete_transportallocation', 'transport.view_transportallocation',
-            'transport.add_maintenancerecord', 'transport.change_maintenancerecord', 'transport.delete_maintenancerecord', 'transport.view_maintenancerecord',
-            'transport.add_fuelrecord', 'transport.change_fuelrecord', 'transport.delete_fuelrecord', 'transport.view_fuelrecord',
-            'transport.add_incidentreport', 'transport.change_incidentreport', 'transport.delete_incidentreport', 'transport.view_incidentreport',
-
-            # Hostels
-            'hostels.add_hostel', 'hostels.change_hostel', 'hostels.delete_hostel', 'hostels.view_hostel',
-            'hostels.add_room', 'hostels.change_room', 'hostels.delete_room', 'hostels.view_room',
-            'hostels.add_bed', 'hostels.change_bed', 'hostels.delete_bed', 'hostels.view_bed',
-            'hostels.add_hostelallocation', 'hostels.change_hostelallocation', 'hostels.delete_hostelallocation', 'hostels.view_hostelallocation',
-            'hostels.add_hostelfee', 'hostels.change_hostelfee', 'hostels.delete_hostelfee', 'hostels.view_hostelfee',
-            'hostels.add_visitorlog', 'hostels.change_visitorlog', 'hostels.delete_visitorlog', 'hostels.view_visitorlog',
-            'hostels.add_maintenancerequest', 'hostels.change_maintenancerequest', 'hostels.delete_maintenancerequest', 'hostels.view_maintenancerequest',
-            'hostels.add_inventoryitem', 'hostels.change_inventoryitem', 'hostels.delete_inventoryitem', 'hostels.view_inventoryitem',
-
-            # Activities
-            'activities.add_activity', 'activities.change_activity', 'activities.delete_activity', 'activities.view_activity',
-            'activities.add_activityenrollment', 'activities.change_activityenrollment', 'activities.delete_activityenrollment', 'activities.view_activityenrollment',
-            'activities.add_equipment', 'activities.change_equipment', 'activities.delete_equipment', 'activities.view_equipment',
-            'activities.add_activitybudget', 'activities.change_activitybudget', 'activities.delete_activitybudget', 'activities.view_activitybudget',
-            'activities.add_competition', 'activities.change_competition', 'activities.delete_competition', 'activities.view_competition',
-
-            # Health
-            'health.add_healthrecord', 'health.change_healthrecord', 'health.delete_healthrecord', 'health.view_healthrecord',
-            'health.add_medicalappointment', 'health.change_medicalappointment', 'health.delete_medicalappointment', 'health.view_medicalappointment',
-            'health.add_medication', 'health.change_medication', 'health.delete_medication', 'health.view_medication',
-
-            # Audit
-            'audit.add_auditlog', 'audit.change_auditlog', 'audit.delete_auditlog', 'audit.view_auditlog',
-
-            # Analytics
-            'analytics.add_report', 'analytics.change_report', 'analytics.delete_report', 'analytics.view_report',
-
-            # Support
-            'support.add_helpcenterarticle', 'support.change_helpcenterarticle', 'support.delete_helpcenterarticle', 'support.view_helpcenterarticle',
-            'support.add_faq', 'support.change_faq', 'support.delete_faq', 'support.view_faq',
-            'support.add_resource', 'support.change_resource', 'support.delete_resource', 'support.view_resource',
-        ]
+        """Super admin gets all permissions from all apps"""
+        permissions = []
+        for perm in Permission.objects.all():
+            # Skip system Django permissions that shouldn't be assigned
+            if perm.content_type.app_label not in ['admin', 'contenttypes', 'sessions', 'sites']:
+                permissions.append(f'{perm.content_type.app_label}.{perm.codename}')
+        return permissions
 
     def _get_admin_permissions(self):
         """School Admin gets permissions aligned with Features.md: Staff, Finance, Communication"""
         permissions = [
             # Users management (Staff)
             'users.add_user', 'users.change_user', 'users.delete_user', 'users.view_user',
+            'users.add_userprofile', 'users.change_userprofile', 'users.view_userprofile',
             'users.add_role', 'users.change_role', 'users.view_role',
 
             # Application management (Staff)
             'users.add_studentapplication', 'users.change_studentapplication', 'users.delete_studentapplication', 'users.view_studentapplication',
             'users.add_staffapplication', 'users.change_staffapplication', 'users.delete_staffapplication', 'users.view_staffapplication',
-            'users.approve_applications', 'users.add_applicationstatus', 'users.change_applicationstatus', 'users.delete_applicationstatus', 'users.view_applicationstatus',
+
+            # Core system permissions (Institution management)
+            'core.view_institution', 'core.change_institution', 'core.add_institution',
 
             # Finance (aligned with Features.md)
             'finance.add_invoice', 'finance.change_invoice', 'finance.delete_invoice', 'finance.view_invoice',
@@ -199,11 +106,13 @@ class Command(BaseCommand):
 
             # Communication (aligned with Features.md)
             'communication.add_announcement', 'communication.change_announcement', 'communication.delete_announcement', 'communication.view_announcement',
-            'communication.add_noticeboard', 'communication.change_noticeboard', 'communication.delete_noticeboard', 'communication.view_noticeboard',
-            'communication.add_emailtemplate', 'communication.change_emailtemplate', 'communication.delete_emailtemplate', 'communication.view_emailtemplate',
-            'communication.add_smstemplate', 'communication.change_smstemplate', 'communication.delete_smstemplate', 'communication.view_smstemplate',
-            'communication.add_message', 'communication.change_message', 'communication.delete_message', 'communication.view_message',
-            'communication.add_realtimenotification', 'communication.change_realtimenotification', 'communication.delete_realtimenotification', 'communication.view_realtimenotification',
+            'communication.add_message', 'communication.change_message', 'communication.view_message',
+
+            # Academic session management (aligned with Features.md)
+            'academics.add_academicsession', 'academics.change_academicsession', 'academics.view_academicsession',
+
+            # System configuration access
+            'core.view_systemconfig',
         ]
         return permissions
 
@@ -212,22 +121,18 @@ class Command(BaseCommand):
         return [
             # Academic leadership and oversight (Features.md: Academic Leadership, Performance, Teacher Management)
             'academics.view_department', 'academics.view_subject', 'academics.view_class',
-            'academics.add_student', 'academics.change_student', 'academics.view_student',
-            'academics.add_teacher', 'academics.change_teacher', 'academics.view_teacher',
             'academics.add_enrollment', 'academics.change_enrollment', 'academics.view_enrollment',
             'academics.add_timetable', 'academics.change_timetable', 'academics.view_timetable',
+            'academics.add_academicrecord', 'academics.change_academicrecord', 'academics.view_academicrecord',
 
             # Assessment and performance monitoring
-            'assessment.view_exam', 'assessment.view_assignment', 'assessment.view_mark',
+            'assessment.view_assignment', 'assessment.view_mark',
             'assessment.add_result', 'assessment.change_result', 'assessment.view_result',
             'assessment.add_reportcard', 'assessment.change_reportcard', 'assessment.view_reportcard',
-            'assessment.view_achievement', 'assessment.view_behaviorrecord',
+            'academics.view_achievement', 'academics.view_behaviorrecord',
 
             # Attendance oversight
             'attendance.view_dailyattendance', 'attendance.view_attendancesummary',
-
-            # Academic planning (Holiday management, etc.)
-            'academics.add_holiday', 'academics.change_holiday', 'academics.view_holiday',
 
             # Communication for stakeholder engagement
             'communication.add_announcement', 'communication.change_announcement', 'communication.view_announcement',
@@ -247,9 +152,10 @@ class Command(BaseCommand):
     def _get_counselor_permissions(self):
         """Counselor gets student support permissions"""
         return [
-            'academics.view_student', 'academics.view_teacher', 'academics.view_class',
+            'academics.view_class', 'academics.view_academicrecord',
             'assessment.view_result', 'assessment.view_reportcard', 'assessment.view_mark',
             'attendance.view_dailyattendance', 'attendance.view_attendancesummary',
+            'academics.view_behaviorrecord',
             'communication.add_message', 'communication.view_message',
         ]
 
@@ -258,13 +164,14 @@ class Command(BaseCommand):
         return [
             # Academic
             'academics.view_department', 'academics.view_subject', 'academics.view_class',
-            'academics.view_student', 'academics.view_enrollment', 'academics.view_timetable',
+            'academics.view_enrollment', 'academics.view_timetable',
             'academics.add_classmaterial', 'academics.change_classmaterial', 'academics.delete_classmaterial', 'academics.view_classmaterial',
+            'academics.view_academicrecord',
 
             # Assessment
             'assessment.add_assignment', 'assessment.change_assignment', 'assessment.delete_assignment', 'assessment.view_assignment',
             'assessment.add_mark', 'assessment.change_mark', 'assessment.view_mark',
-            'assessment.view_exam', 'assessment.view_result',
+            'assessment.view_result',
 
             # Attendance
             'attendance.add_dailyattendance', 'attendance.change_dailyattendance', 'attendance.view_dailyattendance',
@@ -300,20 +207,45 @@ class Command(BaseCommand):
         ]
 
     def _get_driver_permissions(self):
-        """Driver gets basic transport permissions"""
+        """Driver gets transport permissions for route execution and safety reporting"""
         return [
+            # Route execution permissions (aligned with Features.md)
             'transport.view_vehicle', 'transport.view_route', 'transport.view_routeschedule',
+            'transport.change_route', 'transport.change_routeschedule',  # For route updates during execution
+
+            # Fuel and maintenance reporting
+            'transport.add_fuelrecord', 'transport.change_fuelrecord', 'transport.view_fuelrecord',
+            'transport.add_maintenancerecord', 'transport.change_maintenancerecord', 'transport.view_maintenancerecord',
+
+            # Safety and incident reporting
             'transport.add_incidentreport', 'transport.change_incidentreport', 'transport.view_incidentreport',
+
+            # Transport allocations (view only for assigned routes)
+            'transport.view_transportallocation',
         ]
 
     def _get_support_permissions(self):
-        """Support staff gets basic permissions"""
+        """Support staff gets technical support and system monitoring permissions"""
         return [
-            'users.view_user',
+            # User support
+            'users.view_user', 'users.view_userprofile',
+
+            # Communication for support
             'communication.add_message', 'communication.view_message',
+            'communication.add_announcement', 'communication.view_announcement',
+
+            # Help center management
             'support.add_helpcenterarticle', 'support.change_helpcenterarticle', 'support.view_helpcenterarticle',
             'support.add_faq', 'support.change_faq', 'support.view_faq',
             'support.add_resource', 'support.change_resource', 'support.view_resource',
+
+            # System monitoring (aligned with Features.md)
+            'audit.view_auditlog',
+            'core.view_systemconfig',
+            'analytics.view_kpimeasurement', 'analytics.view_kpi',
+
+            # Basic academic access for support
+            'academics.view_class', 'academics.view_student', 'academics.view_teacher',
         ]
 
     def _get_transport_manager_permissions(self):
