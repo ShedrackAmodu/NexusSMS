@@ -1,57 +1,27 @@
 from django.core.management.base import BaseCommand
-from apps.users.models import sync_all_user_permissions
+from apps.users.models import User, sync_user_permissions
 
 
 class Command(BaseCommand):
-    help = 'Synchronize user permissions based on their roles'
-
-    def add_arguments(self, parser):
-        parser.add_argument(
-            '--dry-run',
-            action='store_true',
-            help='Show what would be done without making changes',
-        )
+    help = 'Sync permissions for all users based on their roles'
 
     def handle(self, *args, **options):
-        dry_run = options['dry_run']
+        self.stdout.write('Syncing permissions for all users...\n')
 
-        if dry_run:
-            self.stdout.write(
-                self.style.WARNING('DRY RUN MODE - No changes will be made')
-            )
+        users = User.objects.all()
+        total_synced = 0
 
-        self.stdout.write('Starting permission synchronization...')
-
-        try:
-            if dry_run:
-                # Count users that would be affected
-                from django.db.models import Count
-                from apps.users.models import User, UserRole
-
-                users_with_roles = User.objects.filter(
-                    user_roles__status='active'
-                ).distinct().count()
-
+        for user in users:
+            try:
+                count = sync_user_permissions(user)
+                if count > 0:
+                    total_synced += 1
+                    self.stdout.write(f'Synced {count} permissions for {user.email}')
+            except Exception as e:
                 self.stdout.write(
-                    self.style.SUCCESS(
-                        f'Would synchronize permissions for {users_with_roles} users'
-                    )
+                    self.style.ERROR(f'Error syncing permissions for {user.email}: {e}')
                 )
-            else:
-                users_updated = sync_all_user_permissions()
-
-                self.stdout.write(
-                    self.style.SUCCESS(
-                        f'Successfully synchronized permissions for {users_updated} users'
-                    )
-                )
-
-        except Exception as e:
-            self.stdout.write(
-                self.style.ERROR(f'Error during permission synchronization: {e}')
-            )
-            return
 
         self.stdout.write(
-            self.style.SUCCESS('Permission synchronization completed')
+            self.style.SUCCESS(f'Permissions synced for {total_synced} users')
         )

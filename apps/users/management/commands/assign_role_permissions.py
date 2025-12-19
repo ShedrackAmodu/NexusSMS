@@ -10,6 +10,7 @@ class Command(BaseCommand):
         # Define permissions for each role type
         role_permissions = {
             'super_admin': self._get_super_admin_permissions(),
+            'school_admin': self._get_admin_permissions(),  # School admin gets same permissions as admin
             'admin': self._get_admin_permissions(),
             'principal': self._get_principal_permissions(),
             'department_head': self._get_department_head_permissions(),
@@ -110,6 +111,13 @@ class Command(BaseCommand):
 
             # Academic session management (aligned with Features.md)
             'academics.add_academicsession', 'academics.change_academicsession', 'academics.view_academicsession',
+
+            # Academic management permissions
+            'academics.add_department', 'academics.change_department', 'academics.delete_department', 'academics.view_department',
+            'academics.add_subject', 'academics.change_subject', 'academics.delete_subject', 'academics.view_subject',
+            'academics.add_gradelevel', 'academics.change_gradelevel', 'academics.delete_gradelevel', 'academics.view_gradelevel',
+            'academics.add_class', 'academics.change_class', 'academics.delete_class', 'academics.view_class',
+            'academics.add_enrollment', 'academics.change_enrollment', 'academics.delete_enrollment', 'academics.view_enrollment',
 
             # System configuration access
             'core.view_systemconfig',

@@ -16,6 +16,12 @@ class Command(BaseCommand):
                 'hierarchy_level': 100,
             },
             {
+                'role_type': Role.RoleType.SCHOOL_ADMIN,
+                'name': 'School Administrator',
+                'description': 'School-level administrator with academic management permissions',
+                'hierarchy_level': 95,
+            },
+            {
                 'role_type': Role.RoleType.ADMIN,
                 'name': 'Administrator',
                 'description': 'Administrative access to school management',
