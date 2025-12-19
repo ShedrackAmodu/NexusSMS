@@ -1152,7 +1152,11 @@ class DepartmentListView(InstitutionPermissionMixin, ListView):
 
     def get_queryset(self):
         # Departments are core academic entities accessible to all authenticated users
-        return Department.objects.filter(status='active').select_related('head_of_department')
+        # Exclude soft-deleted departments (is_deleted=False)
+        return Department.objects.filter(
+            status='active',
+            is_deleted=False
+        ).select_related('head_of_department')
 
 
 class DepartmentDetailView(AcademicsAccessMixin, DetailView):
@@ -1168,16 +1172,29 @@ class DepartmentDetailView(AcademicsAccessMixin, DetailView):
         return context
 
 
-class DepartmentCreateView(StaffRequiredMixin, CreateView):
+class DepartmentCreateView(InstitutionPermissionMixin, AdminRequiredMixin, CreateView):
     """Create a new department."""
     model = Department
     form_class = DepartmentForm
     template_name = 'academics/departments/department_form.html'
     success_url = reverse_lazy('academics:department_list')
-    
+
+    def get_form_kwargs(self):
+        """Pass the current user to the form."""
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
-        messages.success(self.request, _('Department created successfully.'))
-        return super().form_valid(form)
+        # Let the InstitutionPermissionMixin handle institution assignment
+        result = super().form_valid(form)
+
+        # Add debug logging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Created department: {form.instance.name} in institution: {form.instance.institution}")
+
+        return result
 
 
 class DepartmentUpdateView(StaffRequiredMixin, UpdateView):
@@ -1186,10 +1203,39 @@ class DepartmentUpdateView(StaffRequiredMixin, UpdateView):
     form_class = DepartmentForm
     template_name = 'academics/departments/department_form.html'
     success_url = reverse_lazy('academics:department_list')
-    
+
     def form_valid(self, form):
         messages.success(self.request, _('Department updated successfully.'))
         return super().form_valid(form)
+
+
+class DepartmentDeleteView(AdminRequiredMixin, DeleteView):
+    """Delete a department with safety checks."""
+    model = Department
+    template_name = 'academics/departments/department_confirm_delete.html'
+    success_url = reverse_lazy('academics:department_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        department = self.object
+
+        # Check for related data that would be affected
+        related_counts = {
+            'subjects': department.subjects.count(),
+            'teachers': department.teachers.count(),
+            'students': department.students.count(),
+        }
+
+        context['related_counts'] = related_counts
+        context['total_related_items'] = sum(related_counts.values())
+        context['can_delete_safely'] = sum(related_counts.values()) == 0
+
+        return context
+
+    def delete(self, request, *args, **kwargs):
+        department = self.get_object()
+        messages.success(request, _(f"Department '{department.name}' deleted successfully."))
+        return super().delete(request, *args, **kwargs)
 
 
 # =============================================================================
@@ -1248,6 +1294,12 @@ class SubjectCreateView(InstitutionPermissionMixin, AdminRequiredMixin, CreateVi
     form_class = SubjectForm
     template_name = 'academics/subjects/subject_form.html'
     success_url = reverse_lazy('academics:subject_list')
+
+    def get_form_kwargs(self):
+        """Pass the current user to the form."""
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
 
     def form_valid(self, form):
         messages.success(self.request, _('Subject created successfully.'))
@@ -1648,10 +1700,61 @@ class EnrollmentUpdateView(StaffRequiredMixin, UpdateView):
     form_class = EnrollmentForm
     template_name = 'academics/enrollments/enrollment_form.html'
     success_url = reverse_lazy('academics:enrollment_list')
-    
+
     def form_valid(self, form):
         messages.success(self.request, _('Enrollment updated successfully.'))
         return super().form_valid(form)
+
+
+class EnrollmentDeleteView(StudentRequiredMixin, DeleteView):
+    """Allow students to delete their own enrollments (withdraw from classes)."""
+    model = Enrollment
+    template_name = 'academics/enrollments/enrollment_confirm_delete.html'
+    success_url = reverse_lazy('academics:student_dashboard')
+
+    def get_queryset(self):
+        """Students can only delete their own enrollments."""
+        return Enrollment.objects.filter(
+            student=self.request.user.student_profile
+        )
+
+    def dispatch(self, request, *args, **kwargs):
+        """Additional checks for enrollment deletion."""
+        enrollment = self.get_object()
+
+        # Check if enrollment belongs to student
+        if enrollment.student != request.user.student_profile:
+            messages.error(request, _("You can only delete your own enrollments."))
+            return redirect('academics:student_dashboard')
+
+        # Check if enrollment is active
+        if enrollment.enrollment_status != 'active':
+            messages.error(request, _("You can only withdraw from active enrollments."))
+            return redirect('academics:student_dashboard')
+
+        # Check if withdrawal is allowed (e.g., before certain date)
+        current_session = AcademicSession.objects.filter(is_current=True).first()
+        if current_session:
+            # Allow withdrawal only within first 2 weeks of session
+            from django.utils import timezone
+            days_since_start = (timezone.now().date() - current_session.start_date).days
+            if days_since_start > 14:  # 2 weeks
+                messages.error(request, _("Withdrawal period has expired. Contact administration."))
+                return redirect('academics:student_dashboard')
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        enrollment = self.get_object()
+        class_name = enrollment.class_enrolled.name
+
+        # Update enrollment status instead of hard delete
+        enrollment.enrollment_status = 'withdrawn'
+        enrollment.notes = f"Self-withdrawn by student on {timezone.now().date()}"
+        enrollment.save()
+
+        messages.success(request, _(f"You have successfully withdrawn from {class_name}."))
+        return redirect(self.success_url)
 
 
 class BulkEnrollmentView(StaffRequiredMixin, View):

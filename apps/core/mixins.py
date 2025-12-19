@@ -96,8 +96,18 @@ class InstitutionPermissionMixin(InstitutionAccessMixin):
                     pass  # Fall through to error
 
         if not institution:
-            from django.core.exceptions import ValidationError
-            raise ValidationError(_("Unable to determine institution for this record. Please contact an administrator."))
+            user = self.request.user
+            if user.user_roles.filter(role__role_type__in=['admin', 'principal', 'super_admin', 'school_admin'], status='active').exists():
+                # Admin user doesn't have institution assignment - this needs to be set up
+                from django.core.exceptions import ValidationError
+                raise ValidationError(
+                    _("Your account is not properly configured with an institution assignment. "
+                      "Please contact a system administrator to set up your institution access.")
+                )
+            else:
+                # Regular user without institution
+                from django.core.exceptions import ValidationError
+                raise ValidationError(_("Unable to determine institution for this record. Please contact an administrator."))
 
         form.instance.institution = institution
         return super().form_valid(form)
@@ -343,9 +353,9 @@ class AdminRequiredMixin(UserPassesTestMixin):
         if user.is_superuser:
             return True
 
-        # Check if user has admin, principal, or super_admin role
+        # Check if user has admin, principal, super_admin, or school_admin role
         user_roles = user.user_roles.all()
-        admin_roles = ['admin', 'principal', 'super_admin']
+        admin_roles = ['admin', 'principal', 'super_admin', 'school_admin']
         return any(role.role.role_type in admin_roles for role in user_roles)
 
 

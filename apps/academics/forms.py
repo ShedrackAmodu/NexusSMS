@@ -148,10 +148,34 @@ class DepartmentForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         # Limit head_of_department choices to active teachers
         self.fields['head_of_department'].queryset = Teacher.objects.filter(status='active').select_related('user')
         self.fields['head_of_department'].empty_label = _("Select Head of Department")
+
+    def clean_name(self):
+        name = self.cleaned_data.get('name')
+        if name and self.user:
+            # Get user's accessible institutions
+            from apps.core.middleware import get_user_accessible_institutions
+            try:
+                accessible_institutions = get_user_accessible_institutions(self.user)
+                if accessible_institutions.exists():
+                    # Check if department with this name exists in any of user's institutions
+                    existing_department = Department.objects.filter(
+                        name__iexact=name.strip(),
+                        institution__in=accessible_institutions
+                    ).exclude(pk=self.instance.pk).first()
+
+                    if existing_department:
+                        raise forms.ValidationError(
+                            _('A department with this name already exists in your institution(s).')
+                        )
+            except ImportError:
+                # Fallback if middleware not available
+                pass
+        return name
 
     def clean_code(self):
         code = self.cleaned_data.get('code')
@@ -181,8 +205,24 @@ class SubjectForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        self.fields['department'].queryset = Department.objects.filter(status='active')
+
+        # Filter departments by user's accessible institutions
+        if self.user:
+            from apps.core.middleware import get_user_accessible_institutions
+            try:
+                accessible_institutions = get_user_accessible_institutions(self.user)
+                self.fields['department'].queryset = Department.objects.filter(
+                    status='active',
+                    institution__in=accessible_institutions
+                )
+            except ImportError:
+                # Fallback if middleware not available
+                self.fields['department'].queryset = Department.objects.filter(status='active')
+        else:
+            self.fields['department'].queryset = Department.objects.filter(status='active')
+
         self.fields['prerequisites'].queryset = Subject.objects.filter(is_active=True).exclude(pk=self.instance.pk)
         self.fields['department'].empty_label = _("Select Department")
 
