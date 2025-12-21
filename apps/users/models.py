@@ -4,6 +4,7 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager, Permission
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import RegexValidator
+from django.core.exceptions import ValidationError
 import secrets
 import string
 import logging
@@ -480,6 +481,16 @@ class UserRole(CoreBaseModel):
 
     def __str__(self):
         return f"{self.user} - {self.role}"
+
+    def clean(self):
+        """Validate UserRole data integrity."""
+        # Ensure the referenced user still exists
+        if not User.objects.filter(id=self.user_id).exists():
+            raise ValidationError(_("The referenced user does not exist."))
+
+        # Ensure the referenced role still exists
+        if not Role.objects.filter(id=self.role_id).exists():
+            raise ValidationError(_("The referenced role does not exist."))
 
     def save(self, *args, **kwargs):
         """Ensure only one primary role per user per academic session."""

@@ -1886,7 +1886,7 @@ class TeacherDetailView(AcademicsAccessMixin, DetailView):
         return context
 
 
-class TeacherCreateView(StaffRequiredMixin, CreateView):
+class TeacherCreateView(AdminRequiredMixin, CreateView):
     """Create a new teacher profile."""
 
     model = Teacher
@@ -1899,7 +1899,7 @@ class TeacherCreateView(StaffRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class TeacherUpdateView(StaffRequiredMixin, UpdateView):
+class TeacherUpdateView(AdminRequiredMixin, UpdateView):
     """Update a teacher profile."""
 
     model = Teacher
