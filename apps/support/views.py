@@ -18,6 +18,8 @@ from django.db.models import Q, Count, Case, When, IntegerField
 from django.views import View
 from django.core.paginator import Paginator
 
+from apps.core.mixins import InstitutionPermissionMixin
+
 from .models import (
     HelpCenterArticle,
     Resource,
@@ -99,9 +101,7 @@ class CaseAccessMixin(UserPassesTestMixin):
 # ===== EXISTING SUPPORT VIEWS =====
 
 
-class ContactSubmissionListView(
-    LoginRequiredMixin, SupportStaffRequiredMixin, ListView
-):
+class ContactSubmissionListView(InstitutionPermissionMixin, ListView):
     model = ContactSubmission
     template_name = "support/tickets/list.html"
     context_object_name = "submissions"
@@ -360,7 +360,7 @@ class LegalDocumentDetailView(DetailView):
 # ===== STUDENT SUPPORT TEAM COLLABORATION VIEWS =====
 
 
-class SupportCaseListView(LoginRequiredMixin, ListView):
+class SupportCaseListView(InstitutionPermissionMixin, ListView):
     """
     List view for support cases with filtering and search.
     """

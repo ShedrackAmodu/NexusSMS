@@ -890,7 +890,7 @@ class StudentAttendanceView(StudentRequiredMixin, View):
         return monthly_data
 
 
-class AcademicsDashboardView(AcademicsAccessMixin, View):
+class AcademicsDashboardView(InstitutionPermissionMixin, AcademicsAccessMixin, View):
     """Academic dashboard view with role-based content."""
 
     def get(self, request):
