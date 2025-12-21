@@ -43,15 +43,15 @@ class TenantMiddleware(MiddlewareMixin):
             # Also store in request for convenience
             request.institution = institution
             # Store in session for persistence across requests
-            request.session['current_institution_id'] = str(institution.id)
+            request.session["current_institution_id"] = str(institution.id)
             request.session.modified = True
         else:
             # No institution found - store None
             _local.current_institution = None
             request.institution = None
             # Clear session institution if it exists
-            if 'current_institution_id' in request.session:
-                del request.session['current_institution_id']
+            if "current_institution_id" in request.session:
+                del request.session["current_institution_id"]
 
         return None
 
@@ -59,7 +59,7 @@ class TenantMiddleware(MiddlewareMixin):
         """
         Clean up thread-local storage after request processing.
         """
-        if hasattr(_local, 'current_institution'):
+        if hasattr(_local, "current_institution"):
             del _local.current_institution
         return response
 
@@ -69,21 +69,20 @@ class TenantMiddleware(MiddlewareMixin):
         Expected format: institution-code.domain.com
         """
         host = request.get_host().lower()
-        domain = getattr(settings, 'TENANT_DOMAIN', 'localhost')
+        domain = getattr(settings, "TENANT_DOMAIN", "localhost")
 
         # Remove port if present
-        if ':' in host:
-            host = host.split(':')[0]
+        if ":" in host:
+            host = host.split(":")[0]
 
         # Check if host ends with our domain
         if host.endswith(domain):
-            subdomain = host.replace(f'.{domain}', '').replace(domain, '')
+            subdomain = host.replace(f".{domain}", "").replace(domain, "")
 
-            if subdomain and subdomain != 'www':
+            if subdomain and subdomain != "www":
                 try:
                     return Institution.objects.get(
-                        code__iexact=subdomain,
-                        is_active=True
+                        code__iexact=subdomain, is_active=True
                     )
                 except Institution.DoesNotExist:
                     pass
@@ -94,17 +93,14 @@ class TenantMiddleware(MiddlewareMixin):
         """
         Get institution from session if stored.
         """
-        institution_id = request.session.get('current_institution_id')
+        institution_id = request.session.get("current_institution_id")
         if institution_id:
             try:
-                return Institution.objects.get(
-                    id=institution_id,
-                    is_active=True
-                )
+                return Institution.objects.get(id=institution_id, is_active=True)
             except Institution.DoesNotExist:
                 # Clean up invalid session data
-                if 'current_institution_id' in request.session:
-                    del request.session['current_institution_id']
+                if "current_institution_id" in request.session:
+                    del request.session["current_institution_id"]
 
         return None
 
@@ -121,11 +117,13 @@ class TenantMiddleware(MiddlewareMixin):
 
         # Try to find the user's primary institution through InstitutionUser
         try:
-            primary_membership = InstitutionUser.objects.filter(
-                user=user,
-                is_primary=True,
-                institution__is_active=True
-            ).select_related('institution').first()
+            primary_membership = (
+                InstitutionUser.objects.filter(
+                    user=user, is_primary=True, institution__is_active=True
+                )
+                .select_related("institution")
+                .first()
+            )
 
             if primary_membership:
                 return primary_membership.institution
@@ -134,10 +132,11 @@ class TenantMiddleware(MiddlewareMixin):
 
         # If no primary found, get the first active institution the user belongs to
         try:
-            membership = InstitutionUser.objects.filter(
-                user=user,
-                institution__is_active=True
-            ).select_related('institution').first()
+            membership = (
+                InstitutionUser.objects.filter(user=user, institution__is_active=True)
+                .select_related("institution")
+                .first()
+            )
 
             if membership:
                 return membership.institution
@@ -152,7 +151,7 @@ def get_current_institution():
     Get the current institution from thread-local storage.
     Returns None if no institution is set.
     """
-    return getattr(_local, 'current_institution', None)
+    return getattr(_local, "current_institution", None)
 
 
 def set_current_institution(institution):
@@ -176,17 +175,16 @@ def user_can_access_institution(user, institution):
 
     # Check if user belongs to this institution
     from .models import InstitutionUser
+
     try:
         return InstitutionUser.objects.filter(
-            user=user,
-            institution=institution,
-            institution__is_active=True
+            user=user, institution=institution, institution__is_active=True
         ).exists()
     except:
         return False
 
 
-def filter_queryset_by_institution(queryset, user, institution_field='institution'):
+def filter_queryset_by_institution(queryset, user, institution_field="institution"):
     """
     Filter a queryset by institution access permissions.
     Superusers can access all institutions.
@@ -201,8 +199,8 @@ def filter_queryset_by_institution(queryset, user, institution_field='institutio
     accessible_institutions = get_user_accessible_institutions(user)
 
     if accessible_institutions:
-        accessible_ids = list(accessible_institutions.values_list('id', flat=True))
-        filter_kwargs = {f'{institution_field}__in': accessible_ids}
+        accessible_ids = list(accessible_institutions.values_list("id", flat=True))
+        filter_kwargs = {f"{institution_field}__in": accessible_ids}
         return queryset.filter(**filter_kwargs)
     else:
         # No accessible institutions, return empty queryset
@@ -212,45 +210,52 @@ def filter_queryset_by_institution(queryset, user, institution_field='institutio
 def get_user_accessible_institutions(user):
     """
     Get all institutions a user can access.
-    Superusers get all institutions.
+    Superusers and super_admins get all institutions.
     Admin/principal users get only their primary institution.
     Regular users get institutions they belong to.
     """
+    # Django superusers can access all institutions
     if user.is_superuser:
+        return Institution.objects.filter(is_active=True)
+
+    # Super admins (custom role) should also access all institutions
+    if user.user_roles.filter(
+        role__role_type__in=["super_admin"], status="active"
+    ).exists():
         return Institution.objects.filter(is_active=True)
 
     # Check if user has admin, principal, or school_admin role
     if user.user_roles.filter(
-        role__role_type__in=['admin', 'principal', 'school_admin'],
-        status='active'
+        role__role_type__in=["admin", "principal", "school_admin"], status="active"
     ).exists():
         # Admin/principal users only get their primary institution
         from .models import InstitutionUser
-        primary_membership = InstitutionUser.objects.filter(
-            user=user,
-            is_primary=True,
-            institution__is_active=True
-        ).select_related('institution').first()
+
+        primary_membership = (
+            InstitutionUser.objects.filter(
+                user=user, is_primary=True, institution__is_active=True
+            )
+            .select_related("institution")
+            .first()
+        )
         if primary_membership:
             return Institution.objects.filter(id=primary_membership.institution.id)
         else:
             # Fallback to first institution if no primary set
-            first_membership = InstitutionUser.objects.filter(
-                user=user,
-                institution__is_active=True
-            ).select_related('institution').first()
+            first_membership = (
+                InstitutionUser.objects.filter(user=user, institution__is_active=True)
+                .select_related("institution")
+                .first()
+            )
             if first_membership:
                 return Institution.objects.filter(id=first_membership.institution.id)
         return Institution.objects.none()
 
     # Regular users get all institutions they belong to
     from .models import InstitutionUser
-    accessible_institution_ids = InstitutionUser.objects.filter(
-        user=user,
-        institution__is_active=True
-    ).values_list('institution_id', flat=True)
 
-    return Institution.objects.filter(
-        id__in=accessible_institution_ids,
-        is_active=True
-    )
+    accessible_institution_ids = InstitutionUser.objects.filter(
+        user=user, institution__is_active=True
+    ).values_list("institution_id", flat=True)
+
+    return Institution.objects.filter(id__in=accessible_institution_ids, is_active=True)

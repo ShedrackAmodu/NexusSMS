@@ -40,7 +40,7 @@ project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
 # Configure Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.development')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.development")
 django.setup()
 
 User = get_user_model()
@@ -75,31 +75,31 @@ class SystemCreator:
     def run_command(self, command_name, *args, **kwargs):
         """Run a Django management command with error handling."""
         try:
-            self.log_info(f'Running {command_name}...')
+            self.log_info(f"Running {command_name}...")
             call_command(command_name, *args, **kwargs)
-            self.log_success(f'Successfully executed {command_name}')
+            self.log_success(f"Successfully executed {command_name}")
             self.success_commands.append(command_name)
             return True
         except Exception as e:
-            self.log_error(f'Failed to execute {command_name}: {e}')
+            self.log_error(f"Failed to execute {command_name}: {e}")
             self.failed_commands.append((command_name, str(e)))
             return False
 
     def run_migrations(self):
         """Run makemigrations and migrate."""
         self.log_info("Running database migrations...")
-        
+
         # Run makemigrations for all apps
         try:
-            self.run_command('makemigrations')
+            self.run_command("makemigrations")
         except SystemExit:
             self.log_info("No changes detected or makemigrations exited normally")
         except Exception as e:
             self.log_error(f"Error running makemigrations: {e}")
             return False
-        
+
         # Run migrate
-        if self.run_command('migrate'):
+        if self.run_command("migrate"):
             self.log_success("Database migrations completed successfully")
             return True
         else:
@@ -110,121 +110,123 @@ class SystemCreator:
         """Fix the seed_staff_roles command by running it after institution is created."""
         if self.fixed_seed_staff_roles:
             return True
-            
+
         self.log_info("Fixing seed_staff_roles command...")
         try:
             # First, create a default institution if it doesn't exist
             from apps.core.models import Institution
             from apps.users.models import Role
-            
+
             # Check if default institution exists
-            default_institution = Institution.objects.filter(code='DEFAULT').first()
+            default_institution = Institution.objects.filter(code="DEFAULT").first()
             if not default_institution:
                 self.log_info("Creating default institution...")
                 default_institution = Institution.objects.create(
-                    name='Default School',
-                    code='DEFAULT',
-                    short_name='Default',
-                    description='Default institution',
-                    institution_type='high_school',
-                    ownership_type='private',
+                    name="Default School",
+                    code="DEFAULT",
+                    short_name="Default",
+                    description="Default institution",
+                    institution_type="high_school",
+                    ownership_type="private",
                     is_active=True,
                     allows_online_enrollment=True,
-                    requires_parent_approval=True
+                    requires_parent_approval=True,
                 )
-                self.log_success(f"Created default institution: {default_institution.name}")
-            
+                self.log_success(
+                    f"Created default institution: {default_institution.name}"
+                )
+
             # Now run the seed_staff_roles command again
             self.log_info("Running seed_staff_roles again...")
             from apps.users.models import Role as UserRole
             from django.db import transaction
-            
+
             with transaction.atomic():
                 # Define staff roles with their display names and descriptions
                 staff_roles_data = [
                     {
-                        'role_type': UserRole.RoleType.SUPER_ADMIN,
-                        'name': 'Super Administrator',
-                        'description': 'Full system access and control',
-                        'hierarchy_level': 100,
-                        'institution': default_institution,
+                        "role_type": UserRole.RoleType.SUPER_ADMIN,
+                        "name": "Super Administrator",
+                        "description": "Full system access and control",
+                        "hierarchy_level": 100,
                     },
                     {
-                        'role_type': UserRole.RoleType.ADMIN,
-                        'name': 'Administrator',
-                        'description': 'Administrative access to school management',
-                        'hierarchy_level': 90,
-                        'institution': default_institution,
+                        "role_type": UserRole.RoleType.SCHOOL_ADMIN,
+                        "name": "School Administrator",
+                        "description": "School-level administrator with comprehensive management permissions",
+                        "hierarchy_level": 95,
                     },
                     {
-                        'role_type': UserRole.RoleType.PRINCIPAL,
-                        'name': 'Principal',
-                        'description': 'School principal with oversight of all operations',
-                        'hierarchy_level': 85,
-                        'institution': default_institution,
+                        "role_type": UserRole.RoleType.ADMIN,
+                        "name": "Administrator",
+                        "description": "Administrative access to school management",
+                        "hierarchy_level": 90,
                     },
                     {
-                        'role_type': UserRole.RoleType.DEPARTMENT_HEAD,
-                        'name': 'Department Head',
-                        'description': 'Head of an academic department',
-                        'hierarchy_level': 70,
-                        'institution': default_institution,
+                        "role_type": UserRole.RoleType.PRINCIPAL,
+                        "name": "Principal",
+                        "description": "School principal with oversight of all operations",
+                        "hierarchy_level": 85,
                     },
                     {
-                        'role_type': UserRole.RoleType.COUNSELOR,
-                        'name': 'School Counselor',
-                        'description': 'Student counseling and guidance',
-                        'hierarchy_level': 60,
-                        'institution': default_institution,
+                        "role_type": UserRole.RoleType.DEPARTMENT_HEAD,
+                        "name": "Department Head",
+                        "description": "Head of an academic department",
+                        "hierarchy_level": 70,
                     },
                     {
-                        'role_type': UserRole.RoleType.TEACHER,
-                        'name': 'Teacher',
-                        'description': 'Classroom teacher',
-                        'hierarchy_level': 50,
-                        'institution': default_institution,
+                        "role_type": UserRole.RoleType.COUNSELOR,
+                        "name": "School Counselor",
+                        "description": "Student counseling and guidance",
+                        "hierarchy_level": 60,
                     },
                     {
-                        'role_type': UserRole.RoleType.ACCOUNTANT,
-                        'name': 'Accountant',
-                        'description': 'Financial management and accounting',
-                        'hierarchy_level': 45,
-                        'institution': default_institution,
+                        "role_type": UserRole.RoleType.TEACHER,
+                        "name": "Teacher",
+                        "description": "Classroom teacher",
+                        "hierarchy_level": 50,
                     },
                     {
-                        'role_type': UserRole.RoleType.LIBRARIAN,
-                        'name': 'Librarian',
-                        'description': 'Library management and services',
-                        'hierarchy_level': 40,
-                        'institution': default_institution,
+                        "role_type": UserRole.RoleType.ACCOUNTANT,
+                        "name": "Accountant",
+                        "description": "Financial management and accounting",
+                        "hierarchy_level": 45,
                     },
                     {
-                        'role_type': UserRole.RoleType.DRIVER,
-                        'name': 'Driver',
-                        'description': 'School transport driver',
-                        'hierarchy_level': 30,
-                        'institution': default_institution,
+                        "role_type": UserRole.RoleType.LIBRARIAN,
+                        "name": "Librarian",
+                        "description": "Library management and services",
+                        "hierarchy_level": 40,
                     },
                     {
-                        'role_type': UserRole.RoleType.SUPPORT,
-                        'name': 'Support Staff',
-                        'description': 'General support staff',
-                        'hierarchy_level': 25,
-                        'institution': default_institution,
+                        "role_type": UserRole.RoleType.ACTIVITIES_COORDINATOR,
+                        "name": "Activities Coordinator",
+                        "description": "Management of extracurricular activities and programs",
+                        "hierarchy_level": 60,
                     },
                     {
-                        'role_type': UserRole.RoleType.TRANSPORT_MANAGER,
-                        'name': 'Transport Manager',
-                        'description': 'Management of school transportation',
-                        'hierarchy_level': 55,
-                        'institution': default_institution,
+                        "role_type": UserRole.RoleType.DRIVER,
+                        "name": "Driver",
+                        "description": "School transport driver",
+                        "hierarchy_level": 30,
                     },
                     {
-                        'role_type': UserRole.RoleType.HOSTEL_WARDEN,
-                        'name': 'Hostel Warden',
-                        'description': 'Management of student hostel facilities',
-                        'hierarchy_level': 50,
-                        'institution': default_institution,
+                        "role_type": UserRole.RoleType.SUPPORT,
+                        "name": "Support Staff",
+                        "description": "General support staff",
+                        "hierarchy_level": 25,
+                    },
+                    {
+                        "role_type": UserRole.RoleType.TRANSPORT_MANAGER,
+                        "name": "Transport Manager",
+                        "description": "Management of school transportation",
+                        "hierarchy_level": 55,
+                    },
+                    {
+                        "role_type": UserRole.RoleType.HOSTEL_WARDEN,
+                        "name": "Hostel Warden",
+                        "description": "Management of student hostel facilities",
+                        "hierarchy_level": 50,
                     },
                 ]
 
@@ -232,49 +234,52 @@ class SystemCreator:
                 updated_count = 0
 
                 for role_data in staff_roles_data:
-                    role, created = UserRole.objects.get_or_create(
-                        role_type=role_data['role_type'],
+                    role, created = Role.objects.get_or_create(
+                        role_type=role_data["role_type"],
                         institution=default_institution,
                         defaults={
-                            'name': role_data['name'],
-                            'description': role_data['description'],
-                            'hierarchy_level': role_data['hierarchy_level'],
-                            'is_system_role': True,
-                            'status': 'active',
-                        }
+                            "name": role_data["name"],
+                            "description": role_data["description"],
+                            "hierarchy_level": role_data["hierarchy_level"],
+                            "is_system_role": True,
+                            "status": "active",
+                        },
                     )
 
                     if created:
                         created_count += 1
-                        self.log_success(f'Created role: {role.name}')
+                        self.log_success(f"Created role: {role.name}")
                     else:
                         # Update existing role if needed
                         updated = False
-                        if role.name != role_data['name']:
-                            role.name = role_data['name']
+                        if role.name != role_data["name"]:
+                            role.name = role_data["name"]
                             updated = True
-                        if role.description != role_data['description']:
-                            role.description = role_data['description']
+                        if role.description != role_data["description"]:
+                            role.description = role_data["description"]
                             updated = True
-                        if role.hierarchy_level != role_data['hierarchy_level']:
-                            role.hierarchy_level = role_data['hierarchy_level']
+                        if role.hierarchy_level != role_data["hierarchy_level"]:
+                            role.hierarchy_level = role_data["hierarchy_level"]
                             updated = True
-                        if role.status != 'active':
-                            role.status = 'active'
+                        if role.status != "active":
+                            role.status = "active"
                             updated = True
 
                         if updated:
                             role.save()
                             updated_count += 1
-                            self.log_warning(f'Updated role: {role.name}')
-                
-                self.log_success(f'Created {created_count} roles, updated {updated_count} roles')
+                            self.log_warning(f"Updated role: {role.name}")
+
+                self.log_success(
+                    f"Created {created_count} roles, updated {updated_count} roles"
+                )
                 self.fixed_seed_staff_roles = True
                 return True
-                
+
         except Exception as e:
-            self.log_error(f'Error fixing seed_staff_roles: {e}')
+            self.log_error(f"Error fixing seed_staff_roles: {e}")
             import traceback
+
             traceback.print_exc()
             return False
 
@@ -539,31 +544,35 @@ Attn: Data Protection Officer<br>
 <p><em>This privacy policy was last updated on December 17, 2025. Version 2.0</em></p>"""
 
             # Try to get existing privacy policy
-            privacy_policy = LegalDocument.objects.get(document_type='privacy_policy')
+            privacy_policy = LegalDocument.objects.get(document_type="privacy_policy")
 
             # Update the content
             privacy_policy.content = enhanced_privacy_content
-            privacy_policy.version = '2.0'
-            privacy_policy.title = 'Privacy Policy'
+            privacy_policy.version = "2.0"
+            privacy_policy.title = "Privacy Policy"
             privacy_policy.save()
 
-            self.log_success(f'Updated privacy policy (ID: {privacy_policy.id}) - {len(enhanced_privacy_content)} characters')
+            self.log_success(
+                f"Updated privacy policy (ID: {privacy_policy.id}) - {len(enhanced_privacy_content)} characters"
+            )
 
         except LegalDocument.DoesNotExist:
             # Create new privacy policy if it doesn't exist
             privacy_policy = LegalDocument.objects.create(
-                title='Privacy Policy',
-                slug='privacy-policy',
+                title="Privacy Policy",
+                slug="privacy-policy",
                 content=enhanced_privacy_content,
-                document_type='privacy_policy',
-                version='2.0',
-                is_active=True
+                document_type="privacy_policy",
+                version="2.0",
+                is_active=True,
             )
 
-            self.log_success(f'Created new privacy policy (ID: {privacy_policy.id}) - {len(enhanced_privacy_content)} characters')
+            self.log_success(
+                f"Created new privacy policy (ID: {privacy_policy.id}) - {len(enhanced_privacy_content)} characters"
+            )
 
         except Exception as e:
-            self.log_error(f'Error updating privacy policy: {e}')
+            self.log_error(f"Error updating privacy policy: {e}")
             return False
 
         # Enhanced Terms of Service content
@@ -960,32 +969,38 @@ Attn: Terms of Service<br>
 
         try:
             # Try to get existing Terms of Service
-            terms_of_service = LegalDocument.objects.get(document_type='terms_of_service')
+            terms_of_service = LegalDocument.objects.get(
+                document_type="terms_of_service"
+            )
 
             # Update the content
             terms_of_service.content = enhanced_terms_content
-            terms_of_service.version = '2.0'
-            terms_of_service.title = 'Terms of Service'
+            terms_of_service.version = "2.0"
+            terms_of_service.title = "Terms of Service"
             terms_of_service.save()
 
-            self.log_success(f'Updated Terms of Service (ID: {terms_of_service.id}) - {len(enhanced_terms_content)} characters')
+            self.log_success(
+                f"Updated Terms of Service (ID: {terms_of_service.id}) - {len(enhanced_terms_content)} characters"
+            )
 
         except LegalDocument.DoesNotExist:
             # Create new Terms of Service if it doesn't exist
             terms_of_service = LegalDocument.objects.create(
-                title='Terms of Service',
-                slug='terms-of-service',
+                title="Terms of Service",
+                slug="terms-of-service",
                 content=enhanced_terms_content,
-                document_type='terms_of_service',
-                version='2.0',
+                document_type="terms_of_service",
+                version="2.0",
                 is_active=True,
-                requires_acknowledgment=True
+                requires_acknowledgment=True,
             )
 
-            self.log_success(f'Created new Terms of Service (ID: {terms_of_service.id}) - {len(enhanced_terms_content)} characters')
+            self.log_success(
+                f"Created new Terms of Service (ID: {terms_of_service.id}) - {len(enhanced_terms_content)} characters"
+            )
 
         except Exception as e:
-            self.log_error(f'Error updating Terms of Service: {e}')
+            self.log_error(f"Error updating Terms of Service: {e}")
             return False
 
         return True
@@ -1004,24 +1019,21 @@ Attn: Terms of Service<br>
         # Define the order of commands to run
         setup_commands = [
             # First: Core setup commands (seed_staff_roles already fixed)
-            ('setup_multitenancy', 'Setting up multi-tenancy...'),
-            ('create_system_kpis', 'Creating system KPIs...'),
-            ('create_system_reports', 'Creating system reports...'),
-
+            ("setup_multitenancy", "Setting up multi-tenancy..."),
+            ("create_system_kpis", "Creating system KPIs..."),
+            ("create_system_reports", "Creating system reports..."),
             # Second: Populate data commands
-            ('populate_exam_types', 'Populating exam types...'),
-            ('populate_faqs', 'Populating FAQs...'),
-            ('populate_legal_documents', 'Populating legal documents...'),
-            ('populate_grade_levels', 'Populating grade levels...'),
-
+            ("populate_exam_types", "Populating exam types..."),
+            ("populate_faqs", "Populating FAQs..."),
+            ("populate_legal_documents", "Populating legal documents..."),
+            ("populate_grade_levels", "Populating grade levels..."),
             # Third: Permission and user management (run after roles are created)
-            ('assign_role_permissions', 'Assigning role permissions...'),
-            ('assign_transport_permissions', 'Assigning transport permissions...'),
-            ('sync_permissions', 'Synchronizing user permissions...'),
-            ('map_unmapped_users', 'Mapping unmapped users...'),
-
+            ("assign_role_permissions", "Assigning role permissions..."),
+            ("assign_transport_permissions", "Assigning transport permissions..."),
+            ("sync_permissions", "Synchronizing user permissions..."),
+            ("map_unmapped_users", "Mapping unmapped users..."),
             # Fourth: Data collection (optional - can be skipped if desired)
-            ('collect_system_metrics', 'Collecting system metrics...'),
+            ("collect_system_metrics", "Collecting system metrics..."),
         ]
 
         # Execute commands
@@ -1029,9 +1041,11 @@ Attn: Terms of Service<br>
             self.log_info(description)
             self.run_command(command_name)
 
-        # Create institution (optional - prompt user)
-        if self.prompt_yes_no("Do you want to create a new institution? (y/n): "):
-            self.create_institution_interactive()
+        # Create institution (optional - skip in non-interactive mode)
+        # Default institution is already created in fix_seed_staff_roles
+        self.log_info(
+            "Default institution already configured - skipping optional institution creation"
+        )
 
         # Run any additional populate_* commands found
         self.run_additional_populate_commands()
@@ -1039,14 +1053,21 @@ Attn: Terms of Service<br>
     def run_additional_populate_commands(self):
         """Run any additional populate_* commands that weren't explicitly listed."""
         from django.core.management import get_commands
-        
+
         all_commands = get_commands()
-        populate_commands = [cmd for cmd in all_commands.keys() if cmd.startswith('populate_')]
-        
+        populate_commands = [
+            cmd for cmd in all_commands.keys() if cmd.startswith("populate_")
+        ]
+
         # Exclude already run commands
-        already_run = ['populate_exam_types', 'populate_faqs', 'populate_legal_documents', 'populate_grade_levels']
+        already_run = [
+            "populate_exam_types",
+            "populate_faqs",
+            "populate_legal_documents",
+            "populate_grade_levels",
+        ]
         new_commands = [cmd for cmd in populate_commands if cmd not in already_run]
-        
+
         if new_commands:
             self.log_info(f"Found {len(new_commands)} additional populate commands")
             for command_name in new_commands:
@@ -1056,9 +1077,9 @@ Attn: Terms of Service<br>
         """Prompt user for yes/no input."""
         while True:
             response = input(f"{question} ").strip().lower()
-            if response in ['y', 'yes']:
+            if response in ["y", "yes"]:
                 return True
-            elif response in ['n', 'no']:
+            elif response in ["n", "no"]:
                 return False
             else:
                 print("Please answer 'y' or 'n'")
@@ -1066,47 +1087,49 @@ Attn: Terms of Service<br>
     def create_institution_interactive(self):
         """Interactively create a new institution."""
         self.log_info("\nCreating a new institution...")
-        
+
         try:
             # Get institution details from user
             name = input("Institution name: ").strip()
             if not name:
                 self.log_warning("Institution creation skipped - no name provided")
                 return
-            
+
             code = input("Institution code (for subdomain): ").strip()
             if not code:
                 self.log_warning("Institution creation skipped - no code provided")
                 return
-            
+
             admin_email = input("Admin email address: ").strip()
             if not admin_email:
-                self.log_warning("Institution creation skipped - no admin email provided")
+                self.log_warning(
+                    "Institution creation skipped - no admin email provided"
+                )
                 return
-            
+
             # Optional fields
             description = input("Description (optional): ").strip()
             phone = input("Phone number (optional): ").strip()
             address = input("Address (optional): ").strip()
-            
+
             # Build command arguments
-            args = [name, code, f'--admin_email={admin_email}']
-            
+            args = [name, code, f"--admin_email={admin_email}"]
+
             if description:
-                args.append(f'--description={description}')
+                args.append(f"--description={description}")
             if phone:
-                args.append(f'--phone={phone}')
+                args.append(f"--phone={phone}")
             if address:
-                args.append(f'--address={address}')
-            
+                args.append(f"--address={address}")
+
             # Ask if this should be default institution
             if self.prompt_yes_no("Set as default institution? (y/n): "):
-                args.append('--set_default')
-            
+                args.append("--set_default")
+
             # Run the create_institution command
             self.log_info(f"Creating institution: {name} ({code})")
-            self.run_command('create_institution', *args)
-            
+            self.run_command("create_institution", *args)
+
         except KeyboardInterrupt:
             self.log_warning("Institution creation cancelled by user")
         except Exception as e:
@@ -1120,7 +1143,9 @@ Attn: Terms of Service<br>
             # Check if superuser already exists
             if User.objects.filter(is_superuser=True).exists():
                 self.log_warning("Superuser already exists.")
-                if not self.prompt_yes_no("Do you want to create another superuser? (y/n): "):
+                if not self.prompt_yes_no(
+                    "Do you want to create another superuser? (y/n): "
+                ):
                     return None
 
             # Get credentials from user
@@ -1129,7 +1154,7 @@ Attn: Terms of Service<br>
             email = input("Email address: ").strip()
 
             # Validate email
-            if not email or '@' not in email:
+            if not email or "@" not in email:
                 self.log_error("Invalid email address")
                 if self.prompt_yes_no("Try again? (y/n): "):
                     return self.create_superuser_interactive()
@@ -1156,10 +1181,7 @@ Attn: Terms of Service<br>
             # Create superuser
             try:
                 # User model uses email as username
-                user = User.objects.create_superuser(
-                    email=email,
-                    password=password
-                )
+                user = User.objects.create_superuser(email=email, password=password)
 
                 self.log_success(f"Superuser created successfully: {email}")
                 return user
@@ -1176,42 +1198,341 @@ Attn: Terms of Service<br>
             self.log_error(f"Unexpected error: {e}")
             return None
 
+    def create_school_admin_interactive(self):
+        """Interactively create a school admin."""
+        self.log_info("\nCreating school admin account...")
+
+        try:
+            from apps.core.models import Institution
+            from apps.users.models import Role, UserRole
+
+            # Get or create default institution
+            default_institution = Institution.objects.filter(code="DEFAULT").first()
+            if not default_institution:
+                self.log_info("Creating default institution...")
+                default_institution = Institution.objects.create(
+                    name="Default School",
+                    code="DEFAULT",
+                    short_name="Default",
+                    description="Default institution",
+                    institution_type="high_school",
+                    ownership_type="private",
+                    is_active=True,
+                    allows_online_enrollment=True,
+                    requires_parent_approval=True,
+                )
+                self.log_success(
+                    f"Created default institution: {default_institution.name}"
+                )
+
+            # Check if school admin already exists for this institution
+            school_admin_role = Role.objects.filter(
+                role_type=Role.RoleType.SCHOOL_ADMIN, institution=default_institution
+            ).first()
+
+            if not school_admin_role:
+                # Create the SCHOOL_ADMIN role if it doesn't exist
+                school_admin_role = Role.objects.create(
+                    role_type=Role.RoleType.SCHOOL_ADMIN,
+                    name="School Administrator",
+                    description="School-level administrator with comprehensive management permissions",
+                    hierarchy_level=95,
+                    institution=default_institution,
+                    is_system_role=True,
+                    status="active",
+                )
+                self.log_success(f"Created SCHOOL_ADMIN role: {school_admin_role.name}")
+
+            # Check if school admin user already exists
+            existing_admins = UserRole.objects.filter(
+                role=school_admin_role, institution=default_institution
+            ).select_related("user")
+
+            if existing_admins.exists():
+                admin_emails = [ur.user.email for ur in existing_admins]
+                self.log_warning(
+                    f"School admin already exists: {', '.join(admin_emails)}"
+                )
+                if not self.prompt_yes_no(
+                    "Do you want to create another school admin? (y/n): "
+                ):
+                    return None
+
+            # Get credentials from user
+            print("\nPlease enter school admin credentials:")
+
+            email = input("Email address: ").strip()
+
+            # Validate email
+            if not email or "@" not in email:
+                self.log_error("Invalid email address")
+                if self.prompt_yes_no("Try again? (y/n): "):
+                    return self.create_school_admin_interactive()
+                return None
+
+            # Check if user already exists
+            existing_user = User.objects.filter(email=email).first()
+            if existing_user:
+                self.log_warning(f"User with email {email} already exists")
+                if not self.prompt_yes_no(
+                    "Do you want to assign the school admin role to this user? (y/n): "
+                ):
+                    if self.prompt_yes_no("Try again with a different email? (y/n): "):
+                        return self.create_school_admin_interactive()
+                    return None
+                user = existing_user
+                created = False
+            else:
+                # Get password (twice for confirmation)
+                while True:
+                    password = getpass.getpass("Password: ").strip()
+                    confirm_password = getpass.getpass("Confirm password: ").strip()
+
+                    if not password:
+                        print("Password cannot be empty")
+                        if not self.prompt_yes_no("Try again? (y/n): "):
+                            return None
+                        continue
+
+                    if password != confirm_password:
+                        print("Passwords do not match")
+                        if not self.prompt_yes_no("Try again? (y/n): "):
+                            return None
+                    else:
+                        break
+
+                # Create user
+                try:
+                    user = User.objects.create_user(
+                        email=email,
+                        password=password,
+                        is_staff=True,
+                        is_active=True,
+                        is_verified=True,
+                    )
+                    created = True
+                    self.log_success(f"School admin user created successfully: {email}")
+                except Exception as e:
+                    self.log_error(f"Error creating school admin user: {e}")
+                    if self.prompt_yes_no("Try again? (y/n): "):
+                        return self.create_school_admin_interactive()
+                    return None
+
+            # Assign school admin role
+            try:
+                # Check if user already has this role
+                existing_role_assignment = UserRole.objects.filter(
+                    user=user, role=school_admin_role, institution=default_institution
+                ).first()
+
+                if existing_role_assignment:
+                    self.log_warning(f"User {email} already has SCHOOL_ADMIN role")
+                    return user
+
+                # Create the role assignment
+                user_role = UserRole.objects.create(
+                    user=user,
+                    role=school_admin_role,
+                    institution=default_institution,
+                    is_primary=True,
+                )
+
+                self.log_success(f"Assigned SCHOOL_ADMIN role to {email}")
+
+                # Sync permissions
+                from apps.users.models import sync_user_permissions
+
+                sync_user_permissions(user)
+
+                return user
+
+            except Exception as e:
+                self.log_error(f"Error assigning school admin role: {e}")
+                if created and self.prompt_yes_no(
+                    "Delete the created user and try again? (y/n): "
+                ):
+                    user.delete()
+                    return self.create_school_admin_interactive()
+                return None
+
+        except KeyboardInterrupt:
+            self.log_warning("School admin creation cancelled by user")
+            return None
+        except Exception as e:
+            self.log_error(f"Unexpected error: {e}")
+            return None
+
+    def create_school_admin_auto(self):
+        """Automatically create a default school admin if one doesn't exist."""
+        self.log_info("Checking for existing school admin...")
+
+        try:
+            from apps.core.models import Institution
+            from apps.users.models import Role, UserRole
+
+            # Get or create default institution
+            default_institution = Institution.objects.filter(code="DEFAULT").first()
+            if not default_institution:
+                self.log_info("Creating default institution...")
+                default_institution = Institution.objects.create(
+                    name="Default School",
+                    code="DEFAULT",
+                    short_name="Default",
+                    description="Default institution",
+                    institution_type="high_school",
+                    ownership_type="private",
+                    is_active=True,
+                    allows_online_enrollment=True,
+                    requires_parent_approval=True,
+                )
+                self.log_success(
+                    f"Created default institution: {default_institution.name}"
+                )
+
+            # Check if school admin role exists
+            school_admin_role = Role.objects.filter(
+                role_type=Role.RoleType.SCHOOL_ADMIN, institution=default_institution
+            ).first()
+
+            if not school_admin_role:
+                # Create the SCHOOL_ADMIN role if it doesn't exist
+                school_admin_role = Role.objects.create(
+                    role_type=Role.RoleType.SCHOOL_ADMIN,
+                    name="School Administrator",
+                    description="School-level administrator with comprehensive management permissions",
+                    hierarchy_level=95,
+                    institution=default_institution,
+                    is_system_role=True,
+                    status="active",
+                )
+                self.log_success(f"Created SCHOOL_ADMIN role: {school_admin_role.name}")
+
+            # Check if school admin user already exists
+            existing_admins = UserRole.objects.filter(
+                role=school_admin_role, institution=default_institution
+            ).select_related("user")
+
+            if existing_admins.exists():
+                admin_emails = [ur.user.email for ur in existing_admins]
+                self.log_info(
+                    f"School admin already exists: {', '.join(admin_emails)} - skipping creation"
+                )
+                return existing_admins.first().user
+
+            # Create default school admin user
+            default_email = "admin@school.com"
+            default_password = "admin123"
+
+            # Check if user with this email already exists
+            existing_user = User.objects.filter(email=default_email).first()
+            if existing_user:
+                self.log_info(
+                    f"User {default_email} already exists - assigning school admin role"
+                )
+                user = existing_user
+                created = False
+            else:
+                # Create new user
+                user = User.objects.create_user(
+                    email=default_email,
+                    password=default_password,
+                    is_staff=True,
+                    is_active=True,
+                    is_verified=True,
+                )
+                created = True
+                self.log_success(f"Created school admin user: {default_email}")
+
+            # Assign school admin role
+            try:
+                # Check if user already has this role
+                existing_role_assignment = UserRole.objects.filter(
+                    user=user, role=school_admin_role, institution=default_institution
+                ).first()
+
+                if existing_role_assignment:
+                    self.log_info(f"User {default_email} already has SCHOOL_ADMIN role")
+                    return user
+
+                # Create the role assignment
+                user_role = UserRole.objects.create(
+                    user=user,
+                    role=school_admin_role,
+                    institution=default_institution,
+                    is_primary=True,
+                )
+
+                self.log_success(f"Assigned SCHOOL_ADMIN role to {default_email}")
+
+                # Sync permissions
+                from apps.users.models import sync_user_permissions
+
+                sync_user_permissions(user)
+
+                if created:
+                    self.log_info("Default school admin credentials:")
+                    self.log_info(f"  Email: {default_email}")
+                    self.log_info(f"  Password: {default_password}")
+                    self.log_warning(
+                        "⚠ Please change the default password after first login!"
+                    )
+
+                return user
+
+            except Exception as e:
+                self.log_error(f"Error assigning school admin role: {e}")
+                if created:
+                    user.delete()
+                    self.log_error(
+                        "Deleted created user due to role assignment failure"
+                    )
+                return None
+
+        except Exception as e:
+            self.log_error(f"Unexpected error creating school admin: {e}")
+            return None
+
     def run_all_setup(self):
         """Run all setup functions in proper order."""
         print("=" * 60)
         print(" SCHOOL MANAGEMENT SYSTEM - COMPLETE SETUP ")
         print("=" * 60)
         print()
-        
+
         try:
             # Step 1: Run migrations
             self.log_info("Step 1: Running database migrations...")
             if not self.run_migrations():
                 self.log_error("Setup aborted due to migration failures")
                 return False
-            
+
             print()
             print("-" * 60)
-            
+
             # Step 2: Run all setup commands
             self.log_info("Step 2: Running system setup commands...")
             self.run_all_setup_commands()
-            
+
             print()
             print("-" * 60)
-            
+
             # Step 3: Create superuser
             self.log_info("Step 3: Creating superuser...")
             self.create_superuser_interactive()
-            
-            # Step 4: Display summary
+
+            # Step 4: Create school admin (auto-create if needed)
+            self.log_info("Step 4: Creating school admin...")
+            self.create_school_admin_auto()
+
+            # Step 5: Display summary
             self.display_summary()
-            
+
             return True
-            
+
         except Exception as e:
             self.log_error(f"Setup failed with error: {e}")
             import traceback
+
             traceback.print_exc()
             return False
 
@@ -1221,17 +1542,17 @@ Attn: Terms of Service<br>
         print("=" * 60)
         self.log_success("SYSTEM SETUP COMPLETE!")
         print("=" * 60)
-        
+
         if self.success_commands:
             print(f"\nSuccessfully executed {len(self.success_commands)} commands:")
             for cmd in self.success_commands:
                 print(f"  ✓ {cmd}")
-        
+
         if self.failed_commands:
             print(f"\nFailed to execute {len(self.failed_commands)} commands:")
             for cmd, error in self.failed_commands:
                 print(f"  ✗ {cmd}: {error[:50]}...")
-        
+
         # Display helpful next steps
         print("\nNEXT STEPS:")
         print("1. Start the development server: python manage.py runserver")
@@ -1239,7 +1560,7 @@ Attn: Terms of Service<br>
         print("3. Review system settings")
         print("4. Add additional users and data as needed")
         print("5. Test the system functionality")
-        
+
         if self.failed_commands:
             print("\n⚠  Some commands failed. You may need to run them manually.")
             print("   Check the error messages above for details.")
@@ -1249,43 +1570,47 @@ def main():
     """Main execution function."""
     try:
         creator = SystemCreator()
-        
+
         # Confirm user wants to proceed
         print("This script will:")
         print("1. Run database migrations (makemigrations and migrate)")
         print("2. Execute all system setup commands")
         print("3. Create a superuser account")
-        print("4. Set up the complete school management system")
+        print("4. Create a school admin account")
+        print("5. Set up the complete school management system")
         print()
         print("WARNING: This will modify your database.")
         print("Make sure you have backups if needed.")
         print()
-        
+
         response = input("Do you want to proceed? (y/n): ").strip().lower()
-        if response not in ['y', 'yes']:
+        if response not in ["y", "yes"]:
             print("Setup cancelled.")
             return 0
-        
+
         # Run setup
         start_time = time.time()
         success = creator.run_all_setup()
         end_time = time.time()
-        
+
         if success:
-            print(f"\n🎉 Setup completed successfully in {end_time - start_time:.2f} seconds!")
+            print(
+                f"\n🎉 Setup completed successfully in {end_time - start_time:.2f} seconds!"
+            )
             print("\nTo start the development server, run:")
             print("    python manage.py runserver")
             return 0
         else:
             print(f"\n❌ Setup failed or was incomplete.")
             return 1
-            
+
     except KeyboardInterrupt:
         print("\n\nSetup interrupted by user.")
         return 1
     except Exception as e:
         print(f"\n✗ Setup failed with unexpected error: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

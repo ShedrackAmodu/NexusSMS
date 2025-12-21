@@ -53,8 +53,23 @@ class UserManager(BaseUserManager):
 
         # Automatically assign SUPER_ADMIN role to ensure superuser gets all custom permissions
         try:
+            from apps.core.models import Institution
+
+            # Get or create default institution
+            default_institution, _ = Institution.objects.get_or_create(
+                code="DEFAULT",
+                defaults={
+                    "name": "Default Institution",
+                    "short_name": "Default",
+                    "institution_type": "high_school",
+                    "ownership_type": "private",
+                    "is_active": True,
+                },
+            )
+
             super_admin_role, created = Role.objects.get_or_create(
                 role_type=Role.RoleType.SUPER_ADMIN,
+                institution=default_institution,
                 defaults={
                     "name": "Super Administrator",
                     "description": "Full system access and control",
@@ -67,7 +82,10 @@ class UserManager(BaseUserManager):
             # Check if user already has SUPER_ADMIN role
             if not user.user_roles.filter(role=super_admin_role).exists():
                 UserRole.objects.create(
-                    user=user, role=super_admin_role, is_primary=True
+                    user=user,
+                    role=super_admin_role,
+                    institution=default_institution,
+                    is_primary=True,
                 )
         except Exception as e:
             # Log error but don't fail superuser creation
@@ -288,9 +306,9 @@ class Role(CoreBaseModel):
         RoleType.HOSTEL_WARDEN,
     ]
 
-    name = models.CharField(_("role name"), max_length=50, unique=True)
+    name = models.CharField(_("role name"), max_length=50)
     role_type = models.CharField(
-        _("role type"), max_length=25, choices=RoleType.choices, unique=True
+        _("role type"), max_length=25, choices=RoleType.choices
     )
     description = models.TextField(_("description"), blank=True)
     permissions = models.ManyToManyField(
@@ -310,6 +328,7 @@ class Role(CoreBaseModel):
         verbose_name = _("Role")
         verbose_name_plural = _("Roles")
         ordering = ["-hierarchy_level", "name"]
+        unique_together = ["role_type", "institution"]
 
     def __str__(self):
         return self.name
@@ -472,7 +491,7 @@ class UserRole(CoreBaseModel):
     class Meta:
         verbose_name = _("User Role")
         verbose_name_plural = _("User Roles")
-        unique_together = ["user", "role", "context_id"]
+        unique_together = ["user", "role", "institution", "context_id"]
         ordering = ["-is_primary", "-created_at"]
         indexes = [
             models.Index(fields=["user", "is_primary"]),

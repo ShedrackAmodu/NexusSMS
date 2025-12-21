@@ -29,47 +29,59 @@ class Command(BaseCommand):
 
         for role_type, permissions in role_permissions.items():
             try:
-                role = Role.objects.filter(role_type=role_type).first()
-                if not role:
+                # Get all roles with this role_type across all institutions
+                roles = Role.objects.filter(role_type=role_type)
+                if not roles.exists():
                     self.stdout.write(
-                        self.style.WARNING(f"Role {role_type} not found, skipping")
+                        self.style.WARNING(f"No roles found for {role_type}, skipping")
                     )
                     continue
 
-                self.stdout.write(f"Assigning permissions to {role.name}...")
+                roles_assigned = 0
+                for role in roles:
+                    self.stdout.write(
+                        f"Assigning permissions to {role.name} (Institution: {role.institution.name})..."
+                    )
 
-                # Clear existing permissions and assign new ones
-                role.permissions.clear()
+                    # Clear existing permissions and assign new ones
+                    role.permissions.clear()
 
-                role_assigned = 0
-                for perm_codename in permissions:
-                    try:
-                        app_label, codename = perm_codename.split(".", 1)
-                        permission = Permission.objects.get(
-                            content_type__app_label=app_label, codename=codename
-                        )
-
-                        if not role.permissions.filter(pk=permission.pk).exists():
-                            role.permissions.add(permission)
-                            role_assigned += 1
-                            total_assigned += 1
-
-                    except Permission.DoesNotExist:
-                        self.stdout.write(
-                            self.style.WARNING(
-                                f"Permission not found: {perm_codename} - skipping"
+                    role_assigned = 0
+                    for perm_codename in permissions:
+                        try:
+                            app_label, codename = perm_codename.split(".", 1)
+                            permission = Permission.objects.get(
+                                content_type__app_label=app_label, codename=codename
                             )
-                        )
-                    except ValueError:
-                        self.stdout.write(
-                            self.style.ERROR(
-                                f"Invalid permission format: {perm_codename}"
+
+                            if not role.permissions.filter(pk=permission.pk).exists():
+                                role.permissions.add(permission)
+                                role_assigned += 1
+                                total_assigned += 1
+
+                        except Permission.DoesNotExist:
+                            self.stdout.write(
+                                self.style.WARNING(
+                                    f"Permission not found: {perm_codename} - skipping"
+                                )
                             )
+                        except ValueError:
+                            self.stdout.write(
+                                self.style.ERROR(
+                                    f"Invalid permission format: {perm_codename}"
+                                )
+                            )
+
+                    self.stdout.write(
+                        self.style.SUCCESS(
+                            f"Assigned {role_assigned} permissions to {role.name}"
                         )
+                    )
+                    roles_assigned += 1
 
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f"Assigned {role_assigned} permissions to {role.name}"
+                        f"Assigned permissions to {roles_assigned} roles for {role_type}"
                     )
                 )
 
