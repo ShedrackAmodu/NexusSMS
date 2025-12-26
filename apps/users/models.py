@@ -54,38 +54,40 @@ class UserManager(BaseUserManager):
         # Automatically assign SUPER_ADMIN role to ensure superuser gets all custom permissions
         try:
             from apps.core.models import Institution
+            from django.conf import settings
 
-            # Get or create default institution
-            default_institution, _ = Institution.objects.get_or_create(
-                code="DEFAULT",
-                defaults={
-                    "name": "Default Institution",
-                    "short_name": "Default",
-                    "institution_type": "high_school",
-                    "ownership_type": "private",
-                    "is_active": True,
-                },
-            )
-
-            super_admin_role, created = Role.objects.get_or_create(
-                role_type=Role.RoleType.SUPER_ADMIN,
-                institution=default_institution,
-                defaults={
-                    "name": "Super Administrator",
-                    "description": "Full system access and control",
-                    "hierarchy_level": 100,
-                    "is_system_role": True,
-                    "status": "active",
-                },
-            )
-
-            # Check if user already has SUPER_ADMIN role
-            if not user.user_roles.filter(role=super_admin_role).exists():
-                UserRole.objects.create(
-                    user=user,
-                    role=super_admin_role,
+            # Only attach a SUPER_ADMIN role if a DEFAULT institution exists.
+            default_institution = Institution.objects.filter(
+                code="DEFAULT", is_active=True
+            ).first()
+            if default_institution:
+                super_admin_role, created = Role.objects.get_or_create(
+                    role_type=Role.RoleType.SUPER_ADMIN,
                     institution=default_institution,
-                    is_primary=True,
+                    defaults={
+                        "name": "Super Administrator",
+                        "description": "Full system access and control",
+                        "hierarchy_level": 100,
+                        "is_system_role": True,
+                        "status": "active",
+                    },
+                )
+
+                # Check if user already has SUPER_ADMIN role
+                if not user.user_roles.filter(role=super_admin_role).exists():
+                    UserRole.objects.create(
+                        user=user,
+                        role=super_admin_role,
+                        institution=default_institution,
+                        is_primary=True,
+                    )
+            else:
+                # No default institution found; do not create one implicitly here.
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.warning(
+                    "No DEFAULT institution found while creating superuser; skipping role assignment."
                 )
         except Exception as e:
             # Log error but don't fail superuser creation
@@ -226,7 +228,24 @@ class User(AbstractUser):
 
     @property
     def current_institution(self):
-        """Get the user's primary institution."""
+        """
+        Get the user's current institution.
+
+        Priority:
+        1. Thread-local/current request institution (set by TenantMiddleware)
+        2. User's primary membership institution
+        """
+        # Prefer the institution set by the TenantMiddleware (thread-local)
+        try:
+            from apps.core.middleware import get_current_institution
+
+            current_inst = get_current_institution()
+            if current_inst:
+                return current_inst
+        except Exception:
+            # Ignore and fallback to membership-based lookup
+            pass
+
         try:
             primary_membership = (
                 self.institution_memberships.filter(is_primary=True)
@@ -234,7 +253,7 @@ class User(AbstractUser):
                 .first()
             )
             return primary_membership.institution if primary_membership else None
-        except:
+        except Exception:
             return None
 
     def verify_email(self):
@@ -1651,19 +1670,58 @@ def create_user_profile(sender, instance, created, **kwargs):
     Automatically create user profile when a new user is created.
     """
     if created:
-        from apps.core.models import Institution
+        from apps.core.models import Institution, InstitutionUser
 
-        # Get or create default institution for superuser
-        institution = Institution.objects.filter(is_active=True).first()
-        if not institution:
-            # Create a default institution if none exists
-            institution = Institution.objects.create(
-                name="Default Institution",
-                code="DEFAULT",
-                institution_type="high_school",
-                ownership_type="private",
-                is_active=True,
+        # Prefer user's primary institution (if any), then default by code, then any active, then create DEFAULT
+        institution = None
+        try:
+            primary_membership = (
+                InstitutionUser.objects.filter(
+                    user=instance, is_primary=True, institution__is_active=True
+                )
+                .select_related("institution")
+                .first()
             )
+            if primary_membership:
+                institution = primary_membership.institution
+        except Exception:
+            institution = None
+
+        if not institution:
+            institution = Institution.objects.filter(
+                code="DEFAULT", is_active=True
+            ).first()
+
+        if not institution:
+            institution = Institution.objects.filter(is_active=True).first()
+
+        if not institution:
+            # Do not implicitly create institutions here. Operator should run
+            # the bootstrap commands (create.py / setup_multitenancy) to
+            # provision DEFAULT. If implicit creation is enabled in settings,
+            # create a minimal default; otherwise log and skip profile creation.
+            from django.conf import settings
+            import logging
+
+            logger = logging.getLogger(__name__)
+            if getattr(settings, "ALLOW_IMPLICIT_INSTITUTION_CREATION", False):
+                institution = Institution.objects.create(
+                    name="Default Institution",
+                    code="DEFAULT",
+                    short_name="Default",
+                    institution_type="high_school",
+                    ownership_type="private",
+                    is_active=True,
+                )
+                logger.warning(
+                    "Implicitly created DEFAULT institution while creating user profile."
+                )
+            else:
+                logger.error(
+                    "No Institution found for new user. Run setup_multitenancy/create.py to bootstrap institutions. Skipping profile creation."
+                )
+                return
+
         UserProfile.objects.create(user=instance, institution=institution)
 
 

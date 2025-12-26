@@ -168,8 +168,11 @@ class AuthorListView(InstitutionPermissionMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        queryset = Author.objects.filter(status="active").annotate(
-            book_count=Count("books")
+        queryset = (
+            super()
+            .get_queryset()
+            .filter(status="active")
+            .annotate(book_count=Count("books"))
         )
 
         search_query = self.request.GET.get("search", "")
@@ -233,7 +236,9 @@ class BookListView(InstitutionPermissionMixin, ListView):
 
     def get_queryset(self):
         queryset = (
-            Book.objects.filter(status="active")
+            super()
+            .get_queryset()
+            .filter(status="active")
             .select_related("publisher", "category", "library")
             .prefetch_related("authors")
         )
@@ -262,7 +267,18 @@ class BookListView(InstitutionPermissionMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["search_form"] = BookSearchForm(self.request.GET)
-        context["categories"] = BookCategory.objects.filter(status="active")
+        try:
+            from apps.core.middleware import get_user_accessible_institutions
+
+            if self.request.user.is_superuser:
+                context["categories"] = BookCategory.objects.filter(status="active")
+            else:
+                accessible_insts = get_user_accessible_institutions(self.request.user)
+                context["categories"] = BookCategory.objects.filter(
+                    status="active", institution__in=accessible_insts
+                )
+        except Exception:
+            context["categories"] = BookCategory.objects.filter(status="active")
         return context
 
 
@@ -325,8 +341,11 @@ class BookCopyListView(InstitutionPermissionMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        queryset = BookCopy.objects.filter(status="active").select_related(
-            "book", "book__library"
+        queryset = (
+            super()
+            .get_queryset()
+            .filter(status="active")
+            .select_related("book", "book__library")
         )
 
         search_query = self.request.GET.get("search", "")
@@ -394,7 +413,9 @@ class LibraryMemberListView(InstitutionPermissionMixin, ListView):
 
     def get_queryset(self):
         queryset = (
-            LibraryMember.objects.filter(status="active")
+            super()
+            .get_queryset()
+            .filter(status="active")
             .select_related("user", "student", "teacher")
             .annotate(
                 active_borrows=Count(
@@ -1456,37 +1477,87 @@ except ImportError:
 
 
 class BookListAPIView(generics.ListCreateAPIView):
-    queryset = Book.objects.filter(status="active")
+    def get_queryset(self):
+        from apps.core.middleware import get_user_accessible_institutions
+
+        request = self.request
+        if request.user.is_superuser:
+            return Book.objects.filter(status="active")
+        accessible_insts = get_user_accessible_institutions(request.user)
+        return Book.objects.filter(status="active", institution__in=accessible_insts)
+
     serializer_class = BookSerializer
     permission_classes = [permissions.IsAuthenticated]
 
 
 class BookDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Book.objects.all()
+    def get_queryset(self):
+        from apps.core.middleware import get_user_accessible_institutions
+
+        request = self.request
+        if request.user.is_superuser:
+            return Book.objects.all()
+        accessible_insts = get_user_accessible_institutions(request.user)
+        return Book.objects.filter(institution__in=accessible_insts)
+
     serializer_class = BookSerializer
     permission_classes = [permissions.IsAuthenticated]
 
 
 class MemberListAPIView(generics.ListCreateAPIView):
-    queryset = LibraryMember.objects.filter(status="active")
+    def get_queryset(self):
+        from apps.core.middleware import get_user_accessible_institutions
+
+        request = self.request
+        if request.user.is_superuser:
+            return LibraryMember.objects.filter(status="active")
+        accessible_insts = get_user_accessible_institutions(request.user)
+        return LibraryMember.objects.filter(
+            status="active", institution__in=accessible_insts
+        )
+
     serializer_class = LibraryMemberSerializer
     permission_classes = [permissions.IsAuthenticated]
 
 
 class MemberDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = LibraryMember.objects.all()
+    def get_queryset(self):
+        from apps.core.middleware import get_user_accessible_institutions
+
+        request = self.request
+        if request.user.is_superuser:
+            return LibraryMember.objects.all()
+        accessible_insts = get_user_accessible_institutions(request.user)
+        return LibraryMember.objects.filter(institution__in=accessible_insts)
+
     serializer_class = LibraryMemberSerializer
     permission_classes = [permissions.IsAuthenticated]
 
 
 class BorrowRecordListAPIView(generics.ListCreateAPIView):
-    queryset = BorrowRecord.objects.all()
+    def get_queryset(self):
+        from apps.core.middleware import get_user_accessible_institutions
+
+        request = self.request
+        if request.user.is_superuser:
+            return BorrowRecord.objects.all()
+        accessible_insts = get_user_accessible_institutions(request.user)
+        return BorrowRecord.objects.filter(institution__in=accessible_insts)
+
     serializer_class = BorrowRecordSerializer
     permission_classes = [permissions.IsAuthenticated]
 
 
 class BorrowRecordDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = BorrowRecord.objects.all()
+    def get_queryset(self):
+        from apps.core.middleware import get_user_accessible_institutions
+
+        request = self.request
+        if request.user.is_superuser:
+            return BorrowRecord.objects.all()
+        accessible_insts = get_user_accessible_institutions(request.user)
+        return BorrowRecord.objects.filter(institution__in=accessible_insts)
+
     serializer_class = BorrowRecordSerializer
     permission_classes = [permissions.IsAuthenticated]
 

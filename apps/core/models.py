@@ -11,12 +11,13 @@ class AddressModel(models.Model):
     """
     Abstract model for storing address information.
     """
-    address_line_1 = models.CharField(_('address line 1'), max_length=255, blank=True)
-    address_line_2 = models.CharField(_('address line 2'), max_length=255, blank=True)
-    city = models.CharField(_('city'), max_length=100, blank=True)
-    state = models.CharField(_('state/province'), max_length=100, blank=True)
-    postal_code = models.CharField(_('postal code'), max_length=20, blank=True)
-    country = models.CharField(_('country'), max_length=100, blank=True)
+
+    address_line_1 = models.CharField(_("address line 1"), max_length=255, blank=True)
+    address_line_2 = models.CharField(_("address line 2"), max_length=255, blank=True)
+    city = models.CharField(_("city"), max_length=100, blank=True)
+    state = models.CharField(_("state/province"), max_length=100, blank=True)
+    postal_code = models.CharField(_("postal code"), max_length=20, blank=True)
+    country = models.CharField(_("country"), max_length=100, blank=True)
 
     class Meta:
         abstract = True
@@ -30,20 +31,23 @@ class AddressModel(models.Model):
             self.city,
             self.state,
             self.postal_code,
-            self.country
+            self.country,
         ]
-        return ', '.join(filter(None, parts))
+        return ", ".join(filter(None, parts))
 
 
 class ContactModel(models.Model):
     """
     Abstract model for storing contact information.
     """
-    phone = models.CharField(_('phone number'), max_length=20, blank=True)
-    mobile = models.CharField(_('mobile number'), max_length=20, blank=True)
-    email = models.EmailField(_('email address'), blank=True)
-    emergency_contact = models.CharField(_('emergency contact'), max_length=100, blank=True)
-    emergency_phone = models.CharField(_('emergency phone'), max_length=20, blank=True)
+
+    phone = models.CharField(_("phone number"), max_length=20, blank=True)
+    mobile = models.CharField(_("mobile number"), max_length=20, blank=True)
+    email = models.EmailField(_("email address"), blank=True)
+    emergency_contact = models.CharField(
+        _("emergency contact"), max_length=100, blank=True
+    )
+    emergency_phone = models.CharField(_("emergency phone"), max_length=20, blank=True)
 
     class Meta:
         abstract = True
@@ -53,114 +57,127 @@ class Institution(AddressModel, ContactModel):
     """
     Model for managing multiple school institutions under one platform.
     """
+
     class Status(models.TextChoices):
-        ACTIVE = 'active', _('Active')
-        INACTIVE = 'inactive', _('Inactive')
-        PENDING = 'pending', _('Pending')
-        SUSPENDED = 'suspended', _('Suspended')
-        ARCHIVED = 'archived', _('Archived')
+        ACTIVE = "active", _("Active")
+        INACTIVE = "inactive", _("Inactive")
+        PENDING = "pending", _("Pending")
+        SUSPENDED = "suspended", _("Suspended")
+        ARCHIVED = "archived", _("Archived")
 
     # UUID Primary Key
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     # Timestamp fields
-    created_at = models.DateTimeField(_('created at'), auto_now_add=True, db_index=True)
-    updated_at = models.DateTimeField(_('updated at'), auto_now=True, db_index=True)
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(_("updated at"), auto_now=True, db_index=True)
 
     # Status fields
     status = models.CharField(
-        _('status'),
+        _("status"),
         max_length=20,
         choices=Status.choices,
         default=Status.ACTIVE,
-        db_index=True
+        db_index=True,
     )
     """
     Model for managing multiple school institutions under one platform.
     """
+
     class InstitutionType(models.TextChoices):
-        PRESCHOOL = 'preschool', _('Preschool')
-        ELEMENTARY = 'elementary', _('Elementary School')
-        MIDDLE_SCHOOL = 'middle_school', _('Middle School')
-        HIGH_SCHOOL = 'high_school', _('High School')
-        COLLEGE = 'college', _('College/University')
-        VOCATIONAL = 'vocational', _('Vocational/Technical')
-        SPECIAL_EDUCATION = 'special_education', _('Special Education')
-        INTERNATIONAL = 'international', _('International School')
+        PRESCHOOL = "preschool", _("Preschool")
+        ELEMENTARY = "elementary", _("Elementary School")
+        MIDDLE_SCHOOL = "middle_school", _("Middle School")
+        HIGH_SCHOOL = "high_school", _("High School")
+        COLLEGE = "college", _("College/University")
+        VOCATIONAL = "vocational", _("Vocational/Technical")
+        SPECIAL_EDUCATION = "special_education", _("Special Education")
+        INTERNATIONAL = "international", _("International School")
 
     class OwnershipType(models.TextChoices):
-        PUBLIC = 'public', _('Public/Government')
-        PRIVATE = 'private', _('Private')
-        CHARTER = 'charter', _('Charter')
-        RELIGIOUS = 'religious', _('Religious')
-        INTERNATIONAL = 'international', _('International')
+        PUBLIC = "public", _("Public/Government")
+        PRIVATE = "private", _("Private")
+        CHARTER = "charter", _("Charter")
+        RELIGIOUS = "religious", _("Religious")
+        INTERNATIONAL = "international", _("International")
 
     # Basic Information
-    name = models.CharField(_('institution name'), max_length=200, unique=True)
-    code = models.CharField(_('institution code'), max_length=20, unique=True, db_index=True)
-    short_name = models.CharField(_('short name'), max_length=50, blank=True)
-    description = models.TextField(_('description'), blank=True)
+    name = models.CharField(_("institution name"), max_length=200, unique=True)
+    code = models.CharField(
+        _("institution code"), max_length=20, unique=True, db_index=True
+    )
+    short_name = models.CharField(_("short name"), max_length=50, blank=True)
+    description = models.TextField(_("description"), blank=True)
 
     # Institution Details
     institution_type = models.CharField(
-        _('institution type'),
+        _("institution type"),
         max_length=20,
         choices=InstitutionType.choices,
-        default=InstitutionType.HIGH_SCHOOL
+        default=InstitutionType.HIGH_SCHOOL,
     )
     ownership_type = models.CharField(
-        _('ownership type'),
+        _("ownership type"),
         max_length=20,
         choices=OwnershipType.choices,
-        default=OwnershipType.PRIVATE
+        default=OwnershipType.PRIVATE,
     )
 
     # Contact & Location (inherited from AddressModel and ContactModel)
-    website = models.URLField(_('website'), blank=True)
-    established_date = models.DateField(_('established date'), null=True, blank=True)
+    website = models.URLField(_("website"), blank=True)
+    established_date = models.DateField(_("established date"), null=True, blank=True)
 
     # Capacity & Settings
-    max_students = models.PositiveIntegerField(_('maximum students'), default=1000)
-    max_staff = models.PositiveIntegerField(_('maximum staff'), default=100)
-    timezone = models.CharField(_('timezone'), max_length=50, default='UTC')
+    max_students = models.PositiveIntegerField(_("maximum students"), default=1000)
+    max_staff = models.PositiveIntegerField(_("maximum staff"), default=100)
+    timezone = models.CharField(_("timezone"), max_length=50, default="UTC")
 
     # Configuration
-    is_active = models.BooleanField(_('is active'), default=True)
-    allows_online_enrollment = models.BooleanField(_('allows online enrollment'), default=True)
-    requires_parent_approval = models.BooleanField(_('requires parent approval'), default=True)
+    is_active = models.BooleanField(_("is active"), default=True)
+    allows_online_enrollment = models.BooleanField(
+        _("allows online enrollment"), default=True
+    )
+    requires_parent_approval = models.BooleanField(
+        _("requires parent approval"), default=True
+    )
 
     # System Settings
-    database_schema = models.CharField(_('database schema'), max_length=50, blank=True, help_text=_('For multi-tenant database separation'))
-    api_key = models.CharField(_('API key'), max_length=100, blank=True, unique=True)
+    database_schema = models.CharField(
+        _("database schema"),
+        max_length=50,
+        blank=True,
+        help_text=_("For multi-tenant database separation"),
+    )
+    api_key = models.CharField(_("API key"), max_length=100, blank=True, unique=True)
 
     # Relationships
     users = models.ManyToManyField(
-        'users.User',
-        through='InstitutionUser',
-        related_name='institutions',
-        verbose_name=_('users'),
+        "users.User",
+        through="InstitutionUser",
+        related_name="institutions",
+        verbose_name=_("users"),
         blank=True,
-        help_text=_('Users associated with this institution')
+        help_text=_("Users associated with this institution"),
     )
 
     # Metadata
     created_by = models.ForeignKey(
-        'users.User',
+        "users.User",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='created_institutions',
-        verbose_name=_('created by')
+        related_name="created_institutions",
+        verbose_name=_("created by"),
     )
 
     class Meta:
-        verbose_name = _('Institution')
-        verbose_name_plural = _('Institutions')
-        ordering = ['name']
+        verbose_name = _("Institution")
+        verbose_name_plural = _("Institutions")
+        ordering = ["name"]
         indexes = [
-            models.Index(fields=['code', 'status']),
-            models.Index(fields=['institution_type', 'ownership_type']),
-            models.Index(fields=['is_active']),
+            models.Index(fields=["code", "status"]),
+            models.Index(fields=["institution_type", "ownership_type"]),
+            models.Index(fields=["is_active"]),
         ]
 
     def __str__(self):
@@ -177,7 +194,9 @@ class Institution(AddressModel, ContactModel):
         import string
 
         while True:
-            api_key = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+            api_key = "".join(
+                secrets.choice(string.ascii_letters + string.digits) for _ in range(32)
+            )
             if not Institution.objects.filter(api_key=api_key).exists():
                 return api_key
 
@@ -185,18 +204,23 @@ class Institution(AddressModel, ContactModel):
     def current_student_count(self):
         """Get current number of active students."""
         return self.users.filter(
-            user_roles__role__role_type='student',
-            user_roles__status='active',
-            is_active=True
+            user_roles__role__role_type="student",
+            user_roles__status="active",
+            is_active=True,
         ).count()
 
     @property
     def current_staff_count(self):
         """Get current number of active staff."""
         return self.users.filter(
-            user_roles__role__role_type__in=['teacher', 'admin', 'principal', 'support'],
-            user_roles__status='active',
-            is_active=True
+            user_roles__role__role_type__in=[
+                "teacher",
+                "admin",
+                "principal",
+                "support",
+            ],
+            user_roles__status="active",
+            is_active=True,
         ).count()
 
     @property
@@ -215,42 +239,42 @@ class CoreBaseModel(models.Model):
     - Status tracking with change timestamp
     - Soft delete functionality
     """
-    
+
     class Status(models.TextChoices):
-        ACTIVE = 'active', _('Active')
-        INACTIVE = 'inactive', _('Inactive')
-        PENDING = 'pending', _('Pending')
-        SUSPENDED = 'suspended', _('Suspended')
-        ARCHIVED = 'archived', _('Archived')
+        ACTIVE = "active", _("Active")
+        INACTIVE = "inactive", _("Inactive")
+        PENDING = "pending", _("Pending")
+        SUSPENDED = "suspended", _("Suspended")
+        ARCHIVED = "archived", _("Archived")
 
     # UUID Primary Key
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    
+
     # Timestamp fields
-    created_at = models.DateTimeField(_('created at'), auto_now_add=True, db_index=True)
-    updated_at = models.DateTimeField(_('updated at'), auto_now=True, db_index=True)
-    
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(_("updated at"), auto_now=True, db_index=True)
+
     # Status fields
     status = models.CharField(
-        _('status'),
+        _("status"),
         max_length=20,
         choices=Status.choices,
         default=Status.ACTIVE,
-        db_index=True
+        db_index=True,
     )
-    status_changed_at = models.DateTimeField(_('status changed at'), auto_now_add=True)
-    
+    status_changed_at = models.DateTimeField(_("status changed at"), auto_now_add=True)
+
     # Soft delete fields
-    is_deleted = models.BooleanField(_('is deleted'), default=False, db_index=True)
-    deleted_at = models.DateTimeField(_('deleted at'), null=True, blank=True)
+    is_deleted = models.BooleanField(_("is deleted"), default=False, db_index=True)
+    deleted_at = models.DateTimeField(_("deleted at"), null=True, blank=True)
 
     # Multi-tenancy support
     institution = models.ForeignKey(
         Institution,
         on_delete=models.CASCADE,
-        related_name='%(class)s_records',
-        verbose_name=_('institution'),
-        help_text=_('Institution this record belongs to')
+        related_name="%(class)s_records",
+        verbose_name=_("institution"),
+        help_text=_("Institution this record belongs to"),
     )
 
     class Meta:
@@ -261,7 +285,9 @@ class CoreBaseModel(models.Model):
         Update status_changed_at when status changes.
         Set default institution if none is set during creation.
         """
-        if self.pk and not self._state.adding:  # Check if object exists and is not being added
+        if (
+            self.pk and not self._state.adding
+        ):  # Check if object exists and is not being added
             try:
                 original = self.__class__.objects.get(pk=self.pk)
                 if original.status != self.status:
@@ -270,12 +296,14 @@ class CoreBaseModel(models.Model):
                 # Object doesn't exist yet (shouldn't happen in normal flow)
                 pass
 
-        # Set default institution if none is set and this is a new instance
-        if self._state.adding and getattr(self, 'institution_id', None) is None:
+        # Set default institution if none is set and this is a new instance.
+        # Do NOT implicitly create a new Institution here. Centralize bootstrapping
+        # via management commands or the top-level `create.py`. Creation can be
+        # enabled via the ALLOW_IMPLICIT_INSTITUTION_CREATION setting if desired.
+        if self._state.adding and getattr(self, "institution_id", None) is None:
             try:
                 default_institution = Institution.objects.filter(
-                    code='DEFAULT',
-                    is_active=True
+                    code="DEFAULT", is_active=True
                 ).first()
                 if default_institution:
                     self.institution = default_institution
@@ -284,6 +312,36 @@ class CoreBaseModel(models.Model):
                     any_institution = Institution.objects.filter(is_active=True).first()
                     if any_institution:
                         self.institution = any_institution
+                    else:
+                        # No institution available locally. If implicit creation is
+                        # allowed, create a minimal DEFAULT institution. Otherwise
+                        # log and raise a clear error so operator can bootstrap.
+                        from django.conf import settings
+                        import logging
+
+                        logger = logging.getLogger(__name__)
+                        if getattr(
+                            settings, "ALLOW_IMPLICIT_INSTITUTION_CREATION", False
+                        ):
+                            inst = Institution.objects.create(
+                                name="Default Institution",
+                                code="DEFAULT",
+                                short_name="Default",
+                                institution_type="high_school",
+                                ownership_type="private",
+                                is_active=True,
+                            )
+                            self.institution = inst
+                            logger.warning(
+                                "Implicitly created DEFAULT institution; consider running the bootstrapper instead."
+                            )
+                        else:
+                            logger.error(
+                                "No active Institution found. Create an institution via management command or enable ALLOW_IMPLICIT_INSTITUTION_CREATION."
+                            )
+                            raise RuntimeError(
+                                "No Institution available. Please run setup_multitenancy/create.py to bootstrap a DEFAULT institution."
+                            )
             except Institution.DoesNotExist:
                 pass  # Let it fail with proper error message
 
@@ -320,39 +378,40 @@ class InstitutionUser(CoreBaseModel):
     Through model for user-institution many-to-many relationship.
     Provides additional fields for user-institution associations.
     """
+
     user = models.ForeignKey(
-        'users.User',
+        "users.User",
         on_delete=models.CASCADE,
-        related_name='institution_memberships',
-        verbose_name=_('user')
+        related_name="institution_memberships",
+        verbose_name=_("user"),
     )
     institution = models.ForeignKey(
         Institution,
         on_delete=models.CASCADE,
-        related_name='user_memberships',
-        verbose_name=_('institution')
+        related_name="user_memberships",
+        verbose_name=_("institution"),
     )
-    date_joined = models.DateField(_('date joined'), auto_now_add=True)
+    date_joined = models.DateField(_("date joined"), auto_now_add=True)
     employee_id = models.CharField(
-        _('employee/student ID'),
+        _("employee/student ID"),
         max_length=20,
         blank=True,
-        help_text=_('Unique identifier within this institution')
+        help_text=_("Unique identifier within this institution"),
     )
     is_primary = models.BooleanField(
-        _('is primary institution'),
+        _("is primary institution"),
         default=False,
-        help_text=_('Primary institution for this user')
+        help_text=_("Primary institution for this user"),
     )
 
     class Meta:
-        verbose_name = _('Institution User')
-        verbose_name_plural = _('Institution Users')
-        unique_together = ['user', 'institution']
-        ordering = ['-is_primary', 'date_joined']
+        verbose_name = _("Institution User")
+        verbose_name_plural = _("Institution Users")
+        unique_together = ["user", "institution"]
+        ordering = ["-is_primary", "date_joined"]
         indexes = [
-            models.Index(fields=['user', 'is_primary']),
-            models.Index(fields=['institution', 'user']),
+            models.Index(fields=["user", "is_primary"]),
+            models.Index(fields=["institution", "user"]),
         ]
 
     def __str__(self):
@@ -361,10 +420,9 @@ class InstitutionUser(CoreBaseModel):
     def save(self, *args, **kwargs):
         """Ensure only one primary institution per user."""
         if self.is_primary:
-            InstitutionUser.objects.filter(
-                user=self.user,
-                is_primary=True
-            ).exclude(pk=self.pk).update(is_primary=False)
+            InstitutionUser.objects.filter(user=self.user, is_primary=True).exclude(
+                pk=self.pk
+            ).update(is_primary=False)
         super().save(*args, **kwargs)
 
 
@@ -372,26 +430,27 @@ class InstitutionConfig(CoreBaseModel):
     """
     Model for institution-specific configuration overrides.
     """
+
     institution = models.ForeignKey(
         Institution,
         on_delete=models.CASCADE,
-        related_name='configurations',
-        verbose_name=_('institution')
+        related_name="configurations",
+        verbose_name=_("institution"),
     )
     system_config = models.ForeignKey(
-        'SystemConfig',
+        "SystemConfig",
         on_delete=models.CASCADE,
-        related_name='institution_overrides',
-        verbose_name=_('system configuration')
+        related_name="institution_overrides",
+        verbose_name=_("system configuration"),
     )
-    override_value = models.JSONField(_('override value'))
-    is_active = models.BooleanField(_('is active'), default=True)
+    override_value = models.JSONField(_("override value"))
+    is_active = models.BooleanField(_("is active"), default=True)
 
     class Meta:
-        verbose_name = _('Institution Configuration')
-        verbose_name_plural = _('Institution Configurations')
-        unique_together = ['institution', 'system_config']
-        ordering = ['institution', 'system_config__config_type', 'system_config__key']
+        verbose_name = _("Institution Configuration")
+        verbose_name_plural = _("Institution Configurations")
+        unique_together = ["institution", "system_config"]
+        ordering = ["institution", "system_config__config_type", "system_config__key"]
 
     def __str__(self):
         return f"{self.institution.code}: {self.system_config.key}"
@@ -406,31 +465,34 @@ class SystemConfig(CoreBaseModel):
     """
     Model for storing system-wide configuration settings.
     """
-    class ConfigType(models.TextChoices):
-        GENERAL = 'general', _('General')
-        ACADEMIC = 'academic', _('Academic')
-        FINANCE = 'finance', _('Finance')
-        COMMUNICATION = 'communication', _('Communication')
-        SECURITY = 'security', _('Security')
-        UI = 'ui', _('User Interface')
 
-    key = models.CharField(_('config key'), max_length=100, unique=True, db_index=True)
-    value = models.JSONField(_('config value'), default=dict)
+    class ConfigType(models.TextChoices):
+        GENERAL = "general", _("General")
+        ACADEMIC = "academic", _("Academic")
+        FINANCE = "finance", _("Finance")
+        COMMUNICATION = "communication", _("Communication")
+        SECURITY = "security", _("Security")
+        UI = "ui", _("User Interface")
+
+    key = models.CharField(_("config key"), max_length=100, unique=True, db_index=True)
+    value = models.JSONField(_("config value"), default=dict)
     config_type = models.CharField(
-        _('config type'),
+        _("config type"),
         max_length=20,
         choices=ConfigType.choices,
-        default=ConfigType.GENERAL
+        default=ConfigType.GENERAL,
     )
-    description = models.TextField(_('description'), blank=True)
-    is_public = models.BooleanField(_('is public'), default=False)
-    is_encrypted = models.BooleanField(_('is encrypted'), default=False)
-    allows_institution_override = models.BooleanField(_('allows institution override'), default=True)
+    description = models.TextField(_("description"), blank=True)
+    is_public = models.BooleanField(_("is public"), default=False)
+    is_encrypted = models.BooleanField(_("is encrypted"), default=False)
+    allows_institution_override = models.BooleanField(
+        _("allows institution override"), default=True
+    )
 
     class Meta:
-        verbose_name = _('System Configuration')
-        verbose_name_plural = _('System Configurations')
-        ordering = ['config_type', 'key']
+        verbose_name = _("System Configuration")
+        verbose_name_plural = _("System Configurations")
+        ordering = ["config_type", "key"]
 
     def __str__(self):
         return f"{self.key} ({self.config_type})"
@@ -445,56 +507,53 @@ class SystemConfig(CoreBaseModel):
 
         try:
             institution_config = InstitutionConfig.objects.get(
-                institution=institution,
-                system_config=self,
-                is_active=True
+                institution=institution, system_config=self, is_active=True
             )
             return institution_config.effective_value
         except InstitutionConfig.DoesNotExist:
             return self.value
 
+
 class SequenceGenerator(CoreBaseModel):
     """
     Model for generating sequential numbers for various purposes.
     """
+
     class SequenceType(models.TextChoices):
-        STUDENT_ID = 'student_id', _('Student ID')
-        EMPLOYEE_ID = 'employee_id', _('Employee ID')
-        INVOICE = 'invoice', _('Invoice Number')
-        RECEIPT = 'receipt', _('Receipt Number')
-        LIBRARY_BOOK = 'library_book', _('Library Book ID')
-        TRANSPORT_BUS = 'transport_bus', _('Transport Bus ID')
-        STAFF_APPLICATION = 'staff_application', _('Staff Application Number')
+        STUDENT_ID = "student_id", _("Student ID")
+        EMPLOYEE_ID = "employee_id", _("Employee ID")
+        INVOICE = "invoice", _("Invoice Number")
+        RECEIPT = "receipt", _("Receipt Number")
+        LIBRARY_BOOK = "library_book", _("Library Book ID")
+        TRANSPORT_BUS = "transport_bus", _("Transport Bus ID")
+        STAFF_APPLICATION = "staff_application", _("Staff Application Number")
 
     sequence_type = models.CharField(
-        _('sequence type'),
-        max_length=50,
-        choices=SequenceType.choices,
-        unique=True
+        _("sequence type"), max_length=50, choices=SequenceType.choices, unique=True
     )
-    prefix = models.CharField(_('prefix'), max_length=10, blank=True)
-    suffix = models.CharField(_('suffix'), max_length=10, blank=True)
-    last_number = models.PositiveIntegerField(_('last number'), default=0)
+    prefix = models.CharField(_("prefix"), max_length=10, blank=True)
+    suffix = models.CharField(_("suffix"), max_length=10, blank=True)
+    last_number = models.PositiveIntegerField(_("last number"), default=0)
     padding = models.PositiveIntegerField(
-        _('number padding'),
+        _("number padding"),
         default=6,
-        validators=[MinValueValidator(1), MaxValueValidator(10)]
+        validators=[MinValueValidator(1), MaxValueValidator(10)],
     )
     reset_frequency = models.CharField(
-        _('reset frequency'),
+        _("reset frequency"),
         max_length=20,
         choices=[
-            ('never', _('Never')),
-            ('yearly', _('Yearly')),
-            ('monthly', _('Monthly')),
-            ('daily', _('Daily'))
+            ("never", _("Never")),
+            ("yearly", _("Yearly")),
+            ("monthly", _("Monthly")),
+            ("daily", _("Daily")),
         ],
-        default='never'
+        default="never",
     )
 
     class Meta:
-        verbose_name = _('Sequence Generator')
-        verbose_name_plural = _('Sequence Generators')
+        verbose_name = _("Sequence Generator")
+        verbose_name_plural = _("Sequence Generators")
 
     def __str__(self):
         return f"{self.sequence_type} - Last: {self.last_number}"
@@ -503,6 +562,6 @@ class SequenceGenerator(CoreBaseModel):
         """Generate and return the next sequential number."""
         self.last_number += 1
         self.save()
-        
+
         number_str = str(self.last_number).zfill(self.padding)
         return f"{self.prefix}{number_str}{self.suffix}"

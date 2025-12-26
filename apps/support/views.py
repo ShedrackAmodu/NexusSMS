@@ -19,6 +19,7 @@ from django.views import View
 from django.core.paginator import Paginator
 
 from apps.core.mixins import InstitutionPermissionMixin
+from apps.core.middleware import get_user_accessible_institutions
 
 from .models import (
     HelpCenterArticle,
@@ -139,7 +140,16 @@ class ContactSubmissionUpdateView(
 
 def legal_documents_list(request):
     """List all active legal documents."""
-    documents = LegalDocument.objects.filter(is_active=True).order_by("document_type")
+    # Scope legal documents to user's accessible institutions for non-superusers
+    if request.user.is_authenticated and not request.user.is_superuser:
+        accessible_insts = get_user_accessible_institutions(request.user)
+        documents = LegalDocument.objects.filter(
+            is_active=True, institution__in=accessible_insts
+        ).order_by("document_type")
+    else:
+        documents = LegalDocument.objects.filter(is_active=True).order_by(
+            "document_type"
+        )
     context = {"documents": documents}
     return render(request, "support/legal/legal_documents.html", context)
 
@@ -439,7 +449,13 @@ class SupportCaseListView(InstitutionPermissionMixin, ListView):
         if user.user_roles.filter(
             role__role_type__in=["support", "admin", "principal", "super_admin"]
         ).exists():
-            all_cases = SupportCase.objects.all()
+            # Scope stats to institutions the user can access
+            if user.is_superuser:
+                all_cases = SupportCase.objects.all()
+            else:
+                accessible_insts = get_user_accessible_institutions(user)
+                all_cases = SupportCase.objects.filter(institution__in=accessible_insts)
+
             context["stats"] = {
                 "total_cases": all_cases.count(),
                 "open_cases": all_cases.filter(status="open").count(),

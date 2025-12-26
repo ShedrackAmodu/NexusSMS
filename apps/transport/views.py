@@ -9,18 +9,17 @@ from django.views.generic import (
     CreateView,
     UpdateView,
     DeleteView,
+    TemplateView,
 )
 from django.contrib.auth.mixins import (
     LoginRequiredMixin,
     PermissionRequiredMixin,
     UserPassesTestMixin,
 )
-from django.contrib import messages
 from django.urls import reverse_lazy
-from django.db.models import Q, Count, Sum, Avg
+from django.contrib import messages
+from django.db.models import Q, Sum, Count
 from django.utils import timezone
-from django.core.exceptions import PermissionDenied
-from django.utils.translation import gettext_lazy as _
 
 from apps.core.mixins import InstitutionPermissionMixin
 
@@ -32,8 +31,8 @@ from .models import (
     RouteStop,
     RouteSchedule,
     TransportAllocation,
-    MaintenanceRecord,
     FuelRecord,
+    MaintenanceRecord,
     IncidentReport,
 )
 from .forms import (
@@ -106,7 +105,7 @@ class VehicleListView(InstitutionPermissionMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        queryset = Vehicle.objects.all()
+        queryset = super().get_queryset()
 
         # Filtering
         vehicle_type = self.request.GET.get("vehicle_type")
@@ -213,7 +212,7 @@ class DriverListView(InstitutionPermissionMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        queryset = Driver.objects.select_related("user")
+        queryset = super().get_queryset().select_related("user")
 
         # Filtering
         license_type = self.request.GET.get("license_type")
@@ -308,7 +307,7 @@ class AttendantListView(InstitutionPermissionMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        queryset = Attendant.objects.select_related("user")
+        queryset = super().get_queryset().select_related("user")
 
         # Filtering
         status = self.request.GET.get("status")
@@ -390,7 +389,7 @@ class RouteListView(InstitutionPermissionMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        queryset = Route.objects.all()
+        queryset = super().get_queryset()
 
         # Filtering
         is_active = self.request.GET.get("is_active")
@@ -410,8 +409,26 @@ class RouteListView(InstitutionPermissionMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["active_count"] = Route.objects.filter(is_active=True).count()
-        context["inactive_count"] = Route.objects.filter(is_active=False).count()
+        # Scope counts to accessible institutions
+        try:
+            from apps.core.middleware import get_user_accessible_institutions
+
+            if self.request.user.is_superuser:
+                context["active_count"] = Route.objects.filter(is_active=True).count()
+                context["inactive_count"] = Route.objects.filter(
+                    is_active=False
+                ).count()
+            else:
+                accessible_insts = get_user_accessible_institutions(self.request.user)
+                context["active_count"] = Route.objects.filter(
+                    is_active=True, institution__in=accessible_insts
+                ).count()
+                context["inactive_count"] = Route.objects.filter(
+                    is_active=False, institution__in=accessible_insts
+                ).count()
+        except Exception:
+            context["active_count"] = Route.objects.filter(is_active=True).count()
+            context["inactive_count"] = Route.objects.filter(is_active=False).count()
         return context
 
 
@@ -543,8 +560,12 @@ class RouteScheduleListView(InstitutionPermissionMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        queryset = RouteSchedule.objects.select_related(
-            "route", "vehicle", "driver", "attendant", "academic_session"
+        queryset = (
+            super()
+            .get_queryset()
+            .select_related(
+                "route", "vehicle", "driver", "attendant", "academic_session"
+            )
         )
 
         # Filtering
@@ -569,9 +590,28 @@ class RouteScheduleListView(InstitutionPermissionMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["routes"] = Route.objects.filter(is_active=True)
-        context["vehicles"] = Vehicle.objects.filter(status="active")
-        context["drivers"] = Driver.objects.filter(status="active")
+        try:
+            from apps.core.middleware import get_user_accessible_institutions
+
+            if self.request.user.is_superuser:
+                context["routes"] = Route.objects.filter(is_active=True)
+                context["vehicles"] = Vehicle.objects.filter(status="active")
+                context["drivers"] = Driver.objects.filter(status="active")
+            else:
+                accessible_insts = get_user_accessible_institutions(self.request.user)
+                context["routes"] = Route.objects.filter(
+                    is_active=True, institution__in=accessible_insts
+                )
+                context["vehicles"] = Vehicle.objects.filter(
+                    status="active", institution__in=accessible_insts
+                )
+                context["drivers"] = Driver.objects.filter(
+                    status="active", institution__in=accessible_insts
+                )
+        except Exception:
+            context["routes"] = Route.objects.filter(is_active=True)
+            context["vehicles"] = Vehicle.objects.filter(status="active")
+            context["drivers"] = Driver.objects.filter(status="active")
         context["status_choices"] = RouteSchedule.Status.choices
         return context
 
@@ -645,8 +685,10 @@ class TransportAllocationListView(InstitutionPermissionMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        queryset = TransportAllocation.objects.select_related(
-            "student", "route_schedule", "pickup_stop", "drop_stop"
+        queryset = (
+            super()
+            .get_queryset()
+            .select_related("student", "route_schedule", "pickup_stop", "drop_stop")
         )
 
         # Filtering
@@ -764,7 +806,7 @@ class MaintenanceRecordListView(InstitutionPermissionMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        queryset = MaintenanceRecord.objects.select_related("vehicle")
+        queryset = super().get_queryset().select_related("vehicle")
 
         # Filtering
         vehicle = self.request.GET.get("vehicle")
@@ -785,7 +827,34 @@ class MaintenanceRecordListView(InstitutionPermissionMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["vehicles"] = Vehicle.objects.all()
+        try:
+            from apps.core.middleware import get_user_accessible_institutions
+
+            if self.request.user.is_superuser:
+                from apps.core.middleware import get_user_accessible_institutions
+
+                if request.user.is_superuser:
+                    context["vehicles"] = Vehicle.objects.all()
+                else:
+                    accessible_insts = get_user_accessible_institutions(request.user)
+                    context["vehicles"] = Vehicle.objects.filter(
+                        institution__in=accessible_insts
+                    )
+            else:
+                accessible_insts = get_user_accessible_institutions(self.request.user)
+                context["vehicles"] = Vehicle.objects.filter(
+                    institution__in=accessible_insts
+                )
+        except Exception:
+            from apps.core.middleware import get_user_accessible_institutions
+
+            if request.user.is_superuser:
+                context["vehicles"] = Vehicle.objects.all()
+            else:
+                accessible_insts = get_user_accessible_institutions(request.user)
+                context["vehicles"] = Vehicle.objects.filter(
+                    institution__in=accessible_insts
+                )
         context["maintenance_types"] = MaintenanceRecord.MaintenanceType.choices
         return context
 
@@ -843,7 +912,7 @@ class FuelRecordListView(InstitutionPermissionMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        queryset = FuelRecord.objects.select_related("vehicle")
+        queryset = super().get_queryset().select_related("vehicle")
 
         # Filtering
         vehicle = self.request.GET.get("vehicle")
@@ -861,7 +930,26 @@ class FuelRecordListView(InstitutionPermissionMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["vehicles"] = Vehicle.objects.all()
+        try:
+            from apps.core.middleware import get_user_accessible_institutions
+
+            if self.request.user.is_superuser:
+                from apps.core.middleware import get_user_accessible_institutions
+
+                if request.user.is_superuser:
+                    context["vehicles"] = Vehicle.objects.all()
+                else:
+                    accessible_insts = get_user_accessible_institutions(request.user)
+                    context["vehicles"] = Vehicle.objects.filter(
+                        institution__in=accessible_insts
+                    )
+            else:
+                accessible_insts = get_user_accessible_institutions(self.request.user)
+                context["vehicles"] = Vehicle.objects.filter(
+                    institution__in=accessible_insts
+                )
+        except Exception:
+            context["vehicles"] = Vehicle.objects.all()
 
         # Statistics
         if self.request.GET.get("vehicle"):
@@ -924,9 +1012,12 @@ class IncidentReportListView(InstitutionPermissionMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        queryset = IncidentReport.objects.select_related(
-            "route_schedule", "reported_by"
-        ).prefetch_related("students_affected")
+        queryset = (
+            super()
+            .get_queryset()
+            .select_related("route_schedule", "reported_by")
+            .prefetch_related("students_affected")
+        )
 
         # Filtering
         incident_type = self.request.GET.get("incident_type")
@@ -1377,9 +1468,21 @@ class TransportReportView(LoginRequiredMixin, View):
         date_to = request.GET.get("date_to")
 
         context = {"report_type": report_type}
+        # Scope reports to user's accessible institutions unless superuser
+        try:
+            from apps.core.middleware import get_user_accessible_institutions
+
+            if request.user.is_superuser:
+                accessible_insts = None
+            else:
+                accessible_insts = get_user_accessible_institutions(request.user)
+        except Exception:
+            accessible_insts = None
 
         if report_type == "fuel":
             fuel_data = FuelRecord.objects.all()
+            if accessible_insts is not None:
+                fuel_data = fuel_data.filter(institution__in=accessible_insts)
             if date_from:
                 fuel_data = fuel_data.filter(date__gte=date_from)
             if date_to:
@@ -1392,6 +1495,10 @@ class TransportReportView(LoginRequiredMixin, View):
 
         elif report_type == "maintenance":
             maintenance_data = MaintenanceRecord.objects.all()
+            if accessible_insts is not None:
+                maintenance_data = maintenance_data.filter(
+                    institution__in=accessible_insts
+                )
             if date_from:
                 maintenance_data = maintenance_data.filter(date__gte=date_from)
             if date_to:
@@ -1404,6 +1511,8 @@ class TransportReportView(LoginRequiredMixin, View):
 
         elif report_type == "incidents":
             incident_data = IncidentReport.objects.all()
+            if accessible_insts is not None:
+                incident_data = incident_data.filter(institution__in=accessible_insts)
             if date_from:
                 incident_data = incident_data.filter(date__gte=date_from)
             if date_to:
@@ -1428,11 +1537,16 @@ class TransportReportView(LoginRequiredMixin, View):
             date_filter &= Q(date__lte=date_to)
 
         # Vehicle statistics
-        summary["vehicle_count"] = Vehicle.objects.count()
-        summary["active_vehicles"] = Vehicle.objects.filter(status="active").count()
+        vehicles_qs = Vehicle.objects.all()
+        if accessible_insts is not None:
+            vehicles_qs = vehicles_qs.filter(institution__in=accessible_insts)
+        summary["vehicle_count"] = vehicles_qs.count()
+        summary["active_vehicles"] = vehicles_qs.filter(status="active").count()
 
         # Fuel statistics
         fuel_data = FuelRecord.objects.filter(date_filter)
+        if accessible_insts is not None:
+            fuel_data = fuel_data.filter(institution__in=accessible_insts)
         summary["total_fuel_cost"] = (
             fuel_data.aggregate(Sum("fuel_cost"))["fuel_cost__sum"] or 0
         )
@@ -1442,6 +1556,8 @@ class TransportReportView(LoginRequiredMixin, View):
 
         # Maintenance statistics
         maintenance_data = MaintenanceRecord.objects.filter(date_filter)
+        if accessible_insts is not None:
+            maintenance_data = maintenance_data.filter(institution__in=accessible_insts)
         summary["total_maintenance_cost"] = (
             maintenance_data.aggregate(Sum("cost"))["cost__sum"] or 0
         )
@@ -1449,6 +1565,8 @@ class TransportReportView(LoginRequiredMixin, View):
 
         # Incident statistics
         incident_data = IncidentReport.objects.filter(date_filter)
+        if accessible_insts is not None:
+            incident_data = incident_data.filter(institution__in=accessible_insts)
         summary["incident_count"] = incident_data.count()
         summary["severe_incidents"] = incident_data.filter(severity="severe").count()
 

@@ -3,6 +3,7 @@
 import logging
 
 from django.contrib import admin
+from apps.core.admin import InstitutionModelAdmin
 from django.utils.translation import gettext_lazy as _
 from django.contrib import messages
 from django.utils import timezone

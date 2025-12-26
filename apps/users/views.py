@@ -2577,9 +2577,16 @@ def user_list(request):
         )
 
     # Also filter roles by institution if they've been scoped
-    roles = (
-        Role.objects.all()
-    )  # Roles are typically shared, but filterable by institution if needed
+    try:
+        from apps.core.middleware import get_user_accessible_institutions
+
+        if request.user.is_superuser:
+            roles = Role.objects.all()
+        else:
+            accessible_insts = get_user_accessible_institutions(request.user)
+            roles = Role.objects.filter(institution__in=accessible_insts)
+    except Exception:
+        roles = Role.objects.all()
 
     context = {
         "title": _("User Management"),
@@ -3605,8 +3612,16 @@ def parent_student_relationships(request):
         # Student view - show their parents
         relationships = ParentStudentRelationship.objects.filter(student=request.user)
     else:
-        # Admin/staff view - show all relationships
-        relationships = ParentStudentRelationship.objects.all()
+        # Admin/staff view - show relationships within user's accessible institutions
+        from apps.core.middleware import get_user_accessible_institutions
+
+        if request.user.is_superuser:
+            relationships = ParentStudentRelationship.objects.all()
+        else:
+            accessible_insts = get_user_accessible_institutions(request.user)
+            relationships = ParentStudentRelationship.objects.filter(
+                institution__in=accessible_insts
+            )
 
     context = {
         "title": _("Parent-Student Relationships"),
@@ -4646,9 +4661,13 @@ def export_applications(request, application_type):
     format = request.GET.get("format", "csv")
     status_filter = request.GET.get("status", "all")
     search_query = request.GET.get("q", "")
-
     if application_type == "student":
         queryset = StudentApplication.objects.all().select_related("academic_session")
+        if not request.user.is_superuser:
+            from apps.core.middleware import get_user_accessible_institutions
+
+            accessible_insts = get_user_accessible_institutions(request.user)
+            queryset = queryset.filter(institution__in=accessible_insts)
         filename_prefix = "student_applications"
         fields = [
             "application_number",
@@ -4716,6 +4735,11 @@ def export_applications(request, application_type):
         queryset = StaffApplication.objects.all().select_related(
             "position_applied_for", "academic_session"
         )
+        if not request.user.is_superuser:
+            from apps.core.middleware import get_user_accessible_institutions
+
+            accessible_insts = get_user_accessible_institutions(request.user)
+            queryset = queryset.filter(institution__in=accessible_insts)
         filename_prefix = "staff_applications"
         fields = [
             "application_number",
@@ -4800,6 +4824,13 @@ def export_applications(request, application_type):
     # Apply filters
     if status_filter != "all":
         queryset = queryset.filter(application_status=status_filter)
+        # Scope to user's accessible institutions for non-superusers
+        if not request.user.is_superuser:
+            from apps.core.middleware import get_user_accessible_institutions
+
+            accessible_insts = get_user_accessible_institutions(request.user)
+            queryset = queryset.filter(institution__in=accessible_insts)
+
     if search_query:
         queryset = queryset.filter(
             Q(first_name__icontains=search_query)
@@ -4906,11 +4937,24 @@ def export_users(request):
     include_inactive = request.GET.get("include_inactive", "false").lower() == "true"
 
     # Base queryset
-    queryset = (
-        User.objects.all()
-        .select_related("profile")
-        .prefetch_related("user_roles__role")
-    )
+    from apps.core.middleware import get_user_accessible_institutions
+
+    if request.user.is_superuser:
+        queryset = (
+            User.objects.all()
+            .select_related("profile")
+            .prefetch_related("user_roles__role")
+        )
+    else:
+        accessible_insts = get_user_accessible_institutions(request.user)
+        queryset = (
+            User.objects.filter(
+                institution_memberships__institution__in=accessible_insts
+            )
+            .select_related("profile")
+            .prefetch_related("user_roles__role")
+            .distinct()
+        )
 
     # Apply filters
     if not include_inactive:
@@ -5500,19 +5544,26 @@ def admin_transfer_requests_list(request):
     """
     Admin view for managing all institution transfer requests.
     """
-    transfer_requests = (
-        InstitutionTransferRequest.objects.all()
-        .select_related(
-            "requesting_user",
-            "current_institution",
-            "requested_institution",
-            "reviewed_by",
-            "completed_by",
-            "academic_session",
-            "current_role",
+    transfer_requests = InstitutionTransferRequest.objects.select_related(
+        "requesting_user",
+        "current_institution",
+        "requested_institution",
+        "reviewed_by",
+        "completed_by",
+        "academic_session",
+        "current_role",
+    ).order_by("-created_at")
+
+    # Scope transfer requests to institutions accessible by the user (unless superuser)
+    if not request.user.is_superuser:
+        from apps.core.middleware import get_user_accessible_institutions
+        from django.db.models import Q
+
+        accessible_insts = get_user_accessible_institutions(request.user)
+        transfer_requests = transfer_requests.filter(
+            Q(current_institution__in=accessible_insts)
+            | Q(requested_institution__in=accessible_insts)
         )
-        .order_by("-created_at")
-    )
 
     # Apply filters
     status_filter = request.GET.get("status")

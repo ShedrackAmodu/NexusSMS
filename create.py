@@ -143,6 +143,7 @@ class SystemCreator:
 
             with transaction.atomic():
                 # Define staff roles with their display names and descriptions
+                # Hierarchy levels aligned with Features.md specifications
                 staff_roles_data = [
                     {
                         "role_type": UserRole.RoleType.SUPER_ADMIN,
@@ -172,31 +173,31 @@ class SystemCreator:
                         "role_type": UserRole.RoleType.DEPARTMENT_HEAD,
                         "name": "Department Head",
                         "description": "Head of an academic department",
-                        "hierarchy_level": 70,
+                        "hierarchy_level": 80,
                     },
                     {
                         "role_type": UserRole.RoleType.COUNSELOR,
                         "name": "School Counselor",
                         "description": "Student counseling and guidance",
-                        "hierarchy_level": 60,
+                        "hierarchy_level": 75,
                     },
                     {
                         "role_type": UserRole.RoleType.TEACHER,
                         "name": "Teacher",
                         "description": "Classroom teacher",
-                        "hierarchy_level": 50,
+                        "hierarchy_level": 70,
                     },
                     {
                         "role_type": UserRole.RoleType.ACCOUNTANT,
                         "name": "Accountant",
                         "description": "Financial management and accounting",
-                        "hierarchy_level": 45,
+                        "hierarchy_level": 65,
                     },
                     {
                         "role_type": UserRole.RoleType.LIBRARIAN,
                         "name": "Librarian",
                         "description": "Library management and services",
-                        "hierarchy_level": 40,
+                        "hierarchy_level": 60,
                     },
                     {
                         "role_type": UserRole.RoleType.ACTIVITIES_COORDINATOR,
@@ -205,27 +206,27 @@ class SystemCreator:
                         "hierarchy_level": 60,
                     },
                     {
-                        "role_type": UserRole.RoleType.DRIVER,
-                        "name": "Driver",
-                        "description": "School transport driver",
-                        "hierarchy_level": 30,
-                    },
-                    {
-                        "role_type": UserRole.RoleType.SUPPORT,
-                        "name": "Support Staff",
-                        "description": "General support staff",
-                        "hierarchy_level": 25,
-                    },
-                    {
                         "role_type": UserRole.RoleType.TRANSPORT_MANAGER,
                         "name": "Transport Manager",
                         "description": "Management of school transportation",
                         "hierarchy_level": 55,
                     },
                     {
+                        "role_type": UserRole.RoleType.SUPPORT,
+                        "name": "Support Staff",
+                        "description": "General support staff",
+                        "hierarchy_level": 55,
+                    },
+                    {
                         "role_type": UserRole.RoleType.HOSTEL_WARDEN,
                         "name": "Hostel Warden",
                         "description": "Management of student hostel facilities",
+                        "hierarchy_level": 55,
+                    },
+                    {
+                        "role_type": UserRole.RoleType.DRIVER,
+                        "name": "Driver",
+                        "description": "School transport driver",
                         "hierarchy_level": 50,
                     },
                 ]

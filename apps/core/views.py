@@ -40,7 +40,13 @@ class SystemConfigListView(LoginRequiredMixin, PermissionRequiredMixin, ListView
     permission_required = "core.view_systemconfig"
 
     def get_queryset(self):
-        queryset = SystemConfig.objects.all()
+        from apps.core.middleware import get_user_accessible_institutions
+
+        if self.request.user.is_superuser:
+            queryset = SystemConfig.objects.all()
+        else:
+            accessible_insts = get_user_accessible_institutions(self.request.user)
+            queryset = SystemConfig.objects.filter(institution__in=accessible_insts)
 
         # Apply filters
         config_type = self.request.GET.get("config_type")
@@ -82,8 +88,21 @@ class SystemConfigListView(LoginRequiredMixin, PermissionRequiredMixin, ListView
         }
 
         # Add statistics
-        context["total_configs"] = SystemConfig.objects.count()
-        context["active_configs"] = SystemConfig.objects.filter(status="active").count()
+        from apps.core.middleware import get_user_accessible_institutions
+
+        if self.request.user.is_superuser:
+            context["total_configs"] = SystemConfig.objects.count()
+            context["active_configs"] = SystemConfig.objects.filter(
+                status="active"
+            ).count()
+        else:
+            accessible_insts = get_user_accessible_institutions(self.request.user)
+            context["total_configs"] = SystemConfig.objects.filter(
+                institution__in=accessible_insts
+            ).count()
+            context["active_configs"] = SystemConfig.objects.filter(
+                institution__in=accessible_insts, status="active"
+            ).count()
 
         return context
 
@@ -223,11 +242,23 @@ class SystemConfigDashboardView(LoginRequiredMixin, PermissionRequiredMixin, Vie
             }
 
         # Recent changes (last 10)
-        recent_configs = SystemConfig.objects.order_by("-updated_at")[:10]
+        from apps.core.middleware import get_user_accessible_institutions
 
-        # Public vs private configs
-        public_configs = SystemConfig.objects.filter(is_public=True).count()
-        private_configs = SystemConfig.objects.filter(is_public=False).count()
+        if request.user.is_superuser:
+            recent_configs = SystemConfig.objects.order_by("-updated_at")[:10]
+            public_configs = SystemConfig.objects.filter(is_public=True).count()
+            private_configs = SystemConfig.objects.filter(is_public=False).count()
+        else:
+            accessible_insts = get_user_accessible_institutions(request.user)
+            recent_configs = SystemConfig.objects.filter(
+                institution__in=accessible_insts
+            ).order_by("-updated_at")[:10]
+            public_configs = SystemConfig.objects.filter(
+                institution__in=accessible_insts, is_public=True
+            ).count()
+            private_configs = SystemConfig.objects.filter(
+                institution__in=accessible_insts, is_public=False
+            ).count()
 
         context = {
             "config_stats": config_stats,
@@ -2728,8 +2759,16 @@ class GlobalSearchView(LoginRequiredMixin, PermissionRequiredMixin, View):
         try:
             from apps.library.models import Book, BookCopy
 
-            # For now, return all documents - could be filtered by institution later
-            return Book.objects.all()
+            # Scope documents to user's accessible institutions
+            try:
+                from apps.core.middleware import get_user_accessible_institutions
+
+                if self.request.user.is_superuser:
+                    return Book.objects.all()
+                accessible_insts = get_user_accessible_institutions(self.request.user)
+                return Book.objects.filter(institution__in=accessible_insts)
+            except Exception:
+                return Book.objects.none()
         except ImportError:
             return []
 
