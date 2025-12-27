@@ -30,6 +30,7 @@ from io import BytesIO
 
 
 from apps.audit.models import AuditLog
+from apps.core.middleware import get_current_institution
 from apps.academics.models import (
     AcademicSession,
     AcademicRecord,
@@ -1749,6 +1750,9 @@ def custom_login(request):
             # Log login attempt
             login_history = LoginHistory(
                 user=user if user else None,
+                institution=(
+                    user.current_institution if user else get_current_institution()
+                ),
                 ip_address=get_client_ip(request),
                 user_agent=request.META.get("HTTP_USER_AGENT", ""),
                 was_successful=user is not None,

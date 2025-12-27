@@ -7,10 +7,9 @@ from django.contrib.auth import views as auth_views
 
 
 urlpatterns = [
-    # Admin site
     path("admin/", admin.site.urls),
     path("", RedirectView.as_view(pattern_name="users:guest_home"), name="home"),
-    path("users/", include("apps.users.urls")),
+    path("users/", include("apps.users.urls", namespace="users")),
     path("academics/", include("apps.academics.urls", namespace="academics")),
     path("health/", include("apps.health.urls", namespace="health")),
     path(

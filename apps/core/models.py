@@ -218,6 +218,15 @@ class Institution(AddressModel, ContactModel):
                 "admin",
                 "principal",
                 "support",
+                "school_admin",
+                "counselor",
+                "accountant",
+                "librarian",
+                "department_head",
+                "transport_manager",
+                "hostel_warden",
+                "driver",
+                "activities_coordinator",
             ],
             user_roles__status="active",
             is_active=True,
@@ -231,6 +240,91 @@ class Institution(AddressModel, ContactModel):
         return (self.current_student_count / self.max_students) * 100
 
 
+class GlobalBaseModel(models.Model):
+    """
+    Base model for truly global/system-wide data that doesn't belong to any institution.
+    Provides core functionality without institution association:
+    - UUID primary key
+    - Created/updated timestamps
+    - Status tracking with change timestamp
+    - Soft delete functionality
+    - NO institution association (truly global data)
+    """
+
+    class Status(models.TextChoices):
+        ACTIVE = "active", _("Active")
+        INACTIVE = "inactive", _("Inactive")
+        PENDING = "pending", _("Pending")
+        SUSPENDED = "suspended", _("Suspended")
+        ARCHIVED = "archived", _("Archived")
+
+    # UUID Primary Key
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    # Timestamp fields
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(_("updated at"), auto_now=True, db_index=True)
+
+    # Status fields
+    status = models.CharField(
+        _("status"),
+        max_length=20,
+        choices=Status.choices,
+        default=Status.ACTIVE,
+        db_index=True,
+    )
+    status_changed_at = models.DateTimeField(_("status changed at"), auto_now_add=True)
+
+    # Soft delete fields
+    is_deleted = models.BooleanField(_("is deleted"), default=False, db_index=True)
+    deleted_at = models.DateTimeField(_("deleted at"), null=True, blank=True)
+
+    class Meta:
+        abstract = True
+
+    def save(self, *args, **kwargs):
+        """
+        Update status_changed_at when status changes.
+        """
+        if (
+            self.pk and not self._state.adding
+        ):  # Check if object exists and is not being added
+            try:
+                original = self.__class__.objects.get(pk=self.pk)
+                if original.status != self.status:
+                    self.status_changed_at = timezone.now()
+            except self.__class__.DoesNotExist:
+                # Object doesn't exist yet (shouldn't happen in normal flow)
+                pass
+
+        super().save(*args, **kwargs)
+
+    def delete(self, using=None, keep_parents=False):
+        """
+        Soft delete by setting is_deleted flag and deleted_at timestamp.
+        """
+        self.is_deleted = True
+        self.deleted_at = timezone.now()
+        self.save()
+
+    def hard_delete(self, using=None, keep_parents=False):
+        """
+        Perform actual database deletion.
+        """
+        super().delete(using=using, keep_parents=keep_parents)
+
+    def restore(self):
+        """
+        Restore a soft-deleted instance.
+        """
+        self.is_deleted = False
+        self.deleted_at = None
+        self.save()
+
+    def __str__(self):
+        return f"{self.__class__.__name__} {self.id}"
+
+
 class CoreBaseModel(models.Model):
     """
     Comprehensive base model combining all core functionalities:
@@ -238,6 +332,7 @@ class CoreBaseModel(models.Model):
     - Created/updated timestamps
     - Status tracking with change timestamp
     - Soft delete functionality
+    - Institution association (multi-tenancy support)
     """
 
     class Status(models.TextChoices):
@@ -283,7 +378,7 @@ class CoreBaseModel(models.Model):
     def save(self, *args, **kwargs):
         """
         Update status_changed_at when status changes.
-        Set default institution if none is set during creation.
+        Institution must be explicitly set during creation - no automatic defaults.
         """
         if (
             self.pk and not self._state.adding
@@ -295,55 +390,6 @@ class CoreBaseModel(models.Model):
             except self.__class__.DoesNotExist:
                 # Object doesn't exist yet (shouldn't happen in normal flow)
                 pass
-
-        # Set default institution if none is set and this is a new instance.
-        # Do NOT implicitly create a new Institution here. Centralize bootstrapping
-        # via management commands or the top-level `create.py`. Creation can be
-        # enabled via the ALLOW_IMPLICIT_INSTITUTION_CREATION setting if desired.
-        if self._state.adding and getattr(self, "institution_id", None) is None:
-            try:
-                default_institution = Institution.objects.filter(
-                    code="DEFAULT", is_active=True
-                ).first()
-                if default_institution:
-                    self.institution = default_institution
-                else:
-                    # If no default exists, try to get any active institution
-                    any_institution = Institution.objects.filter(is_active=True).first()
-                    if any_institution:
-                        self.institution = any_institution
-                    else:
-                        # No institution available locally. If implicit creation is
-                        # allowed, create a minimal DEFAULT institution. Otherwise
-                        # log and raise a clear error so operator can bootstrap.
-                        from django.conf import settings
-                        import logging
-
-                        logger = logging.getLogger(__name__)
-                        if getattr(
-                            settings, "ALLOW_IMPLICIT_INSTITUTION_CREATION", False
-                        ):
-                            inst = Institution.objects.create(
-                                name="Default Institution",
-                                code="DEFAULT",
-                                short_name="Default",
-                                institution_type="high_school",
-                                ownership_type="private",
-                                is_active=True,
-                            )
-                            self.institution = inst
-                            logger.warning(
-                                "Implicitly created DEFAULT institution; consider running the bootstrapper instead."
-                            )
-                        else:
-                            logger.error(
-                                "No active Institution found. Create an institution via management command or enable ALLOW_IMPLICIT_INSTITUTION_CREATION."
-                            )
-                            raise RuntimeError(
-                                "No Institution available. Please run setup_multitenancy/create.py to bootstrap a DEFAULT institution."
-                            )
-            except Institution.DoesNotExist:
-                pass  # Let it fail with proper error message
 
         super().save(*args, **kwargs)
 
@@ -461,7 +507,7 @@ class InstitutionConfig(CoreBaseModel):
         return self.override_value if self.is_active else self.system_config.value
 
 
-class SystemConfig(CoreBaseModel):
+class SystemConfig(GlobalBaseModel):
     """
     Model for storing system-wide configuration settings.
     """
@@ -529,7 +575,7 @@ class SequenceGenerator(CoreBaseModel):
         STAFF_APPLICATION = "staff_application", _("Staff Application Number")
 
     sequence_type = models.CharField(
-        _("sequence type"), max_length=50, choices=SequenceType.choices, unique=True
+        _("sequence type"), max_length=50, choices=SequenceType.choices
     )
     prefix = models.CharField(_("prefix"), max_length=10, blank=True)
     suffix = models.CharField(_("suffix"), max_length=10, blank=True)
@@ -554,6 +600,7 @@ class SequenceGenerator(CoreBaseModel):
     class Meta:
         verbose_name = _("Sequence Generator")
         verbose_name_plural = _("Sequence Generators")
+        unique_together = [["sequence_type", "institution"]]
 
     def __str__(self):
         return f"{self.sequence_type} - Last: {self.last_number}"

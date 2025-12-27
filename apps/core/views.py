@@ -16,6 +16,7 @@ from django.urls import reverse_lazy
 from django.views import View
 from django.utils import timezone
 import json
+from django.db import IntegrityError, transaction
 
 from .models import SystemConfig, Institution, InstitutionConfig
 from .forms import (
@@ -379,8 +380,11 @@ def import_configs(request):
                 key=key, defaults=config_data
             )
 
-            if not created:
-                # Update existing config
+            if created:
+                imported_count += 1
+            else:
+                # Update existing config fields
+                updated = False
                 for field, value in config_data.items():
                     if field in [
                         "value",
@@ -390,30 +394,21 @@ def import_configs(request):
                         "is_encrypted",
                         "status",
                     ]:
-                        setattr(config, field, value)
-                config.save()
-                updated_count += 1
-            else:
-                imported_count += 1
+                        if getattr(config, field) != value:
+                            setattr(config, field, value)
+                            updated = True
+                if updated:
+                    config.save()
+                    updated_count += 1
 
-        return JsonResponse(
-            {
-                "success": True,
-                "imported": imported_count,
-                "updated": updated_count,
-            }
-        )
-
-    except (json.JSONDecodeError, KeyError) as e:
-        return JsonResponse({"error": f"Invalid file format: {str(e)}"}, status=400)
-
-
-# Institution Management Views
+        return JsonResponse({"imported": imported_count, "updated": updated_count})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
 
 
 class InstitutionListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     """
-    List view for Institutions with filtering and search.
+    List view for Institution.
     """
 
     model = Institution
@@ -424,35 +419,7 @@ class InstitutionListView(LoginRequiredMixin, PermissionRequiredMixin, ListView)
 
     def get_queryset(self):
         queryset = Institution.objects.all()
-
-        # Apply filters
-        institution_type = self.request.GET.get("institution_type")
-        ownership_type = self.request.GET.get("ownership_type")
-        status = self.request.GET.get("status")
-        is_active = self.request.GET.get("is_active")
-        search = self.request.GET.get("search")
-
-        if institution_type and institution_type != "all":
-            queryset = queryset.filter(institution_type=institution_type)
-
-        if ownership_type and ownership_type != "all":
-            queryset = queryset.filter(ownership_type=ownership_type)
-
-        if status and status != "all":
-            queryset = queryset.filter(status=status)
-
-        if is_active and is_active != "all":
-            queryset = queryset.filter(is_active=is_active == "true")
-
-        if search:
-            queryset = queryset.filter(
-                Q(name__icontains=search)
-                | Q(code__icontains=search)
-                | Q(short_name__icontains=search)
-                | Q(city__icontains=search)
-                | Q(country__icontains=search)
-            )
-
+        # Apply simple ordering
         return queryset.order_by("name")
 
     def get_context_data(self, **kwargs):
@@ -554,6 +521,23 @@ class InstitutionDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteV
     def get_success_url(self):
         messages.success(self.request, _("Institution deleted successfully!"))
         return reverse_lazy("core:institution_list")
+
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        try:
+            with transaction.atomic():
+                response = super().delete(request, *args, **kwargs)
+            return response
+        except IntegrityError as e:
+            messages.error(
+                request,
+                _(
+                    "Cannot delete institution because related records exist. Remove dependent records first or archive the institution."
+                ),
+            )
+            return redirect(
+                request.META.get("HTTP_REFERER", reverse_lazy("core:institution_list"))
+            )
 
 
 class InstitutionConfigOverrideView(LoginRequiredMixin, PermissionRequiredMixin, View):
@@ -2448,6 +2432,293 @@ def institution_statistics_api(request):
         )
 
     return JsonResponse(data)
+
+
+def ui_config_demo(request):
+    """
+    Demo view to showcase the UI configuration system.
+    """
+    return render(request, "base/ui_config_demo.html")
+
+
+class UIConfigManagementView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """
+    Dedicated UI configuration management interface for superusers and admins.
+    Provides theme management, color schemes, typography, and layout options.
+    """
+
+    permission_required = "core.change_systemconfig"
+
+    def get(self, request, *args, **kwargs):
+        # Only superusers can access UI config management
+        if not request.user.is_superuser:
+            messages.error(
+                request, _("You don't have permission to manage UI configurations.")
+            )
+            return redirect("users:dashboard")
+
+        # Get all UI configurations
+        ui_configs = SystemConfig.objects.filter(
+            config_type="ui", status="active"
+        ).order_by("key")
+
+        # Group configs by category
+        config_categories = {
+            "colors": [],
+            "typography": [],
+            "spacing": [],
+            "layout": [],
+            "features": [],
+        }
+
+        for config in ui_configs:
+            if "color" in config.key.lower():
+                config_categories["colors"].append(config)
+            elif any(
+                word in config.key.lower()
+                for word in ["font", "weight", "line", "size"]
+            ):
+                config_categories["typography"].append(config)
+            elif any(
+                word in config.key.lower()
+                for word in ["border", "shadow", "spacing", "radius"]
+            ):
+                config_categories["spacing"].append(config)
+            elif any(
+                word in config.key.lower()
+                for word in ["header", "sidebar", "container", "width"]
+            ):
+                config_categories["layout"].append(config)
+            else:
+                config_categories["features"].append(config)
+
+        # Get theme presets
+        theme_presets = self.get_theme_presets()
+
+        context = {
+            "config_categories": config_categories,
+            "theme_presets": theme_presets,
+            "page_title": _("UI Configuration Management"),
+        }
+
+        return render(request, "core/config/ui_management.html", context)
+
+    def post(self, request, *args, **kwargs):
+        if not request.user.is_superuser:
+            messages.error(
+                request, _("You don't have permission to manage UI configurations.")
+            )
+            return redirect("users:dashboard")
+
+        action = request.POST.get("action")
+
+        if action == "update_configs":
+            return self.update_configs(request)
+        elif action == "apply_preset":
+            return self.apply_theme_preset(request)
+        elif action == "reset_defaults":
+            return self.reset_to_defaults(request)
+
+        messages.error(request, _("Invalid action."))
+        return redirect("core:ui_config_management")
+
+    def update_configs(self, request):
+        """Update multiple UI configurations at once."""
+        updated_count = 0
+
+        for key, value in request.POST.items():
+            if key.startswith("config_"):
+                config_key = key.replace("config_", "")
+                try:
+                    config = SystemConfig.objects.get(
+                        key=config_key, config_type="ui", status="active"
+                    )
+
+                    # Validate and clean the value based on config type
+                    if config.key.startswith("ui_") and "color" in config.key:
+                        # Validate color values
+                        if not self.is_valid_color(value):
+                            messages.warning(
+                                request,
+                                _("Invalid color value for {}: {}").format(
+                                    config.key, value
+                                ),
+                            )
+                            continue
+                    elif (
+                        "size" in config.key
+                        or "width" in config.key
+                        or "height" in config.key
+                    ):
+                        # Validate numeric values
+                        try:
+                            if value.endswith(("px", "rem", "em", "%")):
+                                float(value[:-2])
+                            elif value.replace(".", "").isdigit():
+                                float(value)
+                            else:
+                                raise ValueError
+                        except (ValueError, IndexError):
+                            messages.warning(
+                                request,
+                                _("Invalid numeric value for {}: {}").format(
+                                    config.key, value
+                                ),
+                            )
+                            continue
+
+                    config.value = value
+                    config.save()
+                    updated_count += 1
+
+                except SystemConfig.DoesNotExist:
+                    continue
+
+        if updated_count > 0:
+            messages.success(
+                request,
+                _("Successfully updated {} UI configuration(s).").format(updated_count),
+            )
+        else:
+            messages.info(request, _("No configurations were updated."))
+
+        return redirect("core:ui_config_management")
+
+    def apply_theme_preset(self, request):
+        """Apply a predefined theme preset."""
+        preset_name = request.POST.get("preset_name")
+
+        if not preset_name:
+            messages.error(request, _("No preset selected."))
+            return redirect("core:ui_config_management")
+
+        presets = self.get_theme_presets()
+        if preset_name not in presets:
+            messages.error(request, _("Invalid preset selected."))
+            return redirect("core:ui_config_management")
+
+        preset_configs = presets[preset_name]
+        updated_count = 0
+
+        for config_key, value in preset_configs.items():
+            try:
+                config = SystemConfig.objects.get(
+                    key=config_key, config_type="ui", status="active"
+                )
+                config.value = value
+                config.save()
+                updated_count += 1
+            except SystemConfig.DoesNotExist:
+                continue
+
+        messages.success(
+            request,
+            _(
+                "Successfully applied '{}' theme preset ({} configurations updated)."
+            ).format(preset_name, updated_count),
+        )
+
+        return redirect("core:ui_config_management")
+
+    def reset_to_defaults(self, request):
+        """Reset UI configurations to default values."""
+        # Re-run the seed command to reset defaults
+        from .management.commands.seed_ui_configs import Command
+
+        command = Command()
+        command.handle()
+
+        messages.success(request, _("UI configurations have been reset to defaults."))
+        return redirect("core:ui_config_management")
+
+    def get_theme_presets(self):
+        """Get predefined theme presets."""
+        return {
+            "Modern Blue": {
+                "ui_primary_color": "#0d6efd",
+                "ui_secondary_color": "#6c757d",
+                "ui_success_color": "#198754",
+                "ui_danger_color": "#dc3545",
+                "ui_warning_color": "#ffc107",
+                "ui_info_color": "#0dcaf0",
+                "ui_accent_color": "#6610f2",
+                "ui_font_family_primary": "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                "ui_font_family_secondary": "'Poppins', sans-serif",
+                "ui_border_radius": "0.5rem",
+                "ui_enable_rounded_corners": True,
+                "ui_enable_shadows": True,
+                "ui_enable_animations": True,
+            },
+            "Classic Professional": {
+                "ui_primary_color": "#2c3e50",
+                "ui_secondary_color": "#7f8c8d",
+                "ui_success_color": "#27ae60",
+                "ui_danger_color": "#e74c3c",
+                "ui_warning_color": "#f39c12",
+                "ui_info_color": "#3498db",
+                "ui_accent_color": "#9b59b6",
+                "ui_font_family_primary": "'Times New Roman', serif",
+                "ui_font_family_secondary": "'Georgia', serif",
+                "ui_border_radius": "0.25rem",
+                "ui_enable_rounded_corners": False,
+                "ui_enable_shadows": True,
+                "ui_enable_animations": False,
+            },
+            "Bright & Energetic": {
+                "ui_primary_color": "#ff6b35",
+                "ui_secondary_color": "#f7931e",
+                "ui_success_color": "#00a896",
+                "ui_danger_color": "#d7263d",
+                "ui_warning_color": "#ffd23f",
+                "ui_info_color": "#1e96fc",
+                "ui_accent_color": "#a23b72",
+                "ui_font_family_primary": "'Montserrat', sans-serif",
+                "ui_font_family_secondary": "'Oswald', sans-serif",
+                "ui_border_radius": "0.75rem",
+                "ui_enable_rounded_corners": True,
+                "ui_enable_shadows": True,
+                "ui_enable_animations": True,
+            },
+            "Minimal Dark": {
+                "ui_primary_color": "#ffffff",
+                "ui_secondary_color": "#cccccc",
+                "ui_success_color": "#4ade80",
+                "ui_danger_color": "#f87171",
+                "ui_warning_color": "#fbbf24",
+                "ui_info_color": "#60a5fa",
+                "ui_accent_color": "#c084fc",
+                "ui_font_family_primary": "'Roboto', sans-serif",
+                "ui_font_family_secondary": "'Open Sans', sans-serif",
+                "ui_border_radius": "0.125rem",
+                "ui_enable_rounded_corners": False,
+                "ui_enable_shadows": False,
+                "ui_enable_animations": True,
+            },
+        }
+
+    def is_valid_color(self, color_value):
+        """Validate color values (hex, rgb, rgba, named colors)."""
+        import re
+
+        # Hex colors
+        if re.match(
+            r"^#[0-9a-fA-F]{3}$|^#[0-9a-fA-F]{6}$|^#[0-9a-fA-F]{8}$", color_value
+        ):
+            return True
+
+        # RGB/RGBA
+        if re.match(r"^rgb(a)?\([^)]+\)$", color_value):
+            return True
+
+        # HSL/HSLA
+        if re.match(r"^hsl(a)?\([^)]+\)$", color_value):
+            return True
+
+        # Named colors (basic validation - just check it's not empty and no special chars)
+        if re.match(r"^[a-zA-Z]+$", color_value):
+            return True
+
+        return False
 
 
 class GlobalSearchView(LoginRequiredMixin, PermissionRequiredMixin, View):

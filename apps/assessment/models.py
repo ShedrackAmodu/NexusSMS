@@ -12,22 +12,23 @@ from django.core.validators import FileExtensionValidator
 from django.utils import timezone
 from datetime import datetime
 
-from apps.core.models import CoreBaseModel
+from apps.core.models import CoreBaseModel, GlobalBaseModel
+
 # Use app-label strings for related models to avoid import-time side-effects
 
 # Grade choices for result views (from clue system)
 GRADE_CHOICES = [
-    ('A+', 'A+'),
-    ('A', 'A'),
-    ('A-', 'A-'),
-    ('B+', 'B+'),
-    ('B', 'B'),
-    ('B-', 'B-'),
-    ('C+', 'C+'),
-    ('C', 'C'),
-    ('C-', 'C-'),
-    ('D', 'D'),
-    ('F', 'F'),
+    ("A+", "A+"),
+    ("A", "A"),
+    ("A-", "A-"),
+    ("B+", "B+"),
+    ("B", "B"),
+    ("B-", "B-"),
+    ("C+", "C+"),
+    ("C", "C"),
+    ("C-", "C-"),
+    ("D", "D"),
+    ("F", "F"),
 ]
 
 
@@ -35,31 +36,33 @@ class AssessmentBaseModel(CoreBaseModel):
     """
     Base model for all assessment-related models.
     """
+
     class Meta:
         abstract = True
 
 
-class ExamType(AssessmentBaseModel):
+class ExamType(GlobalBaseModel):
     """
     Types of examinations: Unit Test, Mid-Term, Final, Quiz, etc.
     """
-    name = models.CharField(_('exam type name'), max_length=100)
-    code = models.CharField(_('exam type code'), max_length=20, unique=True)
-    description = models.TextField(_('description'), blank=True)
+
+    name = models.CharField(_("exam type name"), max_length=100)
+    code = models.CharField(_("exam type code"), max_length=20, unique=True)
+    description = models.TextField(_("description"), blank=True)
     weightage = models.DecimalField(
-        _('weightage'),
+        _("weightage"),
         max_digits=5,
         decimal_places=2,
         validators=[MinValueValidator(0), MaxValueValidator(100)],
-        help_text=_('Weightage in percentage for final grade calculation')
+        help_text=_("Weightage in percentage for final grade calculation"),
     )
-    is_final = models.BooleanField(_('is final exam'), default=False)
-    order = models.PositiveIntegerField(_('display order'), default=0)
+    is_final = models.BooleanField(_("is final exam"), default=False)
+    order = models.PositiveIntegerField(_("display order"), default=0)
 
     class Meta:
-        verbose_name = _('Exam Type')
-        verbose_name_plural = _('Exam Types')
-        ordering = ['order', 'name']
+        verbose_name = _("Exam Type")
+        verbose_name_plural = _("Exam Types")
+        ordering = ["order", "name"]
 
     def __str__(self):
         return self.name
@@ -69,15 +72,16 @@ class GradingSystem(AssessmentBaseModel):
     """
     Grading system configuration (A+, A, B+, etc.)
     """
-    name = models.CharField(_('grading system name'), max_length=100)
-    code = models.CharField(_('grading system code'), max_length=20, unique=True)
-    description = models.TextField(_('description'), blank=True)
-    is_active = models.BooleanField(_('is active'), default=True)
+
+    name = models.CharField(_("grading system name"), max_length=100)
+    code = models.CharField(_("grading system code"), max_length=20, unique=True)
+    description = models.TextField(_("description"), blank=True)
+    is_active = models.BooleanField(_("is active"), default=True)
 
     class Meta:
-        verbose_name = _('Grading System')
-        verbose_name_plural = _('Grading Systems')
-        ordering = ['name']
+        verbose_name = _("Grading System")
+        verbose_name_plural = _("Grading Systems")
+        ordering = ["name"]
 
     def __str__(self):
         return self.name
@@ -87,99 +91,101 @@ class Grade(AssessmentBaseModel):
     """
     Individual grades within a grading system.
     """
+
     grading_system = models.ForeignKey(
         GradingSystem,
         on_delete=models.CASCADE,
-        related_name='grades',
-        verbose_name=_('grading system')
+        related_name="grades",
+        verbose_name=_("grading system"),
     )
-    grade = models.CharField(_('grade'), max_length=10)
-    description = models.CharField(_('description'), max_length=100)
+    grade = models.CharField(_("grade"), max_length=10)
+    description = models.CharField(_("description"), max_length=100)
     min_mark = models.DecimalField(
-        _('minimum marks'),
+        _("minimum marks"),
         max_digits=5,
         decimal_places=2,
-        validators=[MinValueValidator(0), MaxValueValidator(100)]
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
     max_mark = models.DecimalField(
-        _('maximum marks'),
+        _("maximum marks"),
         max_digits=5,
         decimal_places=2,
-        validators=[MinValueValidator(0), MaxValueValidator(100)]
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
     grade_point = models.DecimalField(
-        _('grade point'),
+        _("grade point"),
         max_digits=3,
         decimal_places=1,
-        validators=[MinValueValidator(0), MaxValueValidator(4.0)]
+        validators=[MinValueValidator(0), MaxValueValidator(4.0)],
     )
-    remark = models.CharField(_('remark'), max_length=100, blank=True)
+    remark = models.CharField(_("remark"), max_length=100, blank=True)
 
     class Meta:
-        verbose_name = _('Grade')
-        verbose_name_plural = _('Grades')
-        ordering = ['grading_system', 'min_mark']
-        unique_together = ['grading_system', 'grade']
+        verbose_name = _("Grade")
+        verbose_name_plural = _("Grades")
+        ordering = ["grading_system", "min_mark"]
+        unique_together = ["grading_system", "grade"]
 
     def __str__(self):
         return f"{self.grade} ({self.grading_system})"
 
     def clean(self):
         if self.min_mark >= self.max_mark:
-            raise ValidationError(_('Minimum mark must be less than maximum mark.'))
+            raise ValidationError(_("Minimum mark must be less than maximum mark."))
 
 
 class Exam(AssessmentBaseModel):
     """
     Examination schedule and details.
     """
-    name = models.CharField(_('exam name'), max_length=200)
-    code = models.CharField(_('exam code'), max_length=50, unique=True)
+
+    name = models.CharField(_("exam name"), max_length=200)
+    code = models.CharField(_("exam code"), max_length=50, unique=True)
     exam_type = models.ForeignKey(
         ExamType,
         on_delete=models.PROTECT,
-        related_name='exams',
-        verbose_name=_('exam type')
+        related_name="exams",
+        verbose_name=_("exam type"),
     )
     academic_class = models.ForeignKey(
-        'academics.Class',
+        "academics.Class",
         on_delete=models.CASCADE,
-        related_name='exams',
-        verbose_name=_('academic class')
+        related_name="exams",
+        verbose_name=_("academic class"),
     )
     subject = models.ForeignKey(
-        'academics.Subject',
+        "academics.Subject",
         on_delete=models.CASCADE,
-        related_name='exams',
-        verbose_name=_('subject')
+        related_name="exams",
+        verbose_name=_("subject"),
     )
-    exam_date = models.DateField(_('exam date'))
-    start_time = models.TimeField(_('start time'))
-    end_time = models.TimeField(_('end time'))
+    exam_date = models.DateField(_("exam date"))
+    start_time = models.TimeField(_("start time"))
+    end_time = models.TimeField(_("end time"))
     total_marks = models.DecimalField(
-        _('total marks'),
+        _("total marks"),
         max_digits=6,
         decimal_places=2,
-        validators=[MinValueValidator(0)]
+        validators=[MinValueValidator(0)],
     )
     passing_marks = models.DecimalField(
-        _('passing marks'),
+        _("passing marks"),
         max_digits=6,
         decimal_places=2,
-        validators=[MinValueValidator(0)]
+        validators=[MinValueValidator(0)],
     )
-    venue = models.CharField(_('exam venue'), max_length=200, blank=True)
-    instructions = models.TextField(_('instructions'), blank=True)
-    is_published = models.BooleanField(_('is published'), default=False)
-    published_at = models.DateTimeField(_('published at'), null=True, blank=True)
+    venue = models.CharField(_("exam venue"), max_length=200, blank=True)
+    instructions = models.TextField(_("instructions"), blank=True)
+    is_published = models.BooleanField(_("is published"), default=False)
+    published_at = models.DateTimeField(_("published at"), null=True, blank=True)
 
     class Meta:
-        verbose_name = _('Exam')
-        verbose_name_plural = _('Exams')
-        ordering = ['exam_date', 'start_time']
+        verbose_name = _("Exam")
+        verbose_name_plural = _("Exams")
+        ordering = ["exam_date", "start_time"]
         indexes = [
-            models.Index(fields=['academic_class', 'exam_date']),
-            models.Index(fields=['subject', 'exam_type']),
+            models.Index(fields=["academic_class", "exam_date"]),
+            models.Index(fields=["subject", "exam_type"]),
         ]
 
     def __str__(self):
@@ -187,15 +193,16 @@ class Exam(AssessmentBaseModel):
 
     def clean(self):
         if self.passing_marks > self.total_marks:
-            raise ValidationError(_('Passing marks cannot exceed total marks.'))
-        
+            raise ValidationError(_("Passing marks cannot exceed total marks."))
+
         if self.end_time <= self.start_time:
-            raise ValidationError(_('End time must be after start time.'))
+            raise ValidationError(_("End time must be after start time."))
 
     @property
     def duration(self):
         """Calculate exam duration in minutes."""
         from datetime import datetime
+
         start = datetime.combine(self.exam_date, self.start_time)
         end = datetime.combine(self.exam_date, self.end_time)
         duration = end - start
@@ -206,28 +213,29 @@ class ExamAttendance(CoreBaseModel):
     """
     Track student attendance for exams.
     """
+
     exam = models.ForeignKey(
         Exam,
         on_delete=models.CASCADE,
-        related_name='exam_attendance',
-        verbose_name=_('exam')
+        related_name="exam_attendance",
+        verbose_name=_("exam"),
     )
     student = models.ForeignKey(
-        'academics.Student',
+        "academics.Student",
         on_delete=models.CASCADE,
-        related_name='exam_attendance',
-        verbose_name=_('student')
+        related_name="exam_attendance",
+        verbose_name=_("student"),
     )
-    is_present = models.BooleanField(_('is present'), default=True)
-    late_minutes = models.PositiveIntegerField(_('late minutes'), default=0)
-    remarks = models.TextField(_('remarks'), blank=True)
+    is_present = models.BooleanField(_("is present"), default=True)
+    late_minutes = models.PositiveIntegerField(_("late minutes"), default=0)
+    remarks = models.TextField(_("remarks"), blank=True)
 
     class Meta:
-        verbose_name = _('Exam Attendance')
-        verbose_name_plural = _('Exam Attendance')
-        unique_together = ['exam', 'student']
+        verbose_name = _("Exam Attendance")
+        verbose_name_plural = _("Exam Attendance")
+        unique_together = ["exam", "student"]
         indexes = [
-            models.Index(fields=['exam', 'student']),
+            models.Index(fields=["exam", "student"]),
         ]
 
     def __str__(self):
@@ -239,62 +247,57 @@ class Mark(AssessmentBaseModel):
     """
     Individual student marks for exams.
     """
+
     exam = models.ForeignKey(
-        Exam,
-        on_delete=models.CASCADE,
-        related_name='marks',
-        verbose_name=_('exam')
+        Exam, on_delete=models.CASCADE, related_name="marks", verbose_name=_("exam")
     )
     student = models.ForeignKey(
-        'academics.Student',
+        "academics.Student",
         on_delete=models.CASCADE,
-        related_name='marks',
-        verbose_name=_('student')
+        related_name="marks",
+        verbose_name=_("student"),
     )
     marks_obtained = models.DecimalField(
-        _('marks obtained'),
+        _("marks obtained"),
         max_digits=6,
         decimal_places=2,
-        validators=[MinValueValidator(0)]
+        validators=[MinValueValidator(0)],
     )
     max_marks = models.DecimalField(
-        _('maximum marks'),
-        max_digits=6,
-        decimal_places=2,
-        editable=False
+        _("maximum marks"), max_digits=6, decimal_places=2, editable=False
     )
     percentage = models.DecimalField(
-        _('percentage'),
+        _("percentage"),
         max_digits=5,
         decimal_places=2,
         validators=[MinValueValidator(0), MaxValueValidator(100)],
-        editable=False
+        editable=False,
     )
-    is_absent = models.BooleanField(_('is absent'), default=False)
+    is_absent = models.BooleanField(_("is absent"), default=False)
     grace_marks = models.DecimalField(
-        _('grace marks'),
+        _("grace marks"),
         max_digits=6,
         decimal_places=2,
         default=0,
-        validators=[MinValueValidator(0)]
+        validators=[MinValueValidator(0)],
     )
-    remarks = models.TextField(_('remarks'), blank=True)
+    remarks = models.TextField(_("remarks"), blank=True)
     entered_by = models.ForeignKey(
-        'academics.Teacher',
+        "academics.Teacher",
         on_delete=models.SET_NULL,
         null=True,
-        related_name='entered_marks',
-        verbose_name=_('entered by')
+        related_name="entered_marks",
+        verbose_name=_("entered by"),
     )
-    entered_at = models.DateTimeField(_('entered at'), auto_now_add=True)
+    entered_at = models.DateTimeField(_("entered at"), auto_now_add=True)
 
     class Meta:
-        verbose_name = _('Mark')
-        verbose_name_plural = _('Marks')
-        unique_together = ['exam', 'student']
+        verbose_name = _("Mark")
+        verbose_name_plural = _("Marks")
+        unique_together = ["exam", "student"]
         indexes = [
-            models.Index(fields=['exam', 'student']),
-            models.Index(fields=['student', 'exam']),
+            models.Index(fields=["exam", "student"]),
+            models.Index(fields=["student", "exam"]),
         ]
 
     def __str__(self):
@@ -302,19 +305,19 @@ class Mark(AssessmentBaseModel):
 
     def clean(self):
         if not self.is_absent and self.marks_obtained > self.max_marks:
-            raise ValidationError(_('Marks obtained cannot exceed maximum marks.'))
+            raise ValidationError(_("Marks obtained cannot exceed maximum marks."))
 
     def save(self, *args, **kwargs):
         # Set max_marks from exam
         if not self.max_marks:
             self.max_marks = self.exam.total_marks
-        
+
         # Calculate percentage
         if not self.is_absent and self.max_marks > 0:
             self.percentage = (self.marks_obtained / self.max_marks) * 100
         else:
             self.percentage = 0
-        
+
         super().save(*args, **kwargs)
 
     @property
@@ -333,269 +336,290 @@ class Mark(AssessmentBaseModel):
 
 class Assignment(CoreBaseModel):
     class AssignmentType(models.TextChoices):
-        HOMEWORK = 'homework', _('Homework')
-        CLASSWORK = 'classwork', _('Classwork')
-        PROJECT = 'project', _('Project')
-        RESEARCH = 'research', _('Research Paper')
-        PRESENTATION = 'presentation', _('Presentation')
-        QUIZ = 'quiz', _('Quiz')
-        EXAM = 'exam', _('Exam')
-        LAB_REPORT = 'lab_report', _('Lab Report')
-        ESSAY = 'essay', _('Essay')
-        GROUP_PROJECT = 'group_project', _('Group Project')
+        HOMEWORK = "homework", _("Homework")
+        CLASSWORK = "classwork", _("Classwork")
+        PROJECT = "project", _("Project")
+        RESEARCH = "research", _("Research Paper")
+        PRESENTATION = "presentation", _("Presentation")
+        QUIZ = "quiz", _("Quiz")
+        EXAM = "exam", _("Exam")
+        LAB_REPORT = "lab_report", _("Lab Report")
+        ESSAY = "essay", _("Essay")
+        GROUP_PROJECT = "group_project", _("Group Project")
 
     class SubmissionStatus(models.TextChoices):
-        DRAFT = 'draft', _('Draft')
-        SUBMITTED = 'submitted', _('Submitted')
-        LATE = 'late', _('Late')
-        UNDER_REVIEW = 'under_review', _('Under Review')
-        GRADED = 'graded', _('Graded')
-        RETURNED = 'returned', _('Returned')
-        RESUBMITTED = 'resubmitted', _('Resubmitted')
-        REJECTED = 'rejected', _('Rejected')
+        DRAFT = "draft", _("Draft")
+        SUBMITTED = "submitted", _("Submitted")
+        LATE = "late", _("Late")
+        UNDER_REVIEW = "under_review", _("Under Review")
+        GRADED = "graded", _("Graded")
+        RETURNED = "returned", _("Returned")
+        RESUBMITTED = "resubmitted", _("Resubmitted")
+        REJECTED = "rejected", _("Rejected")
 
     # === BASIC INFORMATION ===
-    title = models.CharField(_('assignment title'), max_length=200)
+    title = models.CharField(_("assignment title"), max_length=200)
     assignment_type = models.CharField(
-        _('assignment type'),
+        _("assignment type"),
         max_length=20,
         choices=AssignmentType.choices,
-        default=AssignmentType.HOMEWORK
+        default=AssignmentType.HOMEWORK,
     )
-    description = models.TextField(_('description'))
-    instructions = models.TextField(_('instructions'), blank=True)
-    
+    description = models.TextField(_("description"))
+    instructions = models.TextField(_("instructions"), blank=True)
+
     # === ACADEMIC CONTEXT ===
     # From first model
     subject = models.ForeignKey(
-        'academics.Subject',
+        "academics.Subject",
         on_delete=models.CASCADE,
-        related_name='assignments',
-        verbose_name=_('subject')
+        related_name="assignments",
+        verbose_name=_("subject"),
     )
     teacher = models.ForeignKey(
-        'academics.Teacher',
+        "academics.Teacher",
         on_delete=models.CASCADE,
-        related_name='assignments',
-        verbose_name=_('teacher')
+        related_name="assignments",
+        verbose_name=_("teacher"),
     )
     academic_session = models.ForeignKey(
-        'academics.AcademicSession',
+        "academics.AcademicSession",
         on_delete=models.CASCADE,
-        related_name='assignments',
-        verbose_name=_('academic session')
+        related_name="assignments",
+        verbose_name=_("academic session"),
     )
-    
+
     academic_class = models.ForeignKey(
-        'academics.Class',
+        "academics.Class",
         on_delete=models.CASCADE,
-        related_name='assignments',
-        verbose_name=_('academic class'),
+        related_name="assignments",
+        verbose_name=_("academic class"),
         null=True,
-        blank=True
+        blank=True,
     )
 
     # Backwards-compatible field used in several older indexes and helper methods
     class_assigned = models.ForeignKey(
-        'academics.Class',
+        "academics.Class",
         on_delete=models.CASCADE,
-        related_name='assigned_assignments',
-        verbose_name=_('class assigned'),
+        related_name="assigned_assignments",
+        verbose_name=_("class assigned"),
         null=True,
-        blank=True
+        blank=True,
     )
-    
+
     # === TIMING & DATES ===
     # From first model
-    publish_date = models.DateTimeField(_('publish date'), default=timezone.now)
-    due_date = models.DateTimeField(_('due date'))
-    
+    publish_date = models.DateTimeField(_("publish date"), default=timezone.now)
+    due_date = models.DateTimeField(_("due date"))
+
     # From second model
-    assigned_date = models.DateField(_('assigned date'), null=True, blank=True)
-    
+    assigned_date = models.DateField(_("assigned date"), null=True, blank=True)
+
     # === GRADING & MARKS ===
     total_marks = models.DecimalField(
-        _('total marks'),
+        _("total marks"),
         max_digits=6,
         decimal_places=2,
-        validators=[MinValueValidator(0)]
+        validators=[MinValueValidator(0)],
     )
     passing_marks = models.DecimalField(
-        _('passing marks'),
-        max_digits=6,
-        decimal_places=2,
-        null=True,
-        blank=True
+        _("passing marks"), max_digits=6, decimal_places=2, null=True, blank=True
     )
-    
+
     # Weightage fields from both models
     weightage = models.DecimalField(
-        _('weightage in final grade'),
+        _("weightage in final grade"),
         max_digits=5,
         decimal_places=2,
         default=100.00,
         validators=[MinValueValidator(0), MaxValueValidator(100)],
-        help_text=_('Weightage in percentage for final grade')
+        help_text=_("Weightage in percentage for final grade"),
     )
-    
-    grading_criteria = models.TextField(_('grading criteria'), blank=True)
-    
+
+    grading_criteria = models.TextField(_("grading criteria"), blank=True)
+
     # === SUBMISSION MANAGEMENT ===
     allow_late_submissions = models.BooleanField(
-        _('allow late submissions'),
-        default=True
+        _("allow late submissions"), default=True
     )
     late_submission_penalty = models.DecimalField(
-        _('late submission penalty percentage'),
+        _("late submission penalty percentage"),
         max_digits=5,
         decimal_places=2,
-        default=0.00
+        default=0.00,
     )
     max_submission_attempts = models.PositiveIntegerField(
-        _('maximum submission attempts'),
+        _("maximum submission attempts"),
         default=1,
-        validators=[MinValueValidator(1), MaxValueValidator(10)]
+        validators=[MinValueValidator(1), MaxValueValidator(10)],
     )
-    
+
     # === FILE MANAGEMENT ===
     attachment = models.FileField(
-        _('attachment'),
-        upload_to='assignments/%Y/%m/%d/',
+        _("attachment"),
+        upload_to="assignments/%Y/%m/%d/",
         null=True,
         blank=True,
         validators=[
             FileExtensionValidator(
-                allowed_extensions=['pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt', 'zip', 'jpg', 'jpeg', 'png']
+                allowed_extensions=[
+                    "pdf",
+                    "doc",
+                    "docx",
+                    "ppt",
+                    "pptx",
+                    "txt",
+                    "zip",
+                    "jpg",
+                    "jpeg",
+                    "png",
+                ]
             )
-        ]
+        ],
     )
-    file_size = models.PositiveIntegerField(_('file size in bytes'), null=True, blank=True)
+    file_size = models.PositiveIntegerField(
+        _("file size in bytes"), null=True, blank=True
+    )
     max_file_size = models.PositiveIntegerField(
-        _('maximum file size for submissions'),
-        default=10 * 1024 * 1024  # 10MB
+        _("maximum file size for submissions"), default=10 * 1024 * 1024  # 10MB
     )
-    
+
     # === ADDITIONAL FEATURES ===
-    tags = models.CharField(_('tags'), max_length=500, blank=True)
-    is_published = models.BooleanField(_('is published'), default=False)
-    display_order = models.PositiveIntegerField(_('display order'), default=0)
+    tags = models.CharField(_("tags"), max_length=500, blank=True)
+    is_published = models.BooleanField(_("is published"), default=False)
+    display_order = models.PositiveIntegerField(_("display order"), default=0)
 
     # === SUBMISSION FIELDS (for student submissions) ===
     student = models.ForeignKey(
-        'academics.Student',
+        "academics.Student",
         on_delete=models.CASCADE,
-        related_name='assignment_submissions',
-        verbose_name=_('student'),
+        related_name="assignment_submissions",
+        verbose_name=_("student"),
         null=True,
-        blank=True
+        blank=True,
     )
-    
+
     # Submission Content
-    submission_date = models.DateTimeField(_('submission date'), null=True, blank=True)
-    submission_text = models.TextField(_('submission text'), blank=True)
-    submitted_content = models.TextField(_('submitted content'), blank=True)  # From second model
-    
+    submission_date = models.DateTimeField(_("submission date"), null=True, blank=True)
+    submission_text = models.TextField(_("submission text"), blank=True)
+    submitted_content = models.TextField(
+        _("submitted content"), blank=True
+    )  # From second model
+
     submission_attachment = models.FileField(
-        _('submission attachment'),
-        upload_to='assignment_submissions/%Y/%m/%d/',
+        _("submission attachment"),
+        upload_to="assignment_submissions/%Y/%m/%d/",
         null=True,
         blank=True,
         validators=[
             FileExtensionValidator(
-                allowed_extensions=['pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt', 'zip', 
-                                  'jpg', 'jpeg', 'png', 'mp4', 'mp3']
+                allowed_extensions=[
+                    "pdf",
+                    "doc",
+                    "docx",
+                    "ppt",
+                    "pptx",
+                    "txt",
+                    "zip",
+                    "jpg",
+                    "jpeg",
+                    "png",
+                    "mp4",
+                    "mp3",
+                ]
             )
-        ]
+        ],
     )
-    submission_file_size = models.PositiveIntegerField(_('submission file size in bytes'), null=True, blank=True)
-    submission_file_name = models.CharField(_('original file name'), max_length=255, blank=True)
-    
+    submission_file_size = models.PositiveIntegerField(
+        _("submission file size in bytes"), null=True, blank=True
+    )
+    submission_file_name = models.CharField(
+        _("original file name"), max_length=255, blank=True
+    )
+
     # Submission Management
     submission_status = models.CharField(
-        _('submission status'),
+        _("submission status"),
         max_length=20,
         choices=SubmissionStatus.choices,
-        default=SubmissionStatus.DRAFT
+        default=SubmissionStatus.DRAFT,
     )
-    submission_attempt = models.PositiveIntegerField(_('submission attempt'), default=1)
+    submission_attempt = models.PositiveIntegerField(_("submission attempt"), default=1)
     original_submission = models.ForeignKey(
-        'self',
+        "self",
         on_delete=models.CASCADE,
         null=True,
         blank=True,
-        related_name='resubmissions',
-        verbose_name=_('original submission')
+        related_name="resubmissions",
+        verbose_name=_("original submission"),
     )
-    
+
     # Late Submission Tracking
-    is_late_submission = models.BooleanField(_('is late submission'), default=False)
-    late_minutes = models.PositiveIntegerField(_('minutes late'), default=0)
+    is_late_submission = models.BooleanField(_("is late submission"), default=False)
+    late_minutes = models.PositiveIntegerField(_("minutes late"), default=0)
 
     # Grading fields
     marks_obtained = models.DecimalField(
-        _('marks obtained'),
+        _("marks obtained"),
         max_digits=6,
         decimal_places=2,
         null=True,
         blank=True,
-        validators=[MinValueValidator(0)]
+        validators=[MinValueValidator(0)],
     )
     penalty_applied = models.DecimalField(
-        _('penalty applied'),
-        max_digits=6,
-        decimal_places=2,
-        null=True,
-        blank=True
+        _("penalty applied"), max_digits=6, decimal_places=2, null=True, blank=True
     )
     final_marks = models.DecimalField(
-        _('final marks after penalty'),
+        _("final marks after penalty"),
         max_digits=6,
         decimal_places=2,
         null=True,
-        blank=True
+        blank=True,
     )
-    rubric_scores = models.JSONField(
-        _('rubric scores'),
-        null=True,
-        blank=True
-    )
-    
+    rubric_scores = models.JSONField(_("rubric scores"), null=True, blank=True)
+
     # Feedback System
-    feedback = models.TextField(_('teacher feedback'), blank=True)
-    student_feedback = models.TextField(_('student feedback'), blank=True)
+    feedback = models.TextField(_("teacher feedback"), blank=True)
+    student_feedback = models.TextField(_("student feedback"), blank=True)
     graded_by = models.ForeignKey(
-        'academics.Teacher',
+        "academics.Teacher",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='graded_submissions',
-        verbose_name=_('graded by')
+        related_name="graded_submissions",
+        verbose_name=_("graded by"),
     )
-    graded_date = models.DateTimeField(_('graded date'), null=True, blank=True)
-    feedback_date = models.DateTimeField(_('feedback date'), null=True, blank=True)
-    is_feedback_read = models.BooleanField(_('is feedback read by student'), default=False)
-    feedback_read_date = models.DateTimeField(_('feedback read date'), null=True, blank=True)
-    
+    graded_date = models.DateTimeField(_("graded date"), null=True, blank=True)
+    feedback_date = models.DateTimeField(_("feedback date"), null=True, blank=True)
+    is_feedback_read = models.BooleanField(
+        _("is feedback read by student"), default=False
+    )
+    feedback_read_date = models.DateTimeField(
+        _("feedback read date"), null=True, blank=True
+    )
+
     # Additional Metadata
-    ip_address = models.GenericIPAddressField(_('IP address'), null=True, blank=True)
-    user_agent = models.TextField(_('user agent'), blank=True)
+    ip_address = models.GenericIPAddressField(_("IP address"), null=True, blank=True)
+    user_agent = models.TextField(_("user agent"), blank=True)
 
     class Meta:
-        verbose_name = _('Assignment')
-        verbose_name_plural = _('Assignments')
-        ordering = ['display_order', '-due_date', 'subject']
+        verbose_name = _("Assignment")
+        verbose_name_plural = _("Assignments")
+        ordering = ["display_order", "-due_date", "subject"]
         indexes = [
-            models.Index(fields=['subject', 'class_assigned']),
-            models.Index(fields=['subject', 'academic_class']),
-            models.Index(fields=['due_date', 'is_published']),
-            models.Index(fields=['teacher', 'academic_session']),
-            models.Index(fields=['assignment_type']),
-            models.Index(fields=['student', 'submission_status']),
-            models.Index(fields=['submission_status', 'graded_date']),
-            models.Index(fields=['is_late_submission', 'submission_date']),
-            models.Index(fields=['academic_class', 'due_date']),
-            models.Index(fields=['subject', 'teacher']),
-            models.Index(fields=['student', 'submission_date']),
+            models.Index(fields=["subject", "class_assigned"]),
+            models.Index(fields=["subject", "academic_class"]),
+            models.Index(fields=["due_date", "is_published"]),
+            models.Index(fields=["teacher", "academic_session"]),
+            models.Index(fields=["assignment_type"]),
+            models.Index(fields=["student", "submission_status"]),
+            models.Index(fields=["submission_status", "graded_date"]),
+            models.Index(fields=["is_late_submission", "submission_date"]),
+            models.Index(fields=["academic_class", "due_date"]),
+            models.Index(fields=["subject", "teacher"]),
+            models.Index(fields=["student", "submission_date"]),
         ]
 
     def __str__(self):
@@ -608,52 +632,59 @@ class Assignment(CoreBaseModel):
         # Date validations from both models
         if self.publish_date and self.due_date:
             if self.publish_date >= self.due_date:
-                raise ValidationError(_('Due date must be after publish date.'))
-        
+                raise ValidationError(_("Due date must be after publish date."))
+
         if self.assigned_date and self.due_date:
             if self.due_date.date() < self.assigned_date:
-                raise ValidationError(_('Due date cannot be before assigned date.'))
-        
+                raise ValidationError(_("Due date cannot be before assigned date."))
+
         # Marks validations
         if self.passing_marks and self.passing_marks > self.total_marks:
-            raise ValidationError(_('Passing marks cannot exceed total marks.'))
-            
+            raise ValidationError(_("Passing marks cannot exceed total marks."))
+
         if self.late_submission_penalty and self.late_submission_penalty > 100:
-            raise ValidationError(_('Late submission penalty cannot exceed 100%.'))
+            raise ValidationError(_("Late submission penalty cannot exceed 100%."))
 
         # Submission validations
         if self.marks_obtained is not None:
             if self.marks_obtained > self.total_marks:
-                raise ValidationError(_('Obtained marks cannot exceed assignment total marks.'))
-        
+                raise ValidationError(
+                    _("Obtained marks cannot exceed assignment total marks.")
+                )
+
         if self.penalty_applied and self.penalty_applied < 0:
-            raise ValidationError(_('Penalty cannot be negative.'))
-            
+            raise ValidationError(_("Penalty cannot be negative."))
+
         if self.final_marks and self.final_marks < 0:
-            raise ValidationError(_('Final marks cannot be negative.'))
-            
+            raise ValidationError(_("Final marks cannot be negative."))
+
         # Class validation - ensure at least one class is set
         if not self.class_assigned and not self.academic_class:
-            raise ValidationError(_('Either class_assigned or academic_class must be set.'))
+            raise ValidationError(
+                _("Either class_assigned or academic_class must be set.")
+            )
 
     def save(self, *args, **kwargs):
         """Auto-manage assignment and submission logic"""
         # Auto-calculate file sizes
         if self.attachment:
             self.file_size = self.attachment.size
-        
+
         if self.submission_attachment:
             self.submission_file_size = self.submission_attachment.size
             self.submission_file_name = self.submission_attachment.name
-        
+
         # Handle date synchronization
         if self.assigned_date and not self.publish_date:
             self.publish_date = timezone.make_aware(
                 datetime.combine(self.assigned_date, datetime.min.time())
             )
-        
+
         # Auto-detect late submission
-        if self.submission_date and self.submission_status in [self.SubmissionStatus.SUBMITTED, self.SubmissionStatus.LATE]:
+        if self.submission_date and self.submission_status in [
+            self.SubmissionStatus.SUBMITTED,
+            self.SubmissionStatus.LATE,
+        ]:
             if self.submission_date > self.due_date:
                 self.is_late_submission = True
                 self.submission_status = self.SubmissionStatus.LATE
@@ -664,14 +695,16 @@ class Assignment(CoreBaseModel):
 
                 # Auto-apply penalty if configured
                 if self.late_submission_penalty > 0 and self.marks_obtained:
-                    self.penalty_applied = (self.marks_obtained * self.late_submission_penalty) / 100
+                    self.penalty_applied = (
+                        self.marks_obtained * self.late_submission_penalty
+                    ) / 100
                     self.final_marks = self.marks_obtained - self.penalty_applied
 
         # Auto-set graded dates
         if self.marks_obtained is not None:
             if not self.graded_date:
                 self.graded_date = timezone.now()
-            
+
         super().save(*args, **kwargs)
 
     @property
@@ -681,7 +714,7 @@ class Assignment(CoreBaseModel):
             # Use the same identifying fields to find submissions for this assignment
             subject=self.subject,
             title=self.title,
-            student__isnull=False
+            student__isnull=False,
         ).count()
 
     @property
@@ -691,7 +724,7 @@ class Assignment(CoreBaseModel):
             subject=self.subject,
             title=self.title,
             student__isnull=False,
-            submission_status=self.SubmissionStatus.GRADED
+            submission_status=self.SubmissionStatus.GRADED,
         ).count()
 
     @property
@@ -710,7 +743,9 @@ class Assignment(CoreBaseModel):
     @property
     def submission_rate(self):
         """Calculate submission rate percentage"""
-        total_students = self.get_class().current_student_count if self.get_class() else 0
+        total_students = (
+            self.get_class().current_student_count if self.get_class() else 0
+        )
         if total_students > 0:
             return (self.submission_count / total_students) * 100
         return 0
@@ -740,8 +775,9 @@ class Assignment(CoreBaseModel):
     @property
     def can_resubmit(self):
         """Check if student can resubmit."""
-        return (self.submission_attempt < self.max_submission_attempts and
-                (self.allow_late_submissions or not self.is_late_submission))
+        return self.submission_attempt < self.max_submission_attempts and (
+            self.allow_late_submissions or not self.is_late_submission
+        )
 
     # === HELPER METHODS ===
     def get_class(self):
@@ -761,8 +797,8 @@ class Assignment(CoreBaseModel):
     def create_resubmission(self):
         """Create a new resubmission attempt."""
         if not self.can_resubmit:
-            raise ValidationError(_('Maximum submission attempts reached.'))
-            
+            raise ValidationError(_("Maximum submission attempts reached."))
+
         resubmission = Assignment(
             # Assignment fields
             title=self.title,
@@ -785,23 +821,24 @@ class Assignment(CoreBaseModel):
             late_submission_penalty=self.late_submission_penalty,
             max_submission_attempts=self.max_submission_attempts,
             max_file_size=self.max_file_size,
-            
             # Submission fields
             student=self.student,
             original_submission=self,
             submission_attempt=self.submission_attempt + 1,
-            submission_status=self.SubmissionStatus.DRAFT
+            submission_status=self.SubmissionStatus.DRAFT,
         )
         return resubmission
 
     @classmethod
     def create_assignment_template(cls, **kwargs):
         """Create an assignment template without student submission data"""
-        kwargs.update({
-            'student': None,
-            'submission_status': cls.SubmissionStatus.DRAFT,
-            'submission_attempt': 1
-        })
+        kwargs.update(
+            {
+                "student": None,
+                "submission_status": cls.SubmissionStatus.DRAFT,
+                "submission_attempt": 1,
+            }
+        )
         return cls(**kwargs)
 
     def is_submission(self):
@@ -813,16 +850,12 @@ class Assignment(CoreBaseModel):
         if self.is_submission():
             # This is a submission, get other submissions for the same assignment
             return Assignment.objects.filter(
-                subject=self.subject,
-                title=self.title,
-                student__isnull=False
+                subject=self.subject, title=self.title, student__isnull=False
             ).exclude(pk=self.pk)
         else:
             # This is an assignment template, get all submissions
             return Assignment.objects.filter(
-                subject=self.subject,
-                title=self.title,
-                student__isnull=False
+                subject=self.subject, title=self.title, student__isnull=False
             )
 
 
@@ -830,77 +863,78 @@ class Result(AssessmentBaseModel):
     """
     Consolidated results for students per academic class and exam type.
     """
+
     student = models.ForeignKey(
-        'academics.Student',
+        "academics.Student",
         on_delete=models.CASCADE,
-        related_name='results',
-        verbose_name=_('student')
+        related_name="results",
+        verbose_name=_("student"),
     )
     academic_class = models.ForeignKey(
-        'academics.Class',
+        "academics.Class",
         on_delete=models.CASCADE,
-        related_name='results',
-        verbose_name=_('academic class')
+        related_name="results",
+        verbose_name=_("academic class"),
     )
     exam_type = models.ForeignKey(
         ExamType,
         on_delete=models.CASCADE,
-        related_name='results',
-        verbose_name=_('exam type')
+        related_name="results",
+        verbose_name=_("exam type"),
     )
     total_marks = models.DecimalField(
-        _('total marks'),
+        _("total marks"),
         max_digits=8,
         decimal_places=2,
-        validators=[MinValueValidator(0)]
+        validators=[MinValueValidator(0)],
     )
     marks_obtained = models.DecimalField(
-        _('marks obtained'),
+        _("marks obtained"),
         max_digits=8,
         decimal_places=2,
-        validators=[MinValueValidator(0)]
+        validators=[MinValueValidator(0)],
     )
     percentage = models.DecimalField(
-        _('percentage'),
+        _("percentage"),
         max_digits=5,
         decimal_places=2,
-        validators=[MinValueValidator(0), MaxValueValidator(100)]
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
     grade = models.ForeignKey(
         Grade,
         on_delete=models.PROTECT,
-        related_name='results',
-        verbose_name=_('grade'),
+        related_name="results",
+        verbose_name=_("grade"),
         null=True,
-        blank=True
+        blank=True,
     )
-    rank = models.PositiveIntegerField(_('rank'), null=True, blank=True)
-    total_students = models.PositiveIntegerField(_('total students'))
+    rank = models.PositiveIntegerField(_("rank"), null=True, blank=True)
+    total_students = models.PositiveIntegerField(_("total students"))
     attendance_percentage = models.DecimalField(
-        _('attendance percentage'),
+        _("attendance percentage"),
         max_digits=5,
         decimal_places=2,
         validators=[MinValueValidator(0), MaxValueValidator(100)],
-        help_text=_('Attendance percentage for the period')
+        help_text=_("Attendance percentage for the period"),
     )
-    remarks = models.TextField(_('remarks'), blank=True)
-    is_promoted = models.BooleanField(_('is promoted'), default=False)
+    remarks = models.TextField(_("remarks"), blank=True)
+    is_promoted = models.BooleanField(_("is promoted"), default=False)
     promoted_to_class = models.ForeignKey(
-        'academics.Class',
+        "academics.Class",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='promoted_results',
-        verbose_name=_('promoted to class')
+        related_name="promoted_results",
+        verbose_name=_("promoted to class"),
     )
 
     class Meta:
-        verbose_name = _('Result')
-        verbose_name_plural = _('Results')
-        unique_together = ['student', 'academic_class', 'exam_type']
+        verbose_name = _("Result")
+        verbose_name_plural = _("Results")
+        unique_together = ["student", "academic_class", "exam_type"]
         indexes = [
-            models.Index(fields=['student', 'academic_class']),
-            models.Index(fields=['academic_class', 'exam_type', 'rank']),
+            models.Index(fields=["student", "academic_class"]),
+            models.Index(fields=["academic_class", "exam_type", "rank"]),
         ]
 
     def __str__(self):
@@ -915,11 +949,11 @@ class Result(AssessmentBaseModel):
     def save(self, *args, **kwargs):
         if not self.attendance_percentage:
             self.attendance_percentage = self.calculate_attendance_percentage()
-        
+
         # Calculate percentage if not set
         if self.total_marks > 0 and not self.percentage:
             self.percentage = (self.marks_obtained / self.total_marks) * 100
-        
+
         super().save(*args, **kwargs)
 
 
@@ -927,50 +961,51 @@ class ResultSubject(AssessmentBaseModel):
     """
     Subject-wise marks within a result.
     """
+
     result = models.ForeignKey(
         Result,
         on_delete=models.CASCADE,
-        related_name='subject_marks',
-        verbose_name=_('result')
+        related_name="subject_marks",
+        verbose_name=_("result"),
     )
     subject = models.ForeignKey(
-        'academics.Subject',
+        "academics.Subject",
         on_delete=models.CASCADE,
-        related_name='result_marks',
-        verbose_name=_('subject')
+        related_name="result_marks",
+        verbose_name=_("subject"),
     )
     marks_obtained = models.DecimalField(
-        _('marks obtained'),
+        _("marks obtained"),
         max_digits=6,
         decimal_places=2,
-        validators=[MinValueValidator(0)]
+        validators=[MinValueValidator(0)],
     )
     max_marks = models.DecimalField(
-        _('maximum marks'),
+        _("maximum marks"),
         max_digits=6,
         decimal_places=2,
-        validators=[MinValueValidator(0)]
+        validators=[MinValueValidator(0)],
     )
     percentage = models.DecimalField(
-        _('percentage'),
+        _("percentage"),
         max_digits=5,
         decimal_places=2,
-        validators=[MinValueValidator(0), MaxValueValidator(100)]
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
     grade = models.ForeignKey(
         Grade,
         on_delete=models.PROTECT,
-        related_name='subject_results',
-        verbose_name=_('grade'),
+        related_name="subject_results",
+        verbose_name=_("grade"),
         null=True,
-        blank=True
+        blank=True,
     )
 
     class Meta:
-        verbose_name = _('Result Subject')
-        verbose_name_plural = _('Result Subjects')
-        unique_together = ['result', 'subject']
-        ordering = ['subject__name']
+        verbose_name = _("Result Subject")
+        verbose_name_plural = _("Result Subjects")
+        unique_together = ["result", "subject"]
+        ordering = ["subject__name"]
 
     def __str__(self):
         return f"{self.result} - {self.subject}"
@@ -986,56 +1021,59 @@ class ReportCard(AssessmentBaseModel):
     """
     Generated report cards for students.
     """
+
     student = models.ForeignKey(
-        'academics.Student',
+        "academics.Student",
         on_delete=models.CASCADE,
-        related_name='report_cards',
-        verbose_name=_('student')
+        related_name="report_cards",
+        verbose_name=_("student"),
     )
     academic_class = models.ForeignKey(
-        'academics.Class',
+        "academics.Class",
         on_delete=models.CASCADE,
-        related_name='report_cards',
-        verbose_name=_('academic class')
+        related_name="report_cards",
+        verbose_name=_("academic class"),
     )
     exam_type = models.ForeignKey(
         ExamType,
         on_delete=models.CASCADE,
-        related_name='report_cards',
-        verbose_name=_('exam type')
+        related_name="report_cards",
+        verbose_name=_("exam type"),
     )
     result = models.OneToOneField(
         Result,
         on_delete=models.CASCADE,
-        related_name='report_card',
-        verbose_name=_('result')
+        related_name="report_card",
+        verbose_name=_("result"),
     )
     generated_by = models.ForeignKey(
-       'academics.Teacher',
+        "academics.Teacher",
         on_delete=models.SET_NULL,
         null=True,
-        related_name='generated_report_cards',
-        verbose_name=_('generated by')
+        related_name="generated_report_cards",
+        verbose_name=_("generated by"),
     )
-    generated_at = models.DateTimeField(_('generated at'), auto_now_add=True)
-    is_approved = models.BooleanField(_('is approved'), default=False)
+    generated_at = models.DateTimeField(_("generated at"), auto_now_add=True)
+    is_approved = models.BooleanField(_("is approved"), default=False)
     approved_by = models.ForeignKey(
-        'academics.Teacher',
+        "academics.Teacher",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='approved_report_cards',
-        verbose_name=_('approved by')
+        related_name="approved_report_cards",
+        verbose_name=_("approved by"),
     )
-    approved_at = models.DateTimeField(_('approved at'), null=True, blank=True)
-    comments = models.TextField(_('comments'), blank=True)
-    parent_signature = models.BooleanField(_('parent signature received'), default=False)
+    approved_at = models.DateTimeField(_("approved at"), null=True, blank=True)
+    comments = models.TextField(_("comments"), blank=True)
+    parent_signature = models.BooleanField(
+        _("parent signature received"), default=False
+    )
 
     class Meta:
-        verbose_name = _('Report Card')
-        verbose_name_plural = _('Report Cards')
-        unique_together = ['student', 'academic_class', 'exam_type']
-        ordering = ['-generated_at']
+        verbose_name = _("Report Card")
+        verbose_name_plural = _("Report Cards")
+        unique_together = ["student", "academic_class", "exam_type"]
+        ordering = ["-generated_at"]
 
     def __str__(self):
         return f"Report Card - {self.student} - {self.academic_class}"
@@ -1045,27 +1083,28 @@ class AssessmentRule(AssessmentBaseModel):
     """
     Rules and configurations for assessment system.
     """
-    name = models.CharField(_('rule name'), max_length=200)
-    key = models.CharField(_('rule key'), max_length=100, unique=True)
-    value = models.JSONField(_('rule value'), default=dict)
-    description = models.TextField(_('description'), blank=True)
+
+    name = models.CharField(_("rule name"), max_length=200)
+    key = models.CharField(_("rule key"), max_length=100, unique=True)
+    value = models.JSONField(_("rule value"), default=dict)
+    description = models.TextField(_("description"), blank=True)
     applies_to = models.CharField(
-        _('applies to'),
+        _("applies to"),
         max_length=50,
         choices=[
-            ('all', _('All')),
-            ('exam', _('Exams')),
-            ('assignment', _('Assignments')),
-            ('grading', _('Grading')),
-            ('attendance', _('Attendance'))
+            ("all", _("All")),
+            ("exam", _("Exams")),
+            ("assignment", _("Assignments")),
+            ("grading", _("Grading")),
+            ("attendance", _("Attendance")),
         ],
-        default='all'
+        default="all",
     )
 
     class Meta:
-        verbose_name = _('Assessment Rule')
-        verbose_name_plural = _('Assessment Rules')
-        ordering = ['applies_to', 'name']
+        verbose_name = _("Assessment Rule")
+        verbose_name_plural = _("Assessment Rules")
+        ordering = ["applies_to", "name"]
 
     def __str__(self):
         return f"{self.name} ({self.applies_to})"
@@ -1076,99 +1115,102 @@ class QuestionBank(AssessmentBaseModel):
     Question bank for organizing questions by subject and topic.
     Enhanced with quiz categories and settings similar to clue system.
     """
+
     # Quiz Categories (from clue system)
     QUIZ_CATEGORIES = [
-        ('assignment', _('Assignment')),
-        ('exam', _('Exam')),
-        ('practice', _('Practice Quiz')),
+        ("assignment", _("Assignment")),
+        ("exam", _("Exam")),
+        ("practice", _("Practice Quiz")),
     ]
 
-    name = models.CharField(_('question bank name'), max_length=200)
-    description = models.TextField(_('description'), blank=True)
+    name = models.CharField(_("question bank name"), max_length=200)
+    description = models.TextField(_("description"), blank=True)
     subject = models.ForeignKey(
-        'academics.Subject',
+        "academics.Subject",
         on_delete=models.CASCADE,
-        related_name='question_banks',
-        verbose_name=_('subject')
+        related_name="question_banks",
+        verbose_name=_("subject"),
     )
     academic_class = models.ForeignKey(
-        'academics.Class',
+        "academics.Class",
         on_delete=models.CASCADE,
-        related_name='question_banks',
-        verbose_name=_('academic class')
+        related_name="question_banks",
+        verbose_name=_("academic class"),
     )
-    topic = models.CharField(_('topic/chapter'), max_length=200, blank=True)
+    topic = models.CharField(_("topic/chapter"), max_length=200, blank=True)
     difficulty_level = models.CharField(
-        _('difficulty level'),
+        _("difficulty level"),
         max_length=20,
         choices=[
-            ('easy', _('Easy')),
-            ('medium', _('Medium')),
-            ('hard', _('Hard')),
-            ('expert', _('Expert'))
+            ("easy", _("Easy")),
+            ("medium", _("Medium")),
+            ("hard", _("Hard")),
+            ("expert", _("Expert")),
         ],
-        default='medium'
+        default="medium",
     )
-    is_active = models.BooleanField(_('is active'), default=True)
+    is_active = models.BooleanField(_("is active"), default=True)
 
     # New fields from clue system
     bank_type = models.CharField(
-        _('bank type'),
+        _("bank type"),
         max_length=20,
         choices=[
-            ('question_bank', _('Question Bank')),
-            ('quiz', _('Quiz')),
+            ("question_bank", _("Question Bank")),
+            ("quiz", _("Quiz")),
         ],
-        default='question_bank',
-        help_text=_('Whether this is a question bank or a complete quiz')
+        default="question_bank",
+        help_text=_("Whether this is a question bank or a complete quiz"),
     )
     category = models.CharField(
-        _('category'),
+        _("category"),
         max_length=20,
         choices=QUIZ_CATEGORIES,
         blank=True,
-        help_text=_('Category for quiz-type question banks')
+        help_text=_("Category for quiz-type question banks"),
     )
     random_order = models.BooleanField(
-        _('random order'),
+        _("random order"),
         default=False,
-        help_text=_('Display questions in random order')
+        help_text=_("Display questions in random order"),
     )
     answers_at_end = models.BooleanField(
-        _('answers at end'),
+        _("answers at end"),
         default=False,
-        help_text=_('Show answers at the end instead of after each question')
+        help_text=_("Show answers at the end instead of after each question"),
     )
     exam_paper = models.BooleanField(
-        _('exam paper'),
-        default=False,
-        help_text=_('Store results for manual grading')
+        _("exam paper"), default=False, help_text=_("Store results for manual grading")
     )
     single_attempt = models.BooleanField(
-        _('single attempt'),
+        _("single attempt"),
         default=False,
-        help_text=_('Allow only one attempt per student')
+        help_text=_("Allow only one attempt per student"),
     )
     pass_mark = models.PositiveIntegerField(
-        _('pass mark'),
+        _("pass mark"),
         default=50,
         validators=[MinValueValidator(0), MaxValueValidator(100)],
-        help_text=_('Percentage required to pass')
+        help_text=_("Percentage required to pass"),
     )
     draft = models.BooleanField(
-        _('draft'),
+        _("draft"),
         default=False,
-        help_text=_('Draft quizzes are not visible to students')
+        help_text=_("Draft quizzes are not visible to students"),
     )
 
     # Additional clue system fields
-    url = models.SlugField(unique=True, blank=True, help_text=_('URL slug for the quiz'))
-    timestamp = models.DateTimeField(auto_now=True, help_text=_('Last modified timestamp'))
+    url = models.SlugField(
+        unique=True, blank=True, help_text=_("URL slug for the quiz")
+    )
+    timestamp = models.DateTimeField(
+        auto_now=True, help_text=_("Last modified timestamp")
+    )
 
     class Meta:
-        verbose_name = _('Question Bank')
-        verbose_name_plural = _('Question Banks')
-        ordering = ['subject', 'topic', 'difficulty_level']
+        verbose_name = _("Question Bank")
+        verbose_name_plural = _("Question Banks")
+        ordering = ["subject", "topic", "difficulty_level"]
 
     def __str__(self):
         return f"{self.name} - {self.subject} ({self.academic_class})"
@@ -1179,7 +1221,7 @@ class QuestionBank(AssessmentBaseModel):
             self.exam_paper = True
 
         if not (0 <= self.pass_mark <= 100):
-            raise ValidationError(_('Pass mark must be between 0 and 100.'))
+            raise ValidationError(_("Pass mark must be between 0 and 100."))
 
         super().save(*args, **kwargs)
 
@@ -1187,8 +1229,8 @@ class QuestionBank(AssessmentBaseModel):
         """Get questions for this quiz, respecting random order."""
         questions = self.questions.filter(is_active=True)
         if self.random_order:
-            return list(questions.order_by('?'))
-        return list(questions.order_by('id'))
+            return list(questions.order_by("?"))
+        return list(questions.order_by("id"))
 
     @property
     def get_max_score(self):
@@ -1200,57 +1242,58 @@ class Question(AssessmentBaseModel):
     """
     Question model supporting multiple question types.
     """
+
     class QuestionType(models.TextChoices):
-        MULTIPLE_CHOICE = 'multiple_choice', _('Multiple Choice')
-        TRUE_FALSE = 'true_false', _('True/False')
-        SHORT_ANSWER = 'short_answer', _('Short Answer')
-        ESSAY = 'essay', _('Essay')
+        MULTIPLE_CHOICE = "multiple_choice", _("Multiple Choice")
+        TRUE_FALSE = "true_false", _("True/False")
+        SHORT_ANSWER = "short_answer", _("Short Answer")
+        ESSAY = "essay", _("Essay")
 
     question_bank = models.ForeignKey(
         QuestionBank,
         on_delete=models.CASCADE,
-        related_name='questions',
-        verbose_name=_('question bank')
+        related_name="questions",
+        verbose_name=_("question bank"),
     )
     question_type = models.CharField(
-        _('question type'),
+        _("question type"),
         max_length=20,
         choices=QuestionType.choices,
-        default=QuestionType.MULTIPLE_CHOICE
+        default=QuestionType.MULTIPLE_CHOICE,
     )
-    question_text = models.TextField(_('question text'))
-    explanation = models.TextField(_('explanation/answer key'), blank=True)
+    question_text = models.TextField(_("question text"))
+    explanation = models.TextField(_("explanation/answer key"), blank=True)
     marks = models.DecimalField(
-        _('marks'),
+        _("marks"),
         max_digits=5,
         decimal_places=2,
         validators=[MinValueValidator(0)],
-        default=1.0
+        default=1.0,
     )
     time_limit = models.PositiveIntegerField(
-        _('time limit in seconds'),
+        _("time limit in seconds"),
         null=True,
         blank=True,
-        help_text=_('Time limit for answering this question')
+        help_text=_("Time limit for answering this question"),
     )
     difficulty_level = models.CharField(
-        _('difficulty level'),
+        _("difficulty level"),
         max_length=20,
         choices=[
-            ('easy', _('Easy')),
-            ('medium', _('Medium')),
-            ('hard', _('Hard')),
-            ('expert', _('Expert'))
+            ("easy", _("Easy")),
+            ("medium", _("Medium")),
+            ("hard", _("Hard")),
+            ("expert", _("Expert")),
         ],
-        default='medium'
+        default="medium",
     )
-    tags = models.CharField(_('tags'), max_length=500, blank=True)
-    is_active = models.BooleanField(_('is active'), default=True)
+    tags = models.CharField(_("tags"), max_length=500, blank=True)
+    is_active = models.BooleanField(_("is active"), default=True)
 
     class Meta:
-        verbose_name = _('Question')
-        verbose_name_plural = _('Questions')
-        ordering = ['question_bank', 'difficulty_level', '-created_at']
+        verbose_name = _("Question")
+        verbose_name_plural = _("Questions")
+        ordering = ["question_bank", "difficulty_level", "-created_at"]
 
     def __str__(self):
         return f"{self.question_text[:50]}... ({self.question_type})"
@@ -1264,12 +1307,17 @@ class Question(AssessmentBaseModel):
         Check if the provided answer is correct.
         Returns (is_correct, marks_obtained)
         """
-        if self.question_type in [self.QuestionType.MULTIPLE_CHOICE, self.QuestionType.TRUE_FALSE]:
+        if self.question_type in [
+            self.QuestionType.MULTIPLE_CHOICE,
+            self.QuestionType.TRUE_FALSE,
+        ]:
             # For objective questions, check selected options
             if not selected_options:
                 return False, 0
 
-            correct_options = set(self.get_correct_options().values_list('id', flat=True))
+            correct_options = set(
+                self.get_correct_options().values_list("id", flat=True)
+            )
             selected_set = set(selected_options)
 
             is_correct = correct_options == selected_set
@@ -1292,21 +1340,22 @@ class QuestionOption(AssessmentBaseModel):
     """
     Options for multiple choice and true/false questions.
     """
+
     question = models.ForeignKey(
         Question,
         on_delete=models.CASCADE,
-        related_name='options',
-        verbose_name=_('question')
+        related_name="options",
+        verbose_name=_("question"),
     )
-    option_text = models.TextField(_('option text'))
-    is_correct = models.BooleanField(_('is correct'), default=False)
-    order = models.PositiveIntegerField(_('display order'), default=0)
+    option_text = models.TextField(_("option text"))
+    is_correct = models.BooleanField(_("is correct"), default=False)
+    order = models.PositiveIntegerField(_("display order"), default=0)
 
     class Meta:
-        verbose_name = _('Question Option')
-        verbose_name_plural = _('Question Options')
-        ordering = ['question', 'order']
-        unique_together = ['question', 'order']
+        verbose_name = _("Question Option")
+        verbose_name_plural = _("Question Options")
+        ordering = ["question", "order"]
+        unique_together = ["question", "order"]
 
     def __str__(self):
         return f"Option {self.order}: {self.option_text[:30]}..."
@@ -1318,7 +1367,9 @@ class QuestionOption(AssessmentBaseModel):
                 question=self.question
             ).exclude(pk=self.pk)
             if existing_options.count() >= 2:
-                raise ValidationError(_('True/False questions can only have 2 options.'))
+                raise ValidationError(
+                    _("True/False questions can only have 2 options.")
+                )
 
         elif self.question.question_type == Question.QuestionType.MULTIPLE_CHOICE:
             # Multiple choice should have 2-6 options
@@ -1326,44 +1377,47 @@ class QuestionOption(AssessmentBaseModel):
                 question=self.question
             ).exclude(pk=self.pk)
             if existing_options.count() >= 6:
-                raise ValidationError(_('Multiple choice questions can have maximum 6 options.'))
+                raise ValidationError(
+                    _("Multiple choice questions can have maximum 6 options.")
+                )
 
 
 class ExamQuestion(AssessmentBaseModel):
     """
     Links questions to exams with specific marks and order.
     """
+
     exam = models.ForeignKey(
         Exam,
         on_delete=models.CASCADE,
-        related_name='exam_questions',
-        verbose_name=_('exam')
+        related_name="exam_questions",
+        verbose_name=_("exam"),
     )
     question = models.ForeignKey(
         Question,
         on_delete=models.CASCADE,
-        related_name='exam_questions',
-        verbose_name=_('question')
+        related_name="exam_questions",
+        verbose_name=_("question"),
     )
     marks = models.DecimalField(
-        _('marks for this question'),
+        _("marks for this question"),
         max_digits=5,
         decimal_places=2,
-        validators=[MinValueValidator(0)]
+        validators=[MinValueValidator(0)],
     )
-    order = models.PositiveIntegerField(_('question order'), default=0)
+    order = models.PositiveIntegerField(_("question order"), default=0)
     time_limit = models.PositiveIntegerField(
-        _('time limit in seconds'),
+        _("time limit in seconds"),
         null=True,
         blank=True,
-        help_text=_('Override question time limit for this exam')
+        help_text=_("Override question time limit for this exam"),
     )
 
     class Meta:
-        verbose_name = _('Exam Question')
-        verbose_name_plural = _('Exam Questions')
-        ordering = ['exam', 'order']
-        unique_together = ['exam', 'question']
+        verbose_name = _("Exam Question")
+        verbose_name_plural = _("Exam Questions")
+        ordering = ["exam", "order"]
+        unique_together = ["exam", "question"]
 
     def __str__(self):
         return f"{self.exam} - Q{self.order}: {self.question.question_text[:30]}..."
@@ -1377,47 +1431,46 @@ class StudentAnswer(AssessmentBaseModel):
     """
     Stores student answers for exam questions.
     """
+
     exam_question = models.ForeignKey(
         ExamQuestion,
         on_delete=models.CASCADE,
-        related_name='student_answers',
-        verbose_name=_('exam question')
+        related_name="student_answers",
+        verbose_name=_("exam question"),
     )
     student = models.ForeignKey(
-        'academics.Student',
+        "academics.Student",
         on_delete=models.CASCADE,
-        related_name='exam_answers',
-        verbose_name=_('student')
+        related_name="exam_answers",
+        verbose_name=_("student"),
     )
-    answer_text = models.TextField(_('answer text'), blank=True)
+    answer_text = models.TextField(_("answer text"), blank=True)
     selected_options = models.JSONField(
-        _('selected options'),
+        _("selected options"),
         null=True,
         blank=True,
-        help_text=_('List of selected option IDs for multiple choice')
+        help_text=_("List of selected option IDs for multiple choice"),
     )
-    is_correct = models.BooleanField(_('is correct'), null=True, blank=True)
+    is_correct = models.BooleanField(_("is correct"), null=True, blank=True)
     marks_obtained = models.DecimalField(
-        _('marks obtained'),
+        _("marks obtained"),
         max_digits=5,
         decimal_places=2,
         null=True,
         blank=True,
-        validators=[MinValueValidator(0)]
+        validators=[MinValueValidator(0)],
     )
     time_taken = models.PositiveIntegerField(
-        _('time taken in seconds'),
-        null=True,
-        blank=True
+        _("time taken in seconds"), null=True, blank=True
     )
-    submitted_at = models.DateTimeField(_('submitted at'), auto_now_add=True)
-    is_graded = models.BooleanField(_('is graded'), default=False)
+    submitted_at = models.DateTimeField(_("submitted at"), auto_now_add=True)
+    is_graded = models.BooleanField(_("is graded"), default=False)
 
     class Meta:
-        verbose_name = _('Student Answer')
-        verbose_name_plural = _('Student Answers')
-        unique_together = ['exam_question', 'student']
-        ordering = ['exam_question__order', 'submitted_at']
+        verbose_name = _("Student Answer")
+        verbose_name_plural = _("Student Answers")
+        unique_together = ["exam_question", "student"]
+        ordering = ["exam_question__order", "submitted_at"]
 
     def __str__(self):
         return f"{self.student} - {self.exam_question} - {'Correct' if self.is_correct else 'Incorrect'}"
@@ -1426,10 +1479,12 @@ class StudentAnswer(AssessmentBaseModel):
         # Auto-grade objective questions
         if not self.is_graded and self.exam_question:
             question = self.exam_question.question
-            if question.question_type in [Question.QuestionType.MULTIPLE_CHOICE, Question.QuestionType.TRUE_FALSE]:
+            if question.question_type in [
+                Question.QuestionType.MULTIPLE_CHOICE,
+                Question.QuestionType.TRUE_FALSE,
+            ]:
                 self.is_correct, self.marks_obtained = question.check_answer(
-                    self.answer_text,
-                    self.selected_options
+                    self.answer_text, self.selected_options
                 )
                 self.is_graded = True
 
@@ -1447,21 +1502,22 @@ class QuizProgress(AssessmentBaseModel):
     Enhanced progress tracking similar to clue system's Progress model.
     Tracks user progress across different quiz categories.
     """
+
     student = models.OneToOneField(
-        'academics.Student',
+        "academics.Student",
         on_delete=models.CASCADE,
-        related_name='quiz_progress',
-        verbose_name=_('student')
+        related_name="quiz_progress",
+        verbose_name=_("student"),
     )
     score = models.TextField(
-        _('score data'),
+        _("score data"),
         blank=True,
-        help_text=_('Comma-separated quiz scores in format: quiz_id,correct,total,')
+        help_text=_("Comma-separated quiz scores in format: quiz_id,correct,total,"),
     )
 
     class Meta:
-        verbose_name = _('Quiz Progress')
-        verbose_name_plural = _('Quiz Progress Records')
+        verbose_name = _("Quiz Progress")
+        verbose_name_plural = _("Quiz Progress Records")
 
     def list_all_cat_scores(self):
         """Get scores categorized by quiz category (enhanced from clue system)."""
@@ -1481,7 +1537,9 @@ class QuizProgress(AssessmentBaseModel):
             cat_scores[category][1] += incorrect
             total = cat_scores[category][0] + cat_scores[category][1]
             if total > 0:
-                cat_scores[category][2] = round((cat_scores[category][0] / total) * 100, 1)
+                cat_scores[category][2] = round(
+                    (cat_scores[category][0] / total) * 100, 1
+                )
 
         return cat_scores
 
@@ -1500,11 +1558,15 @@ class QuizProgress(AssessmentBaseModel):
         if match:
             updated_score = int(match.group("score")) + abs(score_to_add)
             updated_possible = int(match.group("possible")) + abs(possible_to_add)
-            new_score = ",".join([str(question_bank), str(updated_score), str(updated_possible), ""])
+            new_score = ",".join(
+                [str(question_bank), str(updated_score), str(updated_possible), ""]
+            )
             self.score = self.score.replace(match.group(), new_score)
             self.save()
         else:
-            self.score += ",".join([str(question_bank), str(score_to_add), str(possible_to_add), ""])
+            self.score += ",".join(
+                [str(question_bank), str(score_to_add), str(possible_to_add), ""]
+            )
             self.save()
 
     def show_exams(self):
@@ -1547,47 +1609,47 @@ class QuizAttempt(AssessmentBaseModel):
     """
     Enhanced quiz attempt tracking, similar to Sitting model in clue system.
     """
+
     student = models.ForeignKey(
-        'academics.Student',
+        "academics.Student",
         on_delete=models.CASCADE,
-        related_name='quiz_attempts',
-        verbose_name=_('student')
+        related_name="quiz_attempts",
+        verbose_name=_("student"),
     )
     question_bank = models.ForeignKey(
         QuestionBank,
         on_delete=models.CASCADE,
-        related_name='attempts',
-        verbose_name=_('question bank')
+        related_name="attempts",
+        verbose_name=_("question bank"),
     )
     question_order = models.TextField(
-        _('question order'),
-        help_text=_('Comma-separated list of question IDs in order')
+        _("question order"),
+        help_text=_("Comma-separated list of question IDs in order"),
     )
     question_list = models.TextField(
-        _('question list'),
-        help_text=_('Current questions remaining to answer')
+        _("question list"), help_text=_("Current questions remaining to answer")
     )
     user_answers = models.TextField(
-        _('user answers'),
+        _("user answers"),
         blank=True,
         default="{}",
-        help_text=_('JSON string storing answers by question ID')
+        help_text=_("JSON string storing answers by question ID"),
     )
     incorrect_questions = models.TextField(
-        _('incorrect questions'),
+        _("incorrect questions"),
         blank=True,
-        help_text=_('Comma-separated list of incorrectly answered question IDs')
+        help_text=_("Comma-separated list of incorrectly answered question IDs"),
     )
-    current_score = models.IntegerField(_('current score'), default=0)
-    complete = models.BooleanField(_('complete'), default=False)
-    start_time = models.DateTimeField(_('start time'), auto_now_add=True)
-    end_time = models.DateTimeField(_('end time'), null=True, blank=True)
+    current_score = models.IntegerField(_("current score"), default=0)
+    complete = models.BooleanField(_("complete"), default=False)
+    start_time = models.DateTimeField(_("start time"), auto_now_add=True)
+    end_time = models.DateTimeField(_("end time"), null=True, blank=True)
 
     class Meta:
-        verbose_name = _('Quiz Attempt')
-        verbose_name_plural = _('Quiz Attempts')
-        unique_together = ['student', 'question_bank']
-        ordering = ['-start_time']
+        verbose_name = _("Quiz Attempt")
+        verbose_name_plural = _("Quiz Attempts")
+        unique_together = ["student", "question_bank"]
+        ordering = ["-start_time"]
 
     def __str__(self):
         return f"{self.student} - {self.question_bank} ({'Complete' if self.complete else 'In Progress'})"
@@ -1650,13 +1712,14 @@ class QuizAttempt(AssessmentBaseModel):
         # Update TakenCourse with quiz score (from clue system integration)
         try:
             from apps.academics.models import AcademicSession
+
             current_session = AcademicSession.objects.filter(is_current=True).first()
             if current_session:
                 taken_course, created = TakenCourse.objects.get_or_create(
                     student=self.student,
                     course=self.question_bank.subject,
                     academic_session=current_session,
-                    defaults={'quiz': Decimal('0.00')}
+                    defaults={"quiz": Decimal("0.00")},
                 )
                 # Update the quiz field with the percentage score
                 taken_course.quiz = Decimal(str(self.get_percent_correct))
@@ -1664,8 +1727,11 @@ class QuizAttempt(AssessmentBaseModel):
         except Exception as e:
             # Log error but don't fail quiz completion
             import logging
+
             logger = logging.getLogger(__name__)
-            logger.error(f"Failed to update TakenCourse.quiz for student {self.student}: {e}")
+            logger.error(
+                f"Failed to update TakenCourse.quiz for student {self.student}: {e}"
+            )
 
     def get_questions_with_answers(self):
         """Get all questions with user answers (from clue system)."""
@@ -1744,102 +1810,83 @@ class CourseGrade(AssessmentBaseModel):
     Course-based grading system similar to TakenCourse in clue system.
     Tracks comprehensive course performance including assignments, exams, quizzes, etc.
     """
+
     student = models.ForeignKey(
-        'academics.Student',
+        "academics.Student",
         on_delete=models.CASCADE,
-        related_name='course_grades',
-        verbose_name=_('student')
+        related_name="course_grades",
+        verbose_name=_("student"),
     )
     subject = models.ForeignKey(
-        'academics.Subject',
+        "academics.Subject",
         on_delete=models.CASCADE,
-        related_name='course_grades',
-        verbose_name=_('subject')
+        related_name="course_grades",
+        verbose_name=_("subject"),
     )
     academic_session = models.ForeignKey(
-        'academics.AcademicSession',
+        "academics.AcademicSession",
         on_delete=models.CASCADE,
-        related_name='course_grades',
-        verbose_name=_('academic session')
+        related_name="course_grades",
+        verbose_name=_("academic session"),
     )
 
     # Assessment components (similar to TakenCourse)
     assignments = models.DecimalField(
-        _('assignments score'),
+        _("assignments score"),
         max_digits=5,
         decimal_places=2,
         default=0.00,
-        validators=[MinValueValidator(0), MaxValueValidator(100)]
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
     mid_exam = models.DecimalField(
-        _('mid-term exam'),
+        _("mid-term exam"),
         max_digits=5,
         decimal_places=2,
         default=0.00,
-        validators=[MinValueValidator(0), MaxValueValidator(100)]
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
     quizzes = models.DecimalField(
-        _('quizzes score'),
+        _("quizzes score"),
         max_digits=5,
         decimal_places=2,
         default=0.00,
-        validators=[MinValueValidator(0), MaxValueValidator(100)]
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
     attendance = models.DecimalField(
-        _('attendance percentage'),
+        _("attendance percentage"),
         max_digits=5,
         decimal_places=2,
         default=0.00,
-        validators=[MinValueValidator(0), MaxValueValidator(100)]
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
     final_exam = models.DecimalField(
-        _('final exam'),
+        _("final exam"),
         max_digits=5,
         decimal_places=2,
         default=0.00,
-        validators=[MinValueValidator(0), MaxValueValidator(100)]
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
 
     # Calculated fields
     total_score = models.DecimalField(
-        _('total score'),
-        max_digits=5,
-        decimal_places=2,
-        default=0.00,
-        editable=False
+        _("total score"), max_digits=5, decimal_places=2, default=0.00, editable=False
     )
-    grade = models.CharField(
-        _('grade'),
-        max_length=2,
-        blank=True,
-        editable=False
-    )
+    grade = models.CharField(_("grade"), max_length=2, blank=True, editable=False)
     grade_point = models.DecimalField(
-        _('grade point'),
-        max_digits=3,
-        decimal_places=1,
-        default=0.0,
-        editable=False
+        _("grade point"), max_digits=3, decimal_places=1, default=0.0, editable=False
     )
-    remark = models.CharField(
-        _('remark'),
-        max_length=20,
-        blank=True,
-        editable=False
-    )
+    remark = models.CharField(_("remark"), max_length=20, blank=True, editable=False)
 
     # Weightage for GPA calculation
     credit_hours = models.PositiveIntegerField(
-        _('credit hours'),
-        default=1,
-        help_text=_('Credit hours for this course')
+        _("credit hours"), default=1, help_text=_("Credit hours for this course")
     )
 
     class Meta:
-        verbose_name = _('Course Grade')
-        verbose_name_plural = _('Course Grades')
-        unique_together = ['student', 'subject', 'academic_session']
-        ordering = ['student', 'subject']
+        verbose_name = _("Course Grade")
+        verbose_name_plural = _("Course Grades")
+        unique_together = ["student", "subject", "academic_session"]
+        ordering = ["student", "subject"]
 
     def __str__(self):
         return f"{self.student} - {self.subject} ({self.grade or 'Ungraded'})"
@@ -1848,19 +1895,19 @@ class CourseGrade(AssessmentBaseModel):
         """Calculate total score based on weighted components."""
         # Default weightage: assignments 20%, mid_exam 20%, quizzes 20%, attendance 10%, final_exam 30%
         weights = {
-            'assignments': 0.20,
-            'mid_exam': 0.20,
-            'quizzes': 0.20,
-            'attendance': 0.10,
-            'final_exam': 0.30
+            "assignments": 0.20,
+            "mid_exam": 0.20,
+            "quizzes": 0.20,
+            "attendance": 0.10,
+            "final_exam": 0.30,
         }
 
         total = (
-            self.assignments * weights['assignments'] +
-            self.mid_exam * weights['mid_exam'] +
-            self.quizzes * weights['quizzes'] +
-            self.attendance * weights['attendance'] +
-            self.final_exam * weights['final_exam']
+            self.assignments * weights["assignments"]
+            + self.mid_exam * weights["mid_exam"]
+            + self.quizzes * weights["quizzes"]
+            + self.attendance * weights["attendance"]
+            + self.final_exam * weights["final_exam"]
         )
         return round(total, 2)
 
@@ -1868,24 +1915,24 @@ class CourseGrade(AssessmentBaseModel):
         """Calculate letter grade based on total score."""
         # Standard grading scale
         grade_boundaries = [
-            (90, 'A+', 4.0),
-            (85, 'A', 4.0),
-            (80, 'A-', 3.75),
-            (75, 'B+', 3.5),
-            (70, 'B', 3.0),
-            (65, 'B-', 2.75),
-            (60, 'C+', 2.5),
-            (55, 'C', 2.0),
-            (50, 'C-', 1.75),
-            (45, 'D', 1.0),
-            (0, 'F', 0.0)
+            (90, "A+", 4.0),
+            (85, "A", 4.0),
+            (80, "A-", 3.75),
+            (75, "B+", 3.5),
+            (70, "B", 3.0),
+            (65, "B-", 2.75),
+            (60, "C+", 2.5),
+            (55, "C", 2.0),
+            (50, "C-", 1.75),
+            (45, "D", 1.0),
+            (0, "F", 0.0),
         ]
 
         for boundary, grade, points in grade_boundaries:
             if self.total_score >= boundary:
-                return grade, points, 'PASS' if grade != 'F' else 'FAIL'
+                return grade, points, "PASS" if grade != "F" else "FAIL"
 
-        return 'F', 0.0, 'FAIL'
+        return "F", 0.0, "FAIL"
 
     def save(self, *args, **kwargs):
         self.total_score = self.calculate_total_score()
@@ -1907,31 +1954,32 @@ class AIGenerationLog(AssessmentBaseModel):
     """
     Track AI question generation history.
     """
+
     user = models.ForeignKey(
-        'academics.Teacher',
+        "academics.Teacher",
         on_delete=models.CASCADE,
-        related_name='ai_generations',
-        verbose_name=_('teacher')
+        related_name="ai_generations",
+        verbose_name=_("teacher"),
     )
-    model_used = models.CharField(_('AI model used'), max_length=100)
-    topic = models.CharField(_('topic'), max_length=255)
-    question_count = models.PositiveIntegerField(_('questions generated'))
+    model_used = models.CharField(_("AI model used"), max_length=100)
+    topic = models.CharField(_("topic"), max_length=255)
+    question_count = models.PositiveIntegerField(_("questions generated"))
     question_bank = models.ForeignKey(
         QuestionBank,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='ai_generations',
-        verbose_name=_('question bank')
+        related_name="ai_generations",
+        verbose_name=_("question bank"),
     )
-    success = models.BooleanField(_('success'), default=True)
-    error_message = models.TextField(_('error message'), blank=True)
-    generated_at = models.DateTimeField(_('generated at'), auto_now_add=True)
+    success = models.BooleanField(_("success"), default=True)
+    error_message = models.TextField(_("error message"), blank=True)
+    generated_at = models.DateTimeField(_("generated at"), auto_now_add=True)
 
     class Meta:
-        verbose_name = _('AI Generation Log')
-        verbose_name_plural = _('AI Generation Logs')
-        ordering = ['-generated_at']
+        verbose_name = _("AI Generation Log")
+        verbose_name_plural = _("AI Generation Logs")
+        ordering = ["-generated_at"]
 
     def __str__(self):
         return f"{self.user} - {self.topic} ({self.generated_at.strftime('%Y-%m-%d %H:%M')})"
@@ -1942,177 +1990,182 @@ class TakenCourse(CoreBaseModel):
     Enhanced course grade tracking similar to clue system's TakenCourse.
     Tracks comprehensive course performance across all assessment components.
     """
+
     student = models.ForeignKey(
-        'academics.Student',
+        "academics.Student",
         on_delete=models.CASCADE,
-        related_name='taken_courses',
-        verbose_name=_('student')
+        related_name="taken_courses",
+        verbose_name=_("student"),
     )
     course = models.ForeignKey(
-        'academics.Subject',
+        "academics.Subject",
         on_delete=models.CASCADE,
-        related_name='taken_courses',
-        verbose_name=_('course')
+        related_name="taken_courses",
+        verbose_name=_("course"),
     )
     academic_session = models.ForeignKey(
-        'academics.AcademicSession',
+        "academics.AcademicSession",
         on_delete=models.CASCADE,
-        related_name='taken_courses',
-        verbose_name=_('academic session')
+        related_name="taken_courses",
+        verbose_name=_("academic session"),
     )
 
     # Assessment components (from clue system)
     assignment = models.DecimalField(
-        _('assignment score'),
+        _("assignment score"),
         max_digits=5,
         decimal_places=2,
-        default=Decimal('0.00'),
-        validators=[MinValueValidator(0), MaxValueValidator(100)]
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
     mid_exam = models.DecimalField(
-        _('mid-term exam'),
+        _("mid-term exam"),
         max_digits=5,
         decimal_places=2,
-        default=Decimal('0.00'),
-        validators=[MinValueValidator(0), MaxValueValidator(100)]
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
     quiz = models.DecimalField(
-        _('quiz score'),
+        _("quiz score"),
         max_digits=5,
         decimal_places=2,
-        default=Decimal('0.00'),
-        validators=[MinValueValidator(0), MaxValueValidator(100)]
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
     attendance = models.DecimalField(
-        _('attendance percentage'),
+        _("attendance percentage"),
         max_digits=5,
         decimal_places=2,
-        default=Decimal('0.00'),
-        validators=[MinValueValidator(0), MaxValueValidator(100)]
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
     final_exam = models.DecimalField(
-        _('final exam'),
+        _("final exam"),
         max_digits=5,
         decimal_places=2,
-        default=Decimal('0.00'),
-        validators=[MinValueValidator(0), MaxValueValidator(100)]
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
 
     # Calculated fields
     total = models.DecimalField(
-        _('total score'),
+        _("total score"),
         max_digits=5,
         decimal_places=2,
-        default=Decimal('0.00'),
-        editable=False
+        default=Decimal("0.00"),
+        editable=False,
     )
-    grade = models.CharField(
-        _('grade'),
-        max_length=2,
-        blank=True,
-        editable=False
-    )
+    grade = models.CharField(_("grade"), max_length=2, blank=True, editable=False)
     point = models.DecimalField(
-        _('grade point'),
+        _("grade point"),
         max_digits=4,
         decimal_places=2,
-        default=Decimal('0.00'),
-        editable=False
+        default=Decimal("0.00"),
+        editable=False,
     )
-    comment = models.CharField(
-        _('comment'),
-        max_length=10,
-        blank=True,
-        editable=False
-    )
+    comment = models.CharField(_("comment"), max_length=10, blank=True, editable=False)
 
     class Meta:
-        verbose_name = _('Taken Course')
-        verbose_name_plural = _('Taken Courses')
-        unique_together = ['student', 'course', 'academic_session']
-        ordering = ['student', 'course']
+        verbose_name = _("Taken Course")
+        verbose_name_plural = _("Taken Courses")
+        unique_together = ["student", "course", "academic_session"]
+        ordering = ["student", "course"]
 
     def __str__(self):
         return f"{self.student} - {self.course} ({self.grade or 'Ungraded'})"
 
     def get_total(self):
         """Calculate total score from all components (from clue system)."""
-        return sum([
-            Decimal(self.assignment),
-            Decimal(self.mid_exam),
-            Decimal(self.quiz),
-            Decimal(self.attendance),
-            Decimal(self.final_exam),
-        ])
+        return sum(
+            [
+                Decimal(self.assignment),
+                Decimal(self.mid_exam),
+                Decimal(self.quiz),
+                Decimal(self.attendance),
+                Decimal(self.final_exam),
+            ]
+        )
 
     def get_grade(self):
         """Determine grade based on total score (from clue system)."""
         # Grade boundaries from clue system
         grade_boundaries = [
-            (90, 'A+'),
-            (85, 'A'),
-            (80, 'A-'),
-            (75, 'B+'),
-            (70, 'B'),
-            (65, 'B-'),
-            (60, 'C+'),
-            (55, 'C'),
-            (50, 'C-'),
-            (45, 'D'),
-            (0, 'F'),
+            (90, "A+"),
+            (85, "A"),
+            (80, "A-"),
+            (75, "B+"),
+            (70, "B"),
+            (65, "B-"),
+            (60, "C+"),
+            (55, "C"),
+            (50, "C-"),
+            (45, "D"),
+            (0, "F"),
         ]
 
         total = float(self.total)
         for boundary, grade in grade_boundaries:
             if total >= boundary:
                 return grade
-        return 'F'
+        return "F"
 
     def get_point(self):
         """Calculate grade points for GPA (from clue system)."""
         grade_points = {
-            'A+': 4.0, 'A': 4.0, 'A-': 3.75,
-            'B+': 3.5, 'B': 3.0, 'B-': 2.75,
-            'C+': 2.5, 'C': 2.0, 'C-': 1.75,
-            'D': 1.0, 'F': 0.0
+            "A+": 4.0,
+            "A": 4.0,
+            "A-": 3.75,
+            "B+": 3.5,
+            "B": 3.0,
+            "B-": 2.75,
+            "C+": 2.5,
+            "C": 2.0,
+            "C-": 1.75,
+            "D": 1.0,
+            "F": 0.0,
         }
-        credit = getattr(self.course, 'credit_hours', 1)  # Default to 1 if no credit field
+        credit = getattr(
+            self.course, "credit_hours", 1
+        )  # Default to 1 if no credit field
         return Decimal(credit) * Decimal(grade_points.get(self.grade, 0.0))
 
     def get_comment(self):
         """Determine pass/fail comment (from clue system)."""
-        return 'PASS' if self.grade not in ['F'] else 'FAIL'
+        return "PASS" if self.grade not in ["F"] else "FAIL"
 
     def calculate_gpa(self):
         """Calculate GPA for current semester (from clue system)."""
         current_session = self.academic_session
         if not current_session:
-            return Decimal('0.00')
+            return Decimal("0.00")
 
         taken_courses = TakenCourse.objects.filter(
-            student=self.student,
-            academic_session=current_session
+            student=self.student, academic_session=current_session
         )
 
         total_points = sum(tc.point for tc in taken_courses)
-        total_credits = sum(getattr(tc.course, 'credit_hours', 1) for tc in taken_courses)
+        total_credits = sum(
+            getattr(tc.course, "credit_hours", 1) for tc in taken_courses
+        )
 
         if total_credits > 0:
             gpa = total_points / Decimal(total_credits)
             return round(gpa, 2)
-        return Decimal('0.00')
+        return Decimal("0.00")
 
     def calculate_cgpa(self):
         """Calculate CGPA across all semesters (from clue system)."""
         taken_courses = TakenCourse.objects.filter(student=self.student)
 
         total_points = sum(tc.point for tc in taken_courses)
-        total_credits = sum(getattr(tc.course, 'credit_hours', 1) for tc in taken_courses)
+        total_credits = sum(
+            getattr(tc.course, "credit_hours", 1) for tc in taken_courses
+        )
 
         if total_credits > 0:
             cgpa = total_points / Decimal(total_credits)
             return round(cgpa, 2)
-        return Decimal('0.00')
+        return Decimal("0.00")
 
     def save(self, *args, **kwargs):
         """Auto-calculate fields on save (from clue system)."""
@@ -2132,6 +2185,7 @@ class TakenCourse(CoreBaseModel):
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+
 @receiver(post_save, sender=Result)
 def notify_parents_result_created(sender, instance, created, **kwargs):
     """Notify parents when a new result is created or updated."""
@@ -2143,9 +2197,8 @@ def notify_parents_result_created(sender, instance, created, **kwargs):
 
         # Get all parent relationships for this student
         parent_relationships = StudentParentRelationship.objects.filter(
-            student=student,
-            can_access_records=True
-        ).select_related('parent__user')
+            student=student, can_access_records=True
+        ).select_related("parent__user")
 
         message = f"Your child {student.user.get_full_name()} has received results for {instance.exam_type.name} in {instance.academic_class.name}. "
 
@@ -2160,9 +2213,9 @@ def notify_parents_result_created(sender, instance, created, **kwargs):
                     user=relationship.parent.user,
                     title=f"Academic Results - {student.user.get_full_name()}",
                     message=message,
-                    notification_type='academic',
-                    priority='high',
-                    action_url=f"/academics/my-records/"  # Link to student records if parent has access
+                    notification_type="academic",
+                    priority="high",
+                    action_url=f"/academics/my-records/",  # Link to student records if parent has access
                 )
 
 
@@ -2177,9 +2230,8 @@ def notify_parents_report_card(sender, instance, created, **kwargs):
 
         # Get all parent relationships for this student
         parent_relationships = StudentParentRelationship.objects.filter(
-            student=student,
-            can_access_records=True
-        ).select_related('parent__user')
+            student=student, can_access_records=True
+        ).select_related("parent__user")
 
         status = "generated" if created else "approved"
         message = f"Report card for {student.user.get_full_name()} has been {status} for {instance.exam_type.name} in {instance.academic_class.name}."
@@ -2190,9 +2242,9 @@ def notify_parents_report_card(sender, instance, created, **kwargs):
                     user=relationship.parent.user,
                     title=f"Report Card {status.title()} - {student.user.get_full_name()}",
                     message=message,
-                    notification_type='academic',
-                    priority='high',
-                    action_url=f"/assessment/report-cards/{instance.id}/"
+                    notification_type="academic",
+                    priority="high",
+                    action_url=f"/assessment/report-cards/{instance.id}/",
                 )
 
 
@@ -2207,9 +2259,8 @@ def notify_parents_low_grades(sender, instance, created, **kwargs):
 
         # Get all parent relationships for this student
         parent_relationships = StudentParentRelationship.objects.filter(
-            student=student,
-            can_access_records=True
-        ).select_related('parent__user')
+            student=student, can_access_records=True
+        ).select_related("parent__user")
 
         message = f"Attention: Your child {student.user.get_full_name()} scored {instance.percentage:.1f}% in {instance.exam.subject.name} ({instance.exam.exam_type.name}). Please review their performance."
 
@@ -2219,7 +2270,7 @@ def notify_parents_low_grades(sender, instance, created, **kwargs):
                     user=relationship.parent.user,
                     title=f"Low Grade Alert - {student.user.get_full_name()}",
                     message=message,
-                    notification_type='warning',
-                    priority='high',
-                    action_url=f"/academics/my-records/"
+                    notification_type="warning",
+                    priority="high",
+                    action_url=f"/academics/my-records/",
                 )

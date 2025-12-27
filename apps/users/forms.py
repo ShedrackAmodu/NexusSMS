@@ -184,6 +184,7 @@ class UserProfileForm(forms.ModelForm):
             "facebook",
             "twitter",
             "linkedin",
+            "theme",  # Added theme preference
             "address_line_1",
             "address_line_2",
             "city",
@@ -238,6 +239,7 @@ class UserProfileForm(forms.ModelForm):
                     "placeholder": _("https://linkedin.com/in/username"),
                 }
             ),
+            "theme": forms.Select(attrs={"class": "form-control"}),
             "address_line_1": forms.TextInput(
                 attrs={
                     "class": "form-control",

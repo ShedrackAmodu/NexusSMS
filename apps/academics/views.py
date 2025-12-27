@@ -82,7 +82,7 @@ from apps.users.forms import (
 )  # Import user-related forms
 from apps.communication.forms import ContactTeacherForm
 from apps.communication.services import EmailService
-from apps.core.forms import AcademicSessionForm
+from .forms import AcademicSessionForm
 from apps.core.mixins import (
     InstitutionPermissionMixin,  # Import for tenant filtering
     StudentRequiredMixin,

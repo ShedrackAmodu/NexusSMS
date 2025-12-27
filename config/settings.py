@@ -137,6 +137,7 @@ TEMPLATES = [
                 "apps.communication.context_processors.active_announcements",
                 "apps.users.context_processors.user_roles",
                 "apps.core.context_processors.sidebar_menu_context",
+                "apps.core.context_processors.ui_config_context",
                 # Tenant context processors
                 "apps.core.context_processors.current_institution",
                 "apps.core.context_processors.tenant_context",
@@ -372,11 +373,9 @@ else:
 TENANT_DOMAIN = os.environ.get("TENANT_DOMAIN", "localhost")
 
 # Control implicit creation of a DEFAULT institution from model/save/signals.
-# Set to False to avoid accidental on-the-fly institution creation; prefer
-# using management commands or `create.py` to bootstrap institutions.
-ALLOW_IMPLICIT_INSTITUTION_CREATION = os.environ.get(
-    "ALLOW_IMPLICIT_INSTITUTION_CREATION", "False"
-).lower() in ("1", "true", "t")
+# Set to False to prevent automatic creation of default institutions.
+# All institutions must be created explicitly through management commands or admin interface.
+ALLOW_IMPLICIT_INSTITUTION_CREATION = False
 
 # Default institution for single-tenant fallback
 DEFAULT_INSTITUTION_CODE = (

@@ -76,8 +76,10 @@
 }
 
 .layout-container .main-content-area {
-    flex: 1; /* Takes remaining space */
-    padding-left: 1rem; /* Add some spacing between sidebar and content */
+    flex: 1 1 auto; /* Ensure proper flex behavior */
+    min-width: 0; /* Allow shrinking if needed */
+    position: relative; /* Establish positioning context */
+    padding-left: 1rem; /* Add some spacing */
 }
 
 /* Global Mobile Optimizations */
@@ -474,6 +476,7 @@ body {
     }
 
     .layout-container .main-content-area {
+        margin-left: 0; /* Remove margin on mobile */
         padding-left: 0; /* Remove padding on mobile */
     }
 

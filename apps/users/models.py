@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 import secrets
 import string
 import logging
-from apps.core.models import CoreBaseModel, AddressModel, ContactModel
+from apps.core.models import CoreBaseModel, AddressModel, ContactModel, Institution
 
 logger = logging.getLogger(__name__)
 
@@ -438,6 +438,22 @@ class UserProfile(CoreBaseModel, AddressModel, ContactModel):
     sms_notifications = models.BooleanField(_("SMS notifications"), default=False)
     push_notifications = models.BooleanField(_("push notifications"), default=True)
 
+    # Theme Preferences
+    THEME_CHOICES = [
+        ("light", _("Light")),
+        ("dark", _("Dark")),
+        ("auto", _("Auto (System)")),
+    ]
+    theme = models.CharField(
+        _("theme preference"),
+        max_length=20,
+        choices=THEME_CHOICES,
+        default="light",
+        help_text=_(
+            "Choose your preferred theme or set to auto to follow system preference"
+        ),
+    )
+
     # Metadata
     last_profile_update = models.DateTimeField(_("last profile update"), auto_now=True)
 
@@ -653,6 +669,15 @@ class LoginHistory(CoreBaseModel):
         on_delete=models.CASCADE,
         related_name="login_history",
         verbose_name=_("user"),
+        null=True,
+        blank=True,
+    )
+    institution = models.ForeignKey(
+        Institution,
+        on_delete=models.CASCADE,
+        related_name="login_history_records",
+        verbose_name=_("institution"),
+        help_text=_("Institution this record belongs to"),
         null=True,
         blank=True,
     )
@@ -1544,6 +1569,22 @@ def sync_all_user_permissions():
     return users_updated
 
 
+# Utility functions for ID generation
+def generate_employee_id(institution):
+    """
+    Generate unique employee ID using SequenceGenerator per institution.
+    Format: {INSTITUTION_CODE}-EMP-{SEQUENTIAL_NUMBER}
+    """
+    from apps.core.models import SequenceGenerator
+
+    sequence, created = SequenceGenerator.objects.get_or_create(
+        sequence_type=SequenceGenerator.SequenceType.EMPLOYEE_ID,
+        institution=institution,
+        defaults={"prefix": f"{institution.code}-EMP-", "padding": 3},
+    )
+    return sequence.get_next_number()
+
+
 # Utility functions for guardian notifications
 def get_student_guardians(student_user):
     """
@@ -1804,7 +1845,9 @@ def auto_map_user_to_institution(sender, instance, created, **kwargs):
                             institution=preferred_institution,
                             defaults={
                                 "is_primary": True,
-                                "employee_id": f"{instance.role.role_type}_{preferred_institution.code}_{instance.user.id}",
+                                "employee_id": generate_employee_id(
+                                    preferred_institution
+                                ),
                             },
                         )
                     )

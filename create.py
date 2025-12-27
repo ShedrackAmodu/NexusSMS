@@ -40,7 +40,7 @@ project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
 # Configure Django
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.development")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 django.setup()
 
 User = get_user_model()
@@ -54,7 +54,6 @@ class SystemCreator:
         self.updated = 0
         self.success_commands = []
         self.failed_commands = []
-        self.fixed_seed_staff_roles = False
 
     def log_success(self, message):
         """Log a success message."""
@@ -1008,32 +1007,34 @@ Attn: Terms of Service<br>
 
     def run_all_setup_commands(self):
         """Run all setup commands in proper order."""
-        # First fix the seed_staff_roles issue
-        if not self.fix_seed_staff_roles():
-            self.log_error("Failed to fix seed_staff_roles")
-            return
+        # Skip seed_staff_roles and default institution creation
+        # Roles will be created per institution when institutions are manually created
+        self.log_info(
+            "Skipping automatic role seeding - roles will be created per institution"
+        )
 
-        # Update legal documents with enhanced content
-        if not self.update_legal_documents():
-            self.log_warning("Failed to update legal documents - continuing with setup")
+        # Skip updating legal documents during setup (requires institution)
+        self.log_info(
+            "Skipping legal document updates - will be handled per institution"
+        )
 
         # Define the order of commands to run
         setup_commands = [
-            # First: Core setup commands (seed_staff_roles already fixed)
+            # Core setup commands
             ("setup_multitenancy", "Setting up multi-tenancy..."),
+            # System-wide data (now works with GlobalBaseModel)
             ("create_system_kpis", "Creating system KPIs..."),
             ("create_system_reports", "Creating system reports..."),
-            # Second: Populate data commands
+            # Populate data commands (some may still fail due to institution requirements)
             ("populate_exam_types", "Populating exam types..."),
             ("populate_faqs", "Populating FAQs..."),
             ("populate_legal_documents", "Populating legal documents..."),
             ("populate_grade_levels", "Populating grade levels..."),
-            # Third: Permission and user management (run after roles are created)
-            ("assign_role_permissions", "Assigning role permissions..."),
-            ("assign_transport_permissions", "Assigning transport permissions..."),
-            ("sync_permissions", "Synchronizing user permissions..."),
+            # Skip permission assignment until institutions are created
+            # ("assign_role_permissions", "Assigning role permissions..."),
+            # ("sync_permissions", "Synchronizing user permissions..."),
             ("map_unmapped_users", "Mapping unmapped users..."),
-            # Fourth: Data collection (optional - can be skipped if desired)
+            # Data collection
             ("collect_system_metrics", "Collecting system metrics..."),
         ]
 
@@ -1042,10 +1043,9 @@ Attn: Terms of Service<br>
             self.log_info(description)
             self.run_command(command_name)
 
-        # Create institution (optional - skip in non-interactive mode)
-        # Default institution is already created in fix_seed_staff_roles
+        # No default institution created - will be created manually via admin interface
         self.log_info(
-            "Default institution already configured - skipping optional institution creation"
+            "No default institution created - create institutions manually via Django admin"
         )
 
         # Run any additional populate_* commands found
@@ -1521,11 +1521,7 @@ Attn: Terms of Service<br>
             self.log_info("Step 3: Creating superuser...")
             self.create_superuser_interactive()
 
-            # Step 4: Create school admin (auto-create if needed)
-            self.log_info("Step 4: Creating school admin...")
-            self.create_school_admin_auto()
-
-            # Step 5: Display summary
+            # Step 4: Display summary
             self.display_summary()
 
             return True
@@ -1558,9 +1554,18 @@ Attn: Terms of Service<br>
         print("\nNEXT STEPS:")
         print("1. Start the development server: python manage.py runserver")
         print("2. Access the admin panel at: http://localhost:8000/admin/")
-        print("3. Review system settings")
-        print("4. Add additional users and data as needed")
-        print("5. Test the system functionality")
+        print("3. CREATE YOUR FIRST INSTITUTION:")
+        print("   - Go to: http://localhost:8000/admin/core/institution/")
+        print("   - Click 'Add institution' in the top right")
+        print("   - Fill in the required fields (name, code)")
+        print("   - This will automatically create roles for that institution")
+        print("4. Review system settings")
+        print("5. Add additional users and data as needed")
+        print("6. Test the system functionality")
+
+        print("\n⚠  IMPORTANT: No default institution was created during setup.")
+        print("   You must create at least one institution via the admin interface")
+        print("   before you can add users, roles, or other institution-specific data.")
 
         if self.failed_commands:
             print("\n⚠  Some commands failed. You may need to run them manually.")
@@ -1577,8 +1582,12 @@ def main():
         print("1. Run database migrations (makemigrations and migrate)")
         print("2. Execute all system setup commands")
         print("3. Create a superuser account")
-        print("4. Create a school admin account")
-        print("5. Set up the complete school management system")
+        print("4. Set up the complete school management system")
+        print()
+        print("NOTE: No default institution or roles are created automatically.")
+        print(
+            "      You must create institutions manually via the Django admin interface."
+        )
         print()
         print("WARNING: This will modify your database.")
         print("Make sure you have backups if needed.")
