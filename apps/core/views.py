@@ -785,10 +785,13 @@ class SchoolAdminDashboardView(InstitutionPermissionMixin, LoginRequiredMixin, V
     def get(self, request, *args, **kwargs):
         user = request.user
 
-        # Check if user has school admin role
-        is_school_admin = user.user_roles.filter(
-            role__role_type__in=["admin", "principal", "school_admin"]
-        ).exists()
+        # Check if user has school admin role or institution-level permission
+        is_school_admin = (
+            user.has_perm("core.change_institution")
+            or user.user_roles.filter(
+                role__role_type__in=["admin", "principal", "school_admin"]
+            ).exists()
+        )
 
         if not is_school_admin and not user.is_staff:
             messages.error(
@@ -800,7 +803,11 @@ class SchoolAdminDashboardView(InstitutionPermissionMixin, LoginRequiredMixin, V
             return redirect("users:dashboard")
 
         # Check if user is a principal for role-specific content
-        is_principal = user.user_roles.filter(role__role_type="principal").exists()
+        from apps.users.utils import has_role_or_perm
+
+        is_principal = has_role_or_perm(
+            user, perm="core.change_institution", role_type="principal"
+        )
 
         # Get current institution
         from .middleware import get_current_institution
@@ -1012,7 +1019,9 @@ class PrincipalPerformanceMonitoringView(LoginRequiredMixin, View):
 
         # Check if user is a principal
         if (
-            not user.user_roles.filter(role__role_type="principal").exists()
+            not has_role_or_perm(
+                user, perm="core.change_institution", role_type="principal"
+            )
             and not user.is_staff
         ):
             messages.error(request, _("You don't have permission to access this page."))
@@ -1106,7 +1115,9 @@ class PrincipalTeacherManagementView(LoginRequiredMixin, View):
 
         # Check if user is a principal
         if (
-            not user.user_roles.filter(role__role_type="principal").exists()
+            not has_role_or_perm(
+                user, perm="core.change_institution", role_type="principal"
+            )
             and not user.is_staff
         ):
             messages.error(request, _("You don't have permission to access this page."))
@@ -1185,7 +1196,9 @@ class PrincipalStudentWelfareView(LoginRequiredMixin, View):
 
         # Check if user is a principal
         if (
-            not user.user_roles.filter(role__role_type="principal").exists()
+            not has_role_or_perm(
+                user, perm="core.change_institution", role_type="principal"
+            )
             and not user.is_staff
         ):
             messages.error(request, _("You don't have permission to access this page."))
@@ -1278,7 +1291,9 @@ class PrincipalCurriculumPlanningView(LoginRequiredMixin, View):
 
         # Check if user is a principal
         if (
-            not user.user_roles.filter(role__role_type="principal").exists()
+            not has_role_or_perm(
+                user, perm="core.change_institution", role_type="principal"
+            )
             and not user.is_staff
         ):
             messages.error(request, _("You don't have permission to access this page."))
@@ -1374,7 +1389,9 @@ class PrincipalCommunicationView(LoginRequiredMixin, View):
 
         # Check if user is a principal
         if (
-            not user.user_roles.filter(role__role_type="principal").exists()
+            not has_role_or_perm(
+                user, perm="core.change_institution", role_type="principal"
+            )
             and not user.is_staff
         ):
             messages.error(request, _("You don't have permission to access this page."))
@@ -1433,9 +1450,10 @@ class SuperAdminEntityView(
     def get(self, request, *args, **kwargs):
         user = request.user
 
-        # Check if user is super admin
+        # Check if user is super admin or has institution-level view permission
         if not (
             user.is_superuser
+            or user.has_perm("core.view_institution")
             or user.user_roles.filter(role__role_type="super_admin").exists()
         ):
             messages.error(
@@ -2746,6 +2764,7 @@ class GlobalSearchView(LoginRequiredMixin, PermissionRequiredMixin, View):
         # Super admin can see all students
         if (
             user.is_superuser
+            or user.has_perm("core.view_institution")
             or user.user_roles.filter(role__role_type="super_admin").exists()
         ):
             from apps.academics.models import Student
@@ -2768,7 +2787,10 @@ class GlobalSearchView(LoginRequiredMixin, PermissionRequiredMixin, View):
                 return Student.objects.all()
 
         # Teachers can see students in their classes
-        if user.user_roles.filter(role__role_type="teacher").exists():
+        if (
+            user.has_perm("academics.view_class")
+            or user.user_roles.filter(role__role_type="teacher").exists()
+        ):
             from apps.academics.models import Student, SubjectAssignment
 
             # Get classes where teacher is assigned subjects
@@ -2781,7 +2803,9 @@ class GlobalSearchView(LoginRequiredMixin, PermissionRequiredMixin, View):
             ).distinct()
 
         # Parents can see only their children
-        if user.user_roles.filter(role__role_type="parent").exists():
+        if user.has_perm("academics.view_student") or has_role_or_perm(
+            user, perm="academics.view_student", role_type="parent"
+        ):
             from apps.users.models import ParentStudentRelationship
             from apps.academics.models import Student
 
@@ -2792,7 +2816,10 @@ class GlobalSearchView(LoginRequiredMixin, PermissionRequiredMixin, View):
             return Student.objects.filter(user__in=parent_students)
 
         # Students can see only themselves
-        if user.user_roles.filter(role__role_type="student").exists():
+        if (
+            user.has_perm("academics.view_enrollment")
+            or user.user_roles.filter(role__role_type="student").exists()
+        ):
             from apps.academics.models import Student
 
             return Student.objects.filter(user=user)
@@ -2813,6 +2840,7 @@ class GlobalSearchView(LoginRequiredMixin, PermissionRequiredMixin, View):
         # Only super admin, admin, and principal can see teachers
         if (
             user.is_superuser
+            or user.has_perm("core.view_institution")
             or user.user_roles.filter(
                 role__role_type__in=["super_admin", "admin", "principal"]
             ).exists()
@@ -2832,12 +2860,18 @@ class GlobalSearchView(LoginRequiredMixin, PermissionRequiredMixin, View):
         # Super admin can see all classes
         if (
             user.is_superuser
+            or user.has_perm("core.view_institution")
             or user.user_roles.filter(role__role_type="super_admin").exists()
         ):
             return Class.objects.all()
 
         # Admin/principal can see classes in their accessible institutions
-        if user.user_roles.filter(role__role_type__in=["admin", "principal"]).exists():
+        if (
+            user.has_perm("academics.change_class")
+            or user.user_roles.filter(
+                role__role_type__in=["admin", "principal"]
+            ).exists()
+        ):
             try:
                 from .middleware import get_user_accessible_institutions
 
@@ -2847,7 +2881,10 @@ class GlobalSearchView(LoginRequiredMixin, PermissionRequiredMixin, View):
                 return Class.objects.all()
 
         # Teachers can see their assigned classes
-        if user.user_roles.filter(role__role_type="teacher").exists():
+        if (
+            user.has_perm("academics.view_class")
+            or user.user_roles.filter(role__role_type="teacher").exists()
+        ):
             from apps.academics.models import SubjectAssignment
 
             teacher_assignments = SubjectAssignment.objects.filter(
@@ -2856,7 +2893,10 @@ class GlobalSearchView(LoginRequiredMixin, PermissionRequiredMixin, View):
             return Class.objects.filter(id__in=teacher_assignments)
 
         # Students can see their enrolled classes
-        if user.user_roles.filter(role__role_type="student").exists():
+        if (
+            user.has_perm("academics.view_enrollment")
+            or user.user_roles.filter(role__role_type="student").exists()
+        ):
             from apps.academics.models import Enrollment
 
             student_class_ids = Enrollment.objects.filter(
@@ -2865,7 +2905,9 @@ class GlobalSearchView(LoginRequiredMixin, PermissionRequiredMixin, View):
             return Class.objects.filter(id__in=student_class_ids)
 
         # Parents can see their children's classes
-        if user.user_roles.filter(role__role_type="parent").exists():
+        if user.has_perm("academics.view_student") or has_role_or_perm(
+            user, perm="academics.view_student", role_type="parent"
+        ):
             from apps.users.models import ParentStudentRelationship
             from apps.academics.models import Enrollment
 
@@ -2891,12 +2933,18 @@ class GlobalSearchView(LoginRequiredMixin, PermissionRequiredMixin, View):
         # Super admin can see all subjects
         if (
             user.is_superuser
+            or user.has_perm("core.view_institution")
             or user.user_roles.filter(role__role_type="super_admin").exists()
         ):
             return Subject.objects.all()
 
         # Admin/principal can see subjects in their accessible institutions
-        if user.user_roles.filter(role__role_type__in=["admin", "principal"]).exists():
+        if (
+            user.has_perm("academics.change_subject")
+            or user.user_roles.filter(
+                role__role_type__in=["admin", "principal"]
+            ).exists()
+        ):
             try:
                 from .middleware import get_user_accessible_institutions
 
@@ -2906,7 +2954,10 @@ class GlobalSearchView(LoginRequiredMixin, PermissionRequiredMixin, View):
                 return Subject.objects.all()
 
         # Teachers can see subjects they're assigned to
-        if user.user_roles.filter(role__role_type="teacher").exists():
+        if (
+            user.has_perm("academics.view_subject")
+            or user.user_roles.filter(role__role_type="teacher").exists()
+        ):
             from apps.academics.models import SubjectAssignment
 
             subject_ids = SubjectAssignment.objects.filter(
@@ -2918,9 +2969,12 @@ class GlobalSearchView(LoginRequiredMixin, PermissionRequiredMixin, View):
         accessible_classes = self.get_accessible_classes()
         subject_ids = []
         from apps.academics.models import SubjectAssignment, Enrollment
+        from apps.users.utils import has_role_or_perm
 
         # For students: get subjects from enrolled classes
-        if user.user_roles.filter(role__role_type="student").exists():
+        if user.has_perm("academics.view_enrollment") or has_role_or_perm(
+            user, perm="academics.view_enrollment", role_type="student"
+        ):
             enrollments = Enrollment.objects.filter(student__user=user, status="active")
             for enrollment in enrollments:
                 assignments = SubjectAssignment.objects.filter(
@@ -2929,7 +2983,9 @@ class GlobalSearchView(LoginRequiredMixin, PermissionRequiredMixin, View):
                 subject_ids.extend(assignments)
 
         # For parents: get subjects from children's classes
-        elif user.user_roles.filter(role__role_type="parent").exists():
+        elif user.has_perm("academics.view_student") or has_role_or_perm(
+            user, perm="academics.view_student", role_type="parent"
+        ):
             from apps.users.models import ParentStudentRelationship
 
             parent_students = ParentStudentRelationship.objects.filter(
@@ -2981,7 +3037,7 @@ class GlobalSearchView(LoginRequiredMixin, PermissionRequiredMixin, View):
         user = self.request.user
 
         # Parents can see invoices for their children
-        if user.user_roles.filter(role__role_type="parent").exists():
+        if has_role_or_perm(user, perm="academics.view_student", role_type="parent"):
             from apps.users.models import ParentStudentRelationship
 
             parent_students = ParentStudentRelationship.objects.filter(
@@ -2990,7 +3046,9 @@ class GlobalSearchView(LoginRequiredMixin, PermissionRequiredMixin, View):
             return Invoice.objects.filter(student__in=parent_students)
 
         # Students can see their own invoices
-        if user.user_roles.filter(role__role_type="student").exists():
+        if has_role_or_perm(
+            user, perm="academics.view_enrollment", role_type="student"
+        ):
             return Invoice.objects.filter(student__user=user)
 
         # Staff and admins can see invoices for students they can access
@@ -3006,7 +3064,7 @@ class GlobalSearchView(LoginRequiredMixin, PermissionRequiredMixin, View):
         user = self.request.user
 
         # Parents can see payments for their children
-        if user.user_roles.filter(role__role_type="parent").exists():
+        if has_role_or_perm(user, perm="academics.view_student", role_type="parent"):
             from apps.users.models import ParentStudentRelationship
 
             parent_students = ParentStudentRelationship.objects.filter(
@@ -3015,7 +3073,9 @@ class GlobalSearchView(LoginRequiredMixin, PermissionRequiredMixin, View):
             return Payment.objects.filter(student__in=parent_students)
 
         # Students can see their own payments
-        if user.user_roles.filter(role__role_type="student").exists():
+        if has_role_or_perm(
+            user, perm="academics.view_enrollment", role_type="student"
+        ):
             return Payment.objects.filter(student__user=user)
 
         # Staff and admins can see payments for students they can access

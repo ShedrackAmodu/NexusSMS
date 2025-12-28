@@ -900,6 +900,7 @@ class AcademicsDashboardView(InstitutionPermissionMixin, AcademicsAccessMixin, V
         # to avoid institution selection requirement
         if (
             user.is_staff
+            or user.has_perm("academics.change_academicsession")
             or user.user_roles.filter(
                 role__role_type__in=["admin", "principal", "super_admin"],
                 status="active",
@@ -1058,7 +1059,11 @@ class AcademicSessionListView(InstitutionPermissionMixin, LoginRequiredMixin, Li
         today = timezone.now().date()
 
         # Role-based permissions - allow admin/principal roles to manage sessions
-        can_manage_sessions = user.is_staff or user.is_superuser
+        can_manage_sessions = (
+            user.is_staff
+            or user.is_superuser
+            or user.has_perm("academics.change_academicsession")
+        )
         if not can_manage_sessions:
             # Check if user has admin or principal role
             can_manage_sessions = user.user_roles.filter(
@@ -1281,6 +1286,7 @@ class AcademicSessionDeleteView(AdminRequiredMixin, DeleteView):
         user = request.user
         if not (
             user.is_superuser
+            or user.has_perm("academics.delete_academicsession")
             or user.user_roles.filter(
                 role__role_type__in=["super_admin", "admin"], status="active"
             ).exists()

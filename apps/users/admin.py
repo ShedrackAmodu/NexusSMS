@@ -802,6 +802,12 @@ class UserRoleInline(admin.TabularInline):
         if request.user.is_superuser:
             return True
 
+        # Allow if user has explicit role management permissions
+        if request.user.has_perm("users.add_role") or request.user.has_perm(
+            "users.change_role"
+        ):
+            return True
+
         return (
             hasattr(request.user, "user_roles")
             and request.user.user_roles.filter(

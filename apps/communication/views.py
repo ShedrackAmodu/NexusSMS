@@ -75,9 +75,17 @@ class CommunicationStaffRequiredMixin(UserPassesTestMixin):
             return True
 
         # Check if user has admin role
-        return user.user_roles.filter(
-            role__role_type__in=["admin", "principal", "school_admin", "super_admin"]
-        ).exists()
+        return (
+            user.has_perm("communication.change_announcement")
+            or user.user_roles.filter(
+                role__role_type__in=[
+                    "admin",
+                    "principal",
+                    "school_admin",
+                    "super_admin",
+                ]
+            ).exists()
+        )
 
 
 class AnnouncementListView(LoginRequiredMixin, CommunicationAccessMixin, ListView):
@@ -117,7 +125,10 @@ class AnnouncementListView(LoginRequiredMixin, CommunicationAccessMixin, ListVie
                 | Q(target_audience="teachers")
                 | Q(specific_users=user)
             ).distinct()
-        elif user.user_roles.filter(role__role_type="parent").exists():
+        elif (
+            user.has_perm("academics.view_student")
+            or user.user_roles.filter(role__role_type="parent").exists()
+        ):
             # Parent can see announcements targeted to parents, all users, or specific to their children
             from apps.users.models import ParentStudentRelationship
 

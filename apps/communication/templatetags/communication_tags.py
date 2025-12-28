@@ -33,6 +33,7 @@ def get_recent_announcements(context, user, request, limit=5):
     # Filter by audience permissions
     if (
         hasattr(user, "student_profile")
+        or user.has_perm("academics.view_enrollment")
         or user.user_roles.filter(role__role_type="student").exists()
     ):
         # Students see general, student-specific, and class-specific announcements
@@ -50,7 +51,10 @@ def get_recent_announcements(context, user, request, limit=5):
             | Q(specific_classes__in=class_ids)
         ).distinct()
 
-    elif user.user_roles.filter(role__role_type="teacher").exists():
+    elif (
+        user.has_perm("academics.view_class")
+        or user.user_roles.filter(role__role_type="teacher").exists()
+    ):
         # Teachers see teacher-specific and general announcements
         announcements = announcements.filter(
             Q(target_audience="all")
@@ -58,7 +62,10 @@ def get_recent_announcements(context, user, request, limit=5):
             | Q(specific_users=user)
         ).distinct()
 
-    elif user.user_roles.filter(role__role_type="parent").exists():
+    elif (
+        user.has_perm("academics.view_student")
+        or user.user_roles.filter(role__role_type="parent").exists()
+    ):
         # Parents see parent-specific and general announcements
         announcements = announcements.filter(
             Q(target_audience="all")
@@ -127,6 +134,7 @@ def get_upcoming_events(context, user, request, limit=5):
     # Filter by audience permissions (same logic as announcements)
     if (
         hasattr(user, "student_profile")
+        or user.has_perm("academics.view_enrollment")
         or user.user_roles.filter(role__role_type="student").exists()
     ):
         # Students see general, student-specific, and class-specific events
@@ -144,7 +152,10 @@ def get_upcoming_events(context, user, request, limit=5):
             | Q(specific_classes__in=class_ids)
         ).distinct()
 
-    elif user.user_roles.filter(role__role_type="teacher").exists():
+    elif (
+        user.has_perm("academics.view_class")
+        or user.user_roles.filter(role__role_type="teacher").exists()
+    ):
         # Teachers see teacher-specific and general events
         events = events.filter(
             Q(target_audience="all")
@@ -152,7 +163,10 @@ def get_upcoming_events(context, user, request, limit=5):
             | Q(specific_users=user)
         ).distinct()
 
-    elif user.user_roles.filter(role__role_type="parent").exists():
+    elif (
+        user.has_perm("academics.view_student")
+        or user.user_roles.filter(role__role_type="parent").exists()
+    ):
         # Parents see parent-specific and general events
         events = events.filter(
             Q(target_audience="all")

@@ -44,6 +44,7 @@ from apps.academics.models import (
     Teacher,
     Timetable,
 )
+from apps.users.utils import has_role_or_perm
 
 from .models import (
     User,
@@ -2280,7 +2281,10 @@ def profile_view(request):
         )
 
     # ===== PARENT-SPECIFIC DATA =====
-    if user.user_roles.filter(role__role_type="parent").exists():
+    if (
+        user.has_perm("academics.view_student")
+        or user.user_roles.filter(role__role_type="parent").exists()
+    ):
         from apps.users.models import ParentStudentRelationship
 
         relationships_data = {
@@ -3628,10 +3632,16 @@ def parent_student_relationships(request):
     """
     View and manage parent-student relationships.
     """
-    if request.user.user_roles.filter(role__role_type="parent").exists():
+    if (
+        request.user.has_perm("academics.view_student")
+        or request.user.user_roles.filter(role__role_type="parent").exists()
+    ):
         # Parent view - show their children
         relationships = ParentStudentRelationship.objects.filter(parent=request.user)
-    elif request.user.user_roles.filter(role__role_type="student").exists():
+    elif (
+        request.user.has_perm("academics.view_student")
+        or request.user.user_roles.filter(role__role_type="student").exists()
+    ):
         # Student view - show their parents
         relationships = ParentStudentRelationship.objects.filter(student=request.user)
     else:
@@ -3665,7 +3675,10 @@ class ParentRequiredMixin(UserPassesTestMixin):
     """Mixin to ensure user is a parent."""
 
     def test_func(self):
-        return self.request.user.user_roles.filter(role__role_type="parent").exists()
+        return (
+            self.request.user.has_perm("academics.view_student")
+            or self.request.user.user_roles.filter(role__role_type="parent").exists()
+        )
 
     def handle_no_permission(self):
         messages.error(
@@ -3676,7 +3689,8 @@ class ParentRequiredMixin(UserPassesTestMixin):
 
 @login_required
 @user_passes_test(
-    lambda u: u.user_roles.filter(role__role_type="parent").exists(),
+    lambda u: u.has_perm("academics.view_student")
+    or u.user_roles.filter(role__role_type="parent").exists(),
     login_url=reverse_lazy("users:dashboard"),
 )
 def parent_dashboard(request):
@@ -3815,7 +3829,8 @@ def parent_dashboard(request):
 
 @login_required
 @user_passes_test(
-    lambda u: u.user_roles.filter(role__role_type="parent").exists(),
+    lambda u: u.has_perm("academics.view_student")
+    or u.user_roles.filter(role__role_type="parent").exists(),
     login_url=reverse_lazy("users:dashboard"),
 )
 def child_academic_records(request, child_id):
@@ -3926,7 +3941,8 @@ def child_academic_records(request, child_id):
 
 @login_required
 @user_passes_test(
-    lambda u: u.user_roles.filter(role__role_type="parent").exists(),
+    lambda u: u.has_perm("academics.view_student")
+    or u.user_roles.filter(role__role_type="parent").exists(),
     login_url=reverse_lazy("users:dashboard"),
 )
 def child_attendance(request, child_id):
@@ -3985,7 +4001,8 @@ def child_attendance(request, child_id):
 
 @login_required
 @user_passes_test(
-    lambda u: u.user_roles.filter(role__role_type="parent").exists(),
+    lambda u: u.has_perm("academics.view_student")
+    or u.user_roles.filter(role__role_type="parent").exists(),
     login_url=reverse_lazy("users:dashboard"),
 )
 def child_fee_status(request, child_id):
@@ -4045,7 +4062,8 @@ def child_fee_status(request, child_id):
 
 @login_required
 @user_passes_test(
-    lambda u: u.user_roles.filter(role__role_type="parent").exists(),
+    lambda u: u.has_perm("academics.view_student")
+    or u.user_roles.filter(role__role_type="parent").exists(),
     login_url=reverse_lazy("users:dashboard"),
 )
 def message_teacher(request, teacher_id=None):
@@ -6106,7 +6124,8 @@ def handler500(request):
 
 @login_required
 @user_passes_test(
-    lambda u: u.user_roles.filter(role__role_type="teacher").exists(),
+    lambda u: u.has_perm("academics.view_class")
+    or has_role_or_perm(u, perm="academics.view_class", role_type="teacher"),
     login_url=reverse_lazy("users:dashboard"),
 )
 def teacher_dashboard(request):
@@ -6194,7 +6213,8 @@ def teacher_dashboard(request):
 
 @login_required
 @user_passes_test(
-    lambda u: u.user_roles.filter(role__role_type="teacher").exists(),
+    lambda u: u.has_perm("academics.view_class")
+    or u.user_roles.filter(role__role_type="teacher").exists(),
     login_url=reverse_lazy("users:dashboard"),
 )
 def teacher_classes(request):
@@ -6239,7 +6259,8 @@ def teacher_classes(request):
 
 @login_required
 @user_passes_test(
-    lambda u: u.user_roles.filter(role__role_type="teacher").exists(),
+    lambda u: u.has_perm("academics.view_class")
+    or u.user_roles.filter(role__role_type="teacher").exists(),
     login_url=reverse_lazy("users:dashboard"),
 )
 def teacher_class_attendance(request, class_id):
@@ -6361,7 +6382,8 @@ def teacher_class_attendance(request, class_id):
 
 @login_required
 @user_passes_test(
-    lambda u: u.user_roles.filter(role__role_type="teacher").exists(),
+    lambda u: u.has_perm("academics.view_class")
+    or u.user_roles.filter(role__role_type="teacher").exists(),
     login_url=reverse_lazy("users:dashboard"),
 )
 def teacher_class_materials(request, class_id):
@@ -6407,7 +6429,8 @@ def teacher_class_materials(request, class_id):
 
 @login_required
 @user_passes_test(
-    lambda u: u.user_roles.filter(role__role_type="teacher").exists(),
+    lambda u: u.has_perm("academics.view_class")
+    or u.user_roles.filter(role__role_type="teacher").exists(),
     login_url=reverse_lazy("users:dashboard"),
 )
 def teacher_material_upload(request):
@@ -6464,7 +6487,8 @@ def teacher_material_upload(request):
 
 @login_required
 @user_passes_test(
-    lambda u: u.user_roles.filter(role__role_type="teacher").exists(),
+    lambda u: u.has_perm("academics.view_class")
+    or u.user_roles.filter(role__role_type="teacher").exists(),
     login_url=reverse_lazy("users:dashboard"),
 )
 def teacher_students(request):
@@ -6506,7 +6530,8 @@ def teacher_students(request):
 
 @login_required
 @user_passes_test(
-    lambda u: u.user_roles.filter(role__role_type="teacher").exists(),
+    lambda u: u.has_perm("academics.view_class")
+    or u.user_roles.filter(role__role_type="teacher").exists(),
     login_url=reverse_lazy("users:dashboard"),
 )
 def teacher_student_progress(request, student_id):
@@ -6576,7 +6601,8 @@ def teacher_student_progress(request, student_id):
 
 @login_required
 @user_passes_test(
-    lambda u: u.user_roles.filter(role__role_type="teacher").exists(),
+    lambda u: u.has_perm("academics.view_class")
+    or u.user_roles.filter(role__role_type="teacher").exists(),
     login_url=reverse_lazy("users:dashboard"),
 )
 def teacher_assessment(request):

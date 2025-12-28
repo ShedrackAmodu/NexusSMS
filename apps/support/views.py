@@ -54,9 +54,10 @@ class SupportStaffRequiredMixin(UserPassesTestMixin):
     """
 
     def test_func(self):
-        return (
-            self.request.user.is_authenticated
-            and self.request.user.user_roles.filter(
+        return self.request.user.is_authenticated and (
+            self.request.user.has_perm("support.change_supportcase")
+            or self.request.user.has_perm("support.view_supportcase")
+            or self.request.user.user_roles.filter(
                 role__role_type__in=[
                     "support",
                     "admin",
@@ -78,15 +79,19 @@ class CaseAccessMixin(UserPassesTestMixin):
             return False
 
         # Support staff can access all cases
-        if self.request.user.user_roles.filter(
-            role__role_type__in=[
-                "support",
-                "admin",
-                "principal",
-                "school_admin",
-                "super_admin",
-            ]
-        ).exists():
+        if (
+            self.request.user.has_perm("support.change_supportcase")
+            or self.request.user.has_perm("support.view_supportcase")
+            or self.request.user.user_roles.filter(
+                role__role_type__in=[
+                    "support",
+                    "admin",
+                    "principal",
+                    "school_admin",
+                    "super_admin",
+                ]
+            ).exists()
+        ):
             return True
 
         # Case participants can access their cases

@@ -85,38 +85,59 @@ def user_roles(request):
             "is_transport_manager": is_transport_manager,
             "is_hostel_warden": is_hostel_warden,
             # Permission helpers
-            "can_manage_users": is_super_admin
-            or is_admin
-            or is_school_admin
-            or request.user.is_superuser,
-            "can_manage_academics": is_super_admin
-            or is_school_admin
-            or is_admin
-            or is_principal
-            or is_teacher,
-            "can_manage_finance": is_super_admin
-            or is_school_admin
-            or is_admin
-            or is_accountant,
-            "can_manage_library": is_super_admin
-            or is_school_admin
-            or is_admin
-            or is_librarian,
-            "can_manage_transport": is_super_admin
-            or is_school_admin
-            or is_admin
-            or is_transport_manager
-            or is_driver,
-            "can_manage_hostels": is_super_admin
-            or is_school_admin
-            or is_admin
-            or is_hostel_warden,
-            "can_view_student_data": is_super_admin
-            or is_school_admin
-            or is_admin
-            or is_principal
-            or is_teacher
-            or is_parent,
+            "can_manage_users": (
+                request.user.has_perm("users.change_user")
+                or is_super_admin
+                or is_admin
+                or is_school_admin
+                or request.user.is_superuser
+            ),
+            "can_manage_academics": (
+                request.user.has_perm("academics.change_class")
+                or is_super_admin
+                or is_school_admin
+                or is_admin
+                or is_principal
+                or is_teacher
+            ),
+            "can_manage_finance": (
+                request.user.has_perm("finance.change_invoice")
+                or is_super_admin
+                or is_school_admin
+                or is_admin
+                or is_accountant
+            ),
+            "can_manage_library": (
+                request.user.has_perm("library.change_book")
+                or is_super_admin
+                or is_school_admin
+                or is_admin
+                or is_librarian
+            ),
+            "can_manage_transport": (
+                request.user.has_perm("transport.change_route")
+                or is_super_admin
+                or is_school_admin
+                or is_admin
+                or is_transport_manager
+                or is_driver
+            ),
+            "can_manage_hostels": (
+                request.user.has_perm("hostels.change_hostel")
+                or is_super_admin
+                or is_school_admin
+                or is_admin
+                or is_hostel_warden
+            ),
+            "can_view_student_data": (
+                request.user.has_perm("academics.view_student")
+                or is_super_admin
+                or is_school_admin
+                or is_admin
+                or is_principal
+                or is_teacher
+                or is_parent
+            ),
             "highest_role_level": highest_role_level,
         }
 

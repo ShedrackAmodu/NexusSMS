@@ -270,9 +270,12 @@ class InstitutionAdmin(admin.ModelAdmin):
         """Check if user has school_admin role."""
         if not user.is_authenticated:
             return False
-        return user.user_roles.filter(
-            role__role_type="school_admin", status="active"
-        ).exists()
+        return (
+            user.has_perm("core.change_institution")
+            or user.user_roles.filter(
+                role__role_type="school_admin", status="active"
+            ).exists()
+        )
 
 
 @admin.register(SystemConfig)
@@ -338,9 +341,12 @@ class SystemConfigAdmin(InstitutionModelAdmin):
         """Check if user has school_admin role."""
         if not user.is_authenticated:
             return False
-        return user.user_roles.filter(
-            role__role_type="school_admin", status="active"
-        ).exists()
+        return (
+            user.has_perm("core.change_institution")
+            or user.user_roles.filter(
+                role__role_type="school_admin", status="active"
+            ).exists()
+        )
 
 
 @admin.register(SequenceGenerator)
