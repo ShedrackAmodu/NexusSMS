@@ -107,6 +107,10 @@ def can_assign_roles(user):
     if user.is_superuser:
         return True
 
+    # First allow users with explicit role-management permissions
+    if user.has_perm("users.add_role") or user.has_perm("users.change_role"):
+        return True
+
     # Check if user has admin, principal, or school_admin role
     return user.user_roles.filter(
         role__role_type__in=["admin", "principal", "school_admin"], status="active"
@@ -1881,30 +1885,45 @@ def user_dashboard(request):
 
             # Role flags for sidebar
             is_student = hasattr(request.user, "student_profile")
-            is_teacher = request.user.user_roles.filter(
-                role__role_type="teacher"
-            ).exists()
-            is_parent = request.user.user_roles.filter(
-                role__role_type="parent"
-            ).exists()
-            can_manage_academics = request.user.user_roles.filter(
-                role__role_type__in=["admin", "principal", "teacher"]
-            ).exists()
+            is_teacher = (
+                request.user.has_perm("academics.view_class")
+                or request.user.user_roles.filter(role__role_type="teacher").exists()
+            )
+            is_parent = (
+                request.user.has_perm("academics.view_student")
+                or request.user.user_roles.filter(role__role_type="parent").exists()
+            )
+            can_manage_academics = (
+                request.user.has_perm("academics.change_class")
+                or request.user.user_roles.filter(
+                    role__role_type__in=["admin", "principal", "teacher"]
+                ).exists()
+            )
             can_manage_users = (
                 request.user.is_superuser
+                or request.user.has_perm("users.change_user")
                 or request.user.user_roles.filter(
                     role__role_type__in=["admin", "principal"]
                 ).exists()
             )
-            can_manage_library = request.user.user_roles.filter(
-                role__role_type__in=["admin", "principal", "librarian"]
-            ).exists()
-            can_manage_transport = request.user.user_roles.filter(
-                role__role_type__in=["admin", "principal", "driver"]
-            ).exists()
-            can_manage_hostels = request.user.user_roles.filter(
-                role__role_type__in=["admin", "principal", "warden"]
-            ).exists()
+            can_manage_library = (
+                request.user.has_perm("library.change_book")
+                or request.user.user_roles.filter(
+                    role__role_type__in=["admin", "principal", "librarian"]
+                ).exists()
+            )
+            can_manage_transport = (
+                request.user.has_perm("transport.change_route")
+                or request.user.user_roles.filter(
+                    role__role_type__in=["admin", "principal", "driver"]
+                ).exists()
+            )
+            can_manage_hostels = (
+                request.user.has_perm("hostels.change_hostel")
+                or request.user.user_roles.filter(
+                    role__role_type__in=["admin", "principal", "warden"]
+                ).exists()
+            )
 
             # Get unread notification count
             from apps.communication.models import RealTimeNotification

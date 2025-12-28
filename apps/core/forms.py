@@ -313,81 +313,6 @@ class InstitutionConfigOverrideForm(forms.Form):
                 )
 
 
-class HolidayForm(InstitutionFormMixin, forms.ModelForm):
-    """
-    Form for creating and updating Holiday instances.
-    """
-
-    class Meta:
-        model = Holiday
-        fields = [
-            "name",
-            "date",
-            "academic_session",
-            "is_recurring",
-            "description",
-            "status",
-        ]
-        widgets = {
-            "name": forms.TextInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": _("e.g., Christmas Day, Summer Break"),
-                }
-            ),
-            "date": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
-            "academic_session": forms.Select(attrs={"class": "form-control"}),
-            "is_recurring": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "description": forms.Textarea(
-                attrs={
-                    "class": "form-control",
-                    "rows": 3,
-                    "placeholder": _("Optional description of the holiday"),
-                }
-            ),
-            "status": forms.Select(attrs={"class": "form-control"}),
-        }
-
-    def clean(self):
-        cleaned_data = super().clean()
-        date = cleaned_data.get("date")
-        academic_session = cleaned_data.get("academic_session")
-
-        # Validate that holiday date falls within academic session
-        if date and academic_session:
-            if not (academic_session.start_date <= date <= academic_session.end_date):
-                raise ValidationError(
-                    {
-                        "date": _(
-                            "Holiday date must fall within the selected academic session "
-                            "({start} to {end}).".format(
-                                start=academic_session.start_date,
-                                end=academic_session.end_date,
-                            )
-                        )
-                    }
-                )
-
-        # Check for duplicate holidays on the same date in the same session
-        if date and academic_session:
-            duplicate_holidays = Holiday.objects.filter(
-                date=date, academic_session=academic_session
-            )
-            if self.instance.pk:
-                duplicate_holidays = duplicate_holidays.exclude(pk=self.instance.pk)
-
-            if duplicate_holidays.exists():
-                raise ValidationError(
-                    {
-                        "date": _(
-                            "A holiday already exists on this date for the selected academic session."
-                        )
-                    }
-                )
-
-        return cleaned_data
-
-
 class SystemConfigForm(forms.ModelForm):
     """
     Form for creating and updating SystemConfig instances.
@@ -466,7 +391,7 @@ class SystemConfigForm(forms.ModelForm):
         return value
 
 
-class SequenceGeneratorForm(forms.ModelForm):
+class SequenceGeneratorForm(InstitutionFormMixin, forms.ModelForm):
     """
     Form for creating and updating SequenceGenerator instances.
     """
@@ -474,6 +399,7 @@ class SequenceGeneratorForm(forms.ModelForm):
     class Meta:
         model = SequenceGenerator
         fields = [
+            "institution",
             "sequence_type",
             "prefix",
             "suffix",
@@ -483,6 +409,7 @@ class SequenceGeneratorForm(forms.ModelForm):
             "status",
         ]
         widgets = {
+            "institution": forms.Select(attrs={"class": "form-control"}),
             "sequence_type": forms.Select(attrs={"class": "form-control"}),
             "prefix": forms.TextInput(
                 attrs={"class": "form-control", "placeholder": _("e.g., STU, EMP, INV")}

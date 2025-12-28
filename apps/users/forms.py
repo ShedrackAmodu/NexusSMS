@@ -1654,9 +1654,12 @@ class StaffApplicationForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         from apps.academics.models import AcademicSession
 
-        # FIX: Populate position_applied_for with ALL active staff roles
+        # Populate position_applied_for with active staff roles, excluding SUPER_ADMIN
+        staff_roles_excluding_super_admin = [
+            role for role in Role.STAFF_ROLES if role != Role.RoleType.SUPER_ADMIN
+        ]
         self.fields["position_applied_for"].queryset = Role.objects.filter(
-            role_type__in=Role.STAFF_ROLES, status="active"
+            role_type__in=staff_roles_excluding_super_admin, status="active"
         ).order_by("name")
 
         # Make CV required
@@ -1918,18 +1921,24 @@ class InstitutionTransferRequestForm(forms.ModelForm):
         # Validate transfer type matches user's role
         transfer_type = cleaned_data.get("transfer_type")
         if transfer_type == InstitutionTransferRequest.TransferType.STUDENT_TRANSFER:
-            has_student_role = user.user_roles.filter(
-                role__role_type="student", status="active"
-            ).exists()
+            has_student_role = (
+                user.has_perm("academics.view_student")
+                or user.user_roles.filter(
+                    role__role_type="student", status="active"
+                ).exists()
+            )
             if not has_student_role:
                 raise forms.ValidationError(
                     _("You must be a student to submit a student transfer request.")
                 )
 
         elif transfer_type == InstitutionTransferRequest.TransferType.STAFF_TRANSFER:
-            has_staff_role = user.user_roles.filter(
-                role__role_type__in=Role.STAFF_ROLES, status="active"
-            ).exists()
+            has_staff_role = (
+                user.has_perm("users.view_user")
+                or user.user_roles.filter(
+                    role__role_type__in=Role.STAFF_ROLES, status="active"
+                ).exists()
+            )
             if not has_staff_role:
                 raise forms.ValidationError(
                     _("You must be a staff member to submit a staff transfer request.")

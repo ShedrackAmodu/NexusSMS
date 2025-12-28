@@ -94,7 +94,6 @@ def ui_config_context(request):
     """
     try:
         from .models import SystemConfig, InstitutionConfig
-        from .middleware import get_current_institution
 
         ui_config = {}
         institution = get_current_institution()

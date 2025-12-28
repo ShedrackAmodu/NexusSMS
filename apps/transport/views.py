@@ -62,7 +62,11 @@ class TransportAccessMixin:
         if not request.user.is_authenticated:
             return self.handle_no_permission()
 
-        # Check if user has transport-related role or is staff/admin
+        # Check if user has transport-related permissions first, then fall back to role checks
+        has_transport_perm = request.user.has_perm(
+            "transport.view_vehicle"
+        ) or request.user.has_perm("transport.view_transportallocation")
+
         user_roles = request.user.user_roles.filter(status="active")
         transport_roles = [
             "transport_manager",
@@ -77,7 +81,7 @@ class TransportAccessMixin:
         )
         is_staff_admin = request.user.is_staff or request.user.is_superuser
 
-        if not (has_transport_role or is_staff_admin):
+        if not (has_transport_perm or has_transport_role or is_staff_admin):
             messages.error(
                 request, _("You don't have permission to access transport resources.")
             )
@@ -92,6 +96,12 @@ class TransportManagerRequiredMixin(UserPassesTestMixin):
     def test_func(self):
         user = self.request.user
         if user.is_staff:
+            return True
+
+        # Allow based on permission as primary check, then fallback to role membership
+        if user.has_perm("transport.change_route") or user.has_perm(
+            "transport.change_transportallocation"
+        ):
             return True
 
         # Check if user has transport manager role

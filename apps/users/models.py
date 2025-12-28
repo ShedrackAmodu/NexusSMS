@@ -1041,9 +1041,10 @@ class InstitutionTransferRequest(CoreBaseModel):
         user_institutions = user.institutions.filter(is_active=True)
 
         # Can approve if user has admin role at either current or requested institution
-        has_admin_rights_current = (
-            user_institutions.filter(id=self.current_institution.id).exists()
-            and user.user_roles.filter(
+        has_admin_rights_current = user_institutions.filter(
+            id=self.current_institution.id
+        ).exists() and (
+            user.user_roles.filter(
                 role__role_type__in=[
                     "admin",
                     "principal",
@@ -1052,11 +1053,13 @@ class InstitutionTransferRequest(CoreBaseModel):
                 ],
                 status="active",
             ).exists()
+            or user.has_perm("core.change_institution")
         )
 
-        has_admin_rights_requested = (
-            user_institutions.filter(id=self.requested_institution.id).exists()
-            and user.user_roles.filter(
+        has_admin_rights_requested = user_institutions.filter(
+            id=self.requested_institution.id
+        ).exists() and (
+            user.user_roles.filter(
                 role__role_type__in=[
                     "admin",
                     "principal",
@@ -1065,6 +1068,7 @@ class InstitutionTransferRequest(CoreBaseModel):
                 ],
                 status="active",
             ).exists()
+            or user.has_perm("core.change_institution")
         )
 
         return has_admin_rights_current or has_admin_rights_requested

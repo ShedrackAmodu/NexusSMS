@@ -39,8 +39,18 @@ class Command(BaseCommand):
 
                 roles_assigned = 0
                 for role in roles:
+                    # Guard against roles with missing institution references (data integrity issues)
+                    try:
+                        institution_name = role.institution.name
+                    except Exception as inst_err:
+                        self.stdout.write(
+                            self.style.WARNING(
+                                f"Role '{role.name}' has missing institution (id={getattr(role, 'institution_id', None)}): {inst_err} - skipping"
+                            )
+                        )
+                        continue
                     self.stdout.write(
-                        f"Assigning permissions to {role.name} (Institution: {role.institution.name})..."
+                        f"Assigning permissions to {role.name} (Institution: {institution_name})..."
                     )
 
                     # Clear existing permissions and assign new ones
