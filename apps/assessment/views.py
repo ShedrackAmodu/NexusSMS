@@ -12,6 +12,7 @@ from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
+from django.core.exceptions import ValidationError
 import json
 
 from .models import (
@@ -851,28 +852,44 @@ class ReportCardListView(LoginRequiredMixin, ListView):
     paginate_by = 15
 
     def get_queryset(self):
+        queryset = ReportCard.objects.select_related(
+            'student__user', 'academic_class', 'exam_type', 'result', 'institution'
+        )
+        
+        # Filter by current institution for multi-tenancy
+        if hasattr(self.request, 'institution') and self.request.institution:
+            queryset = queryset.filter(institution=self.request.institution)
+        
         if hasattr(self.request.user, 'student_profile'):
-            # Student view
+            # Student view - show only approved report cards for this student
             student = self.request.user.student_profile
-            return ReportCard.objects.filter(
+            queryset = queryset.filter(
                 student=student, is_approved=True
-            ).select_related('academic_class', 'exam_type', 'result')
+            )
         
         elif hasattr(self.request.user, 'teacher_profile'):
-            # Teacher view
+            # Teacher view - show report cards for classes they teach
             teacher = self.request.user.teacher_profile
             taught_classes = Class.objects.filter(
                 subject_assignments__teacher=teacher,
                 subject_assignments__academic_session__is_current=True
             )
-            return ReportCard.objects.filter(
+            queryset = queryset.filter(
                 academic_class__in=taught_classes
-            ).select_related('student__user', 'academic_class', 'exam_type', 'result')
+            )
+        else:
+            # Admins can see all report cards in their institution
+            pass
         
-        return ReportCard.objects.none()
+        return queryset.order_by('-result__created_at')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        
+        # Add institution information
+        if hasattr(self.request, 'institution') and self.request.institution:
+            context['school_name'] = self.request.institution.name
+            context['institution'] = self.request.institution
         
         # Add statistics for teachers
         if hasattr(self.request.user, 'teacher_profile'):
@@ -891,9 +908,15 @@ class ReportCardDetailView(LoginRequiredMixin, DetailView):
     context_object_name = 'report_card'
 
     def get_queryset(self):
-        return ReportCard.objects.select_related(
-            'student__user', 'academic_class', 'exam_type', 'result'
+        queryset = ReportCard.objects.select_related(
+            'student__user', 'academic_class', 'exam_type', 'result', 'institution'
         ).prefetch_related('result__subject_marks__subject')
+        
+        # Filter by current institution for multi-tenancy
+        if hasattr(self.request, 'institution') and self.request.institution:
+            queryset = queryset.filter(institution=self.request.institution)
+        
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -907,6 +930,19 @@ class ReportCardDetailView(LoginRequiredMixin, DetailView):
             messages.error(self.request, 'You do not have permission to view this report card.')
             return redirect('assessment:reportcard_list')
         
+        # Add institution information to context
+        if report_card.institution:
+            context['school_name'] = report_card.institution.name
+            context['school_code'] = report_card.institution.code
+            context['school_address'] = report_card.institution.full_address
+            context['school_phone'] = report_card.institution.phone
+            context['school_email'] = report_card.institution.email
+            context['school_website'] = report_card.institution.website
+            context['institution'] = report_card.institution
+        
+        # Add subject marks for template
+        context['subject_marks'] = report_card.result.subject_marks.select_related('subject', 'grade')
+        
         return context
 
 
@@ -914,24 +950,39 @@ class ReportCardDetailView(LoginRequiredMixin, DetailView):
 @user_passes_test(is_teacher)
 def generate_report_card(request, result_id):
     """Generate a report card for a result."""
+    from .report_card_service import ReportCardService
+    
     result = get_object_or_404(Result, id=result_id)
     
-    # Check if report card already exists
-    report_card, created = ReportCard.objects.get_or_create(
-        student=result.student,
-        academic_class=result.academic_class,
-        exam_type=result.exam_type,
-        defaults={
-            'result': result,
-            'generated_by': request.user.teacher_profile,
-            'is_approved': False
-        }
-    )
+    # Get the current institution from the request
+    institution = getattr(request, 'institution', None)
+    if not institution:
+        messages.error(request, 'Unable to determine your institution. Please contact an administrator.')
+        return redirect('assessment:result_list')
     
-    if created:
-        messages.success(request, 'Report card generated successfully!')
-    else:
-        messages.info(request, 'Report card already exists.')
+    try:
+        # Use the service to generate report card with proper validation
+        report_card, created = ReportCardService.generate_report_card(
+            result=result,
+            teacher=request.user.teacher_profile,
+            institution=institution,
+            auto_approve=False
+        )
+        
+        if created:
+            messages.success(
+                request,
+                f'✓ Report card generated successfully for {result.student.user.get_full_name()}!'
+            )
+        else:
+            messages.info(
+                request,
+                f'Report card already exists for {result.student.user.get_full_name()}.'
+            )
+    
+    except ValidationError as e:
+        messages.error(request, str(e))
+        return redirect('assessment:result_list')
     
     return redirect('assessment:reportcard_detail', pk=report_card.id)
 
@@ -940,15 +991,29 @@ def generate_report_card(request, result_id):
 @user_passes_test(is_teacher)
 def approve_report_card(request, reportcard_id):
     """Approve a report card."""
+    from .report_card_service import ReportCardService
+    
     report_card = get_object_or_404(ReportCard, id=reportcard_id)
     
+    # Verify institution access
+    if hasattr(request, 'institution') and request.institution:
+        if report_card.institution != request.institution:
+            messages.error(request, 'You do not have permission to approve this report card.')
+            return redirect('assessment:reportcard_list')
+    
     if request.method == 'POST':
-        report_card.is_approved = True
-        report_card.approved_by = request.user.teacher_profile
-        report_card.approved_at = timezone.now()
-        report_card.save()
-        
-        messages.success(request, 'Report card approved successfully!')
+        try:
+            ReportCardService.approve_report_card(
+                report_card=report_card,
+                teacher=request.user.teacher_profile,
+                institution=request.institution
+            )
+            messages.success(
+                request,
+                f'✓ Report card for {report_card.student.user.get_full_name()} approved successfully!'
+            )
+        except ValidationError as e:
+            messages.error(request, str(e))
     
     return redirect('assessment:reportcard_detail', pk=reportcard_id)
 

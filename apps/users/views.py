@@ -1223,6 +1223,7 @@ def send_admin_password_retrieval_notification(user, request):
 def custom_login(request):
     """
     Custom login view with enhanced logging and security.
+    Supports login with either username or email address.
     """
     # Redirect if already authenticated
     if request.user.is_authenticated:
@@ -1231,9 +1232,10 @@ def custom_login(request):
     change_password_mode = False
 
     if request.method == 'POST':
-        email = request.POST.get('email')
+        # Accept both 'email' and 'username' fields for login
+        login_value = request.POST.get('email') or request.POST.get('username')
         password = request.POST.get('password')
-        print(f"Login attempt - Email: {email}")  # Debug line
+        print(f"Login attempt - Login value: {login_value}")  # Debug line
         remember_me = request.POST.get('remember_me')
         new_password = request.POST.get('new_password')
         confirm_password = request.POST.get('confirm_password')
@@ -1243,7 +1245,8 @@ def custom_login(request):
         if change_password and new_password and confirm_password:
             # Change password mode
             change_password_mode = True
-            user = authenticate(request, email=email, password=password)
+            # Try to authenticate with the provided login value (username or email)
+            user = authenticate(request, username=login_value, password=password)
 
             if user is not None:
                 # Check if user is active
@@ -1280,12 +1283,12 @@ def custom_login(request):
                 messages.success(request, _('Password changed successfully! Please log in with your new password.'))
                 return redirect('users:login')
             else:
-                messages.error(request, _('Invalid email or current password.'))
+                messages.error(request, _('Invalid username/email or current password.'))
                 return render(request, 'users/auth/login.html', {'change_password_mode': change_password_mode})
         else:
             # Normal login attempt
-            # Authenticate user
-            user = authenticate(request, email=email, password=password)
+            # Authenticate user with either username or email
+            user = authenticate(request, username=login_value, password=password)
             print(f"Authentication result: {user}")  # Debug line
 
             # Log login attempt
@@ -1346,7 +1349,7 @@ def custom_login(request):
             else:
                 # Login failed
                 login_history.save()
-                messages.error(request, _('Invalid email or password.'))
+                messages.error(request, _('Invalid username/email or password.'))
 
     context = {
         'title': _('Login'),

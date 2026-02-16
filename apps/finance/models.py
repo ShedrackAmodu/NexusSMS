@@ -518,6 +518,38 @@ class Payment(CoreBaseModel):
     transaction_id = models.CharField(_('transaction ID'), max_length=100, blank=True)
     notes = models.TextField(_('notes'), blank=True)
     receipt_issued = models.BooleanField(_('receipt issued'), default=False)
+    
+    # Paystack-specific fields
+    paystack_reference = models.CharField(
+        _('Paystack reference'),
+        max_length=100,
+        blank=True,
+        db_index=True,
+        help_text=_('Unique reference from Paystack')
+    )
+    paystack_customer_id = models.CharField(
+        _('Paystack customer ID'),
+        max_length=100,
+        blank=True,
+        help_text=_('Customer ID from Paystack')
+    )
+    authorization_code = models.CharField(
+        _('Authorization code'),
+        max_length=100,
+        blank=True,
+        help_text=_('Card authorization code for future payments')
+    )
+    gateway_response = models.TextField(
+        _('Gateway response'),
+        blank=True,
+        help_text=_('Response from payment gateway')
+    )
+    payment_url = models.URLField(
+        _('Payment URL'),
+        max_length=500,
+        blank=True,
+        help_text=_('URL to complete payment')
+    )
 
     class Meta:
         verbose_name = _('Payment')

@@ -54,10 +54,10 @@ INSTALLED_APPS = [
     'channels',  # Note: PythonAnywhere free tier doesn't support WebSockets
 
     # Authentication & Social Auth
-    'allauth',
-    'allauth.account',
-    'allauth.socialaccount',
-    'allauth.socialaccount.providers.google',
+    # 'allauth',
+    # 'allauth.account',
+    # 'allauth.socialaccount',
+    # 'allauth.socialaccount.providers.google',
 ]
 
 # Crispy Forms Configuration
@@ -205,9 +205,9 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 AUTH_USER_MODEL = 'users.User'
 
 # Authentication backends
+# Note: EmailOrUsernameBackend extends ModelBackend, so we don't need to list it separately
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
-    'allauth.account.auth_backends.AuthenticationBackend',
+    'apps.users.backends.EmailOrUsernameBackend',
 ]
 
 # Login URLs

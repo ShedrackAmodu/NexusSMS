@@ -156,6 +156,11 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Custom user model
 AUTH_USER_MODEL = 'users.User'
 
+# Authentication backends
+AUTHENTICATION_BACKENDS = [
+    'apps.users.backends.EmailOrUsernameBackend',
+]
+
 # Site framework settings
 SITE_ID = 1
 
@@ -221,3 +226,34 @@ LOGGING = {
         },
     },
 }
+
+# =============================================================================
+# PAYSTACK PAYMENT GATEWAY SETTINGS
+# =============================================================================
+PAYSTACK_PUBLIC_KEY = os.environ.get("PAYSTACK_PUBLIC_KEY", "")
+PAYSTACK_SECRET_KEY = os.environ.get("PAYSTACK_SECRET_KEY", "")
+PAYSTACK_PAYMENT_URL = os.environ.get("PAYSTACK_PAYMENT_URL", "https://api.paystack.co")
+PAYSTACK_WEBHOOK_SECRET = os.environ.get("PAYSTACK_WEBHOOK_SECRET", "")
+# Set to True for test mode, False for live mode
+PAYSTACK_TEST_MODE = os.environ.get("PAYSTACK_TEST_MODE", "True").lower() in ('true', '1', 't')
+
+# Payment callback URLs
+PAYSTACK_CALLBACK_URL = os.environ.get("PAYSTACK_CALLBACK_URL", "/finance/payment/callback/")
+PAYSTACK_CANCEL_URL = os.environ.get("PAYSTACK_CANCEL_URL", "/finance/payment/cancel/")
+
+# =============================================================================
+# SMS GATEWAY SETTINGS (Termii - Nigerian SMS Provider)
+# =============================================================================
+TERMII_API_KEY = os.environ.get("TERMII_API_KEY", "")
+TERMII_SENDER_ID = os.environ.get("TERMII_SENDER_ID", "NEXUS")
+TERMII_BASE_URL = os.environ.get("TERMII_BASE_URL", "https://api.ng.termii.com")
+
+# Alternative SMS providers (fallback)
+SMS_PROVIDER = os.environ.get("SMS_PROVIDER", "termii")  # termii, multitexter, africastalking
+AFRICASTALKING_USERNAME = os.environ.get("AFRICASTALKING_USERNAME", "")
+AFRICASTALKING_API_KEY = os.environ.get("AFRICASTALKING_API_KEY", "")
+MULTITEXTER_API_KEY = os.environ.get("MULTITEXTER_API_KEY", "")
+
+# SMS notification settings
+SMS_NOTIFY_PARENTS_ON_PAYMENT = os.environ.get("SMS_NOTIFY_PARENTS_ON_PAYMENT", "True").lower() in ('true', '1', 't')
+SMS_NOTIFY_STUDENT_ON_REPORT = os.environ.get("SMS_NOTIFY_STUDENT_ON_REPORT", "True").lower() in ('true', '1', 't')

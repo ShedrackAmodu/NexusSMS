@@ -49,8 +49,14 @@
     <div class="card mb-4 reportcard-header">
         <div class="card-body text-center">
             <div class="school-header mb-4">
-                <h2 class="school-name">Nexus Intelligence School</h2>
-                <p class="school-address text-muted">123 Education Street, Learning City, LC 12345</p>
+                <h2 class="school-name">{{ school_name|default:"Your School Name" }}</h2>
+                <p class="school-address text-muted">{{ school_address|default:"School Address" }}</p>
+                {% if school_phone or school_email %}
+                <p class="school-contact text-muted small">
+                    {% if school_phone %}Phone: {{ school_phone }}{% endif %}
+                    {% if school_email %} | Email: {{ school_email }}{% endif %}
+                </p>
+                {% endif %}
                 <h3 class="reportcard-title text-primary">REPORT CARD</h3>
             </div>
             
@@ -199,6 +205,12 @@
                             </td>
                             <td>
                                 <small class="text-muted">{{ subject_mark.grade.remark }}</small>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted">
+                                No subject marks available for this result.
                             </td>
                         </tr>
                         {% endfor %}

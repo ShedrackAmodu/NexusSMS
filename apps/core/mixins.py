@@ -21,6 +21,10 @@ class InstitutionAccessMixin(AccessMixin):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
 
+        # Superusers operate across institutions; skip institution selection for them
+        if request.user.is_superuser:
+            return super().dispatch(request, *args, **kwargs)
+
         institution = get_current_institution()
 
         if not institution:
@@ -65,6 +69,10 @@ class InstitutionAdminMixin(InstitutionAccessMixin):
 
     def dispatch(self, request, *args, **kwargs):
         # First check institution access
+        # Allow superusers to bypass institution admin checks
+        if request.user.is_superuser:
+            return super().dispatch(request, *args, **kwargs)
+
         result = super().dispatch(request, *args, **kwargs)
         if not isinstance(result, type(None)):
             return result  # Permission denied or redirect
@@ -173,6 +181,11 @@ def institution_required(view_func):
             from django.contrib.auth.views import redirect_to_login
             return redirect_to_login(request.get_full_path())
 
+
+        # Superusers can access views without selecting an institution
+        if request.user.is_superuser:
+            return view_func(request, *args, **kwargs)
+
         institution = get_current_institution()
         if not institution:
             messages.warning(request, _("Please select an institution to continue."))
@@ -192,6 +205,10 @@ def institution_admin_required(view_func):
     Decorator to ensure user has institution admin privileges.
     """
     def wrapper(request, *args, **kwargs):
+        # Superusers bypass institution admin checks
+        if request.user.is_superuser:
+            return view_func(request, *args, **kwargs)
+
         # First check institution access
         result = institution_required(lambda r: None)(request, *args, **kwargs)
         if result:

@@ -90,8 +90,16 @@ class User(AbstractUser):
         editable=False,
         primary_key=True,
     )
-    # Remove username field, use email instead
-    username = None
+    # Allow username as alternative login method
+    username = models.CharField(
+        _('username'),
+        max_length=150,
+        unique=True,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text=_('Optional username for login. If not provided, email will be used.')
+    )
     email = models.EmailField(
         _('email address'),
         unique=True,
@@ -165,6 +173,9 @@ class User(AbstractUser):
             models.Index(fields=['email']),
             models.Index(fields=['is_active', 'is_verified']),
             models.Index(fields=['last_login']),
+        ]
+        permissions = [
+            ('approve_applications', _('Can approve student and staff applications')),
         ]
 
     def __str__(self):

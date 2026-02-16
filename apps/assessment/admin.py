@@ -312,22 +312,22 @@ class ResultSubjectAdmin(admin.ModelAdmin):
 
 class ReportCardAdmin(admin.ModelAdmin):
     list_display = [
-        'student', 'academic_class', 'exam_type', 'generated_at',
+        'student', 'academic_class', 'exam_type', 'institution', 'generated_at',
         'is_approved', 'approved_by', 'parent_signature', 'status'
     ]
     list_filter = [
-        'academic_class', 'exam_type', 'is_approved', 
+        'institution', 'academic_class', 'exam_type', 'is_approved', 
         'parent_signature', 'generated_at', 'status'
     ]
     search_fields = [
         'student__user__first_name', 'student__user__last_name',
-        'academic_class__name', 'exam_type__name'
+        'academic_class__name', 'exam_type__name', 'institution__name'
     ]
-    readonly_fields = ['generated_at']
+    readonly_fields = ['generated_at', 'institution']
     
     fieldsets = (
         (_('Basic Information'), {
-            'fields': ('student', 'academic_class', 'exam_type', 'result')
+            'fields': ('student', 'academic_class', 'exam_type', 'result', 'institution')
         }),
         (_('Approval'), {
             'fields': (

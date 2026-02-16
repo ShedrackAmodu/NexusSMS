@@ -1013,12 +1013,95 @@ class ReportCard(AssessmentBaseModel):
     approved_at = models.DateTimeField(_('approved at'), null=True, blank=True)
     comments = models.TextField(_('comments'), blank=True)
     parent_signature = models.BooleanField(_('parent signature received'), default=False)
+    
+    # Enhanced fields for manual entry and automation
+    class EntryMode(models.TextChoices):
+        AUTO = 'auto', _('Auto-Generated')
+        MANUAL = 'manual', _('Manual Entry')
+        BOTH = 'both', _('Auto with Manual Edits')
+    
+    entry_mode = models.CharField(
+        _('entry mode'),
+        max_length=10,
+        choices=EntryMode.choices,
+        default=EntryMode.AUTO
+    )
+    is_locked = models.BooleanField(
+        _('is locked'),
+        default=False,
+        help_text=_('Lock report card to prevent further edits')
+    )
+    
+    # Manual entry fields
+    teacher_remarks = models.TextField(
+        _('teacher remarks'),
+        blank=True,
+        help_text=_('Class teacher\'s comments')
+    )
+    principal_remarks = models.TextField(
+        _('principal remarks'),
+        blank=True,
+        help_text=_('Principal\'s comments')
+    )
+    conduct_grade = models.CharField(
+        _('conduct grade'),
+        max_length=10,
+        blank=True,
+        help_text=_('Conduct/Behavior grade')
+    )
+    attendance_days = models.PositiveIntegerField(
+        _('attendance days'),
+        default=0,
+        help_text=_('Number of days attended')
+    )
+    total_school_days = models.PositiveIntegerField(
+        _('total school days'),
+        default=0,
+        help_text=_('Total number of school days')
+    )
+    
+    # Grade override for manual adjustments
+    grade_override = models.ForeignKey(
+        Grade,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='grade_overrides',
+        verbose_name=_('grade override'),
+        help_text=_('Override calculated grade with manual entry')
+    )
+    
+    # PDF generation
+    pdf_generated = models.BooleanField(_('PDF generated'), default=False)
+    pdf_generated_at = models.DateTimeField(_('PDF generated at'), null=True, blank=True)
+    pdf_file = models.FileField(
+        _('PDF file'),
+        upload_to='report_cards/%Y/%m/',
+        null=True,
+        blank=True
+    )
+    
+    # Automation tracking
+    auto_generated = models.BooleanField(_('auto-generated'), default=False)
+    generation_trigger = models.CharField(
+        _('generation trigger'),
+        max_length=50,
+        blank=True,
+        help_text=_('What triggered the auto-generation')
+    )
 
     class Meta:
         verbose_name = _('Report Card')
         verbose_name_plural = _('Report Cards')
-        unique_together = ['student', 'academic_class', 'exam_type']
+        unique_together = [
+            ['student', 'academic_class', 'exam_type', 'institution']
+        ]
         ordering = ['-generated_at']
+        indexes = [
+            models.Index(fields=['student', 'institution']),
+            models.Index(fields=['academic_class', 'institution']),
+            models.Index(fields=['is_approved', 'institution']),
+        ]
 
     def __str__(self):
         return f"Report Card - {self.student} - {self.academic_class}"

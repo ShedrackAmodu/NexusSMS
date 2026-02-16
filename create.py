@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
 Consolidated System Creation Script
 
@@ -23,6 +24,11 @@ import django
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from pathlib import Path
+
+# Handle Unicode output on Windows
+if sys.platform == 'win32':
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # Add project root to Python path
 project_root = Path(__file__).parent
@@ -68,6 +74,42 @@ class SystemCreator:
         """Log an error message."""
         print(f"✗ {message}")
         self.updated += 1  # Track as updated for error counting
+
+    def create_superuser(self):
+        """Create or update the default superuser."""
+        self.log_info("Setting up default superuser...")
+        
+        superuser_email = 'drmk@nordatech.com'
+        superuser_username = 'drmk'
+        superuser_password = 'drmk'
+        
+        try:
+            # Check if superuser with this username already exists
+            user = User.objects.filter(username=superuser_username).first()
+            
+            if user:
+                # Update existing superuser password
+                user.set_password(superuser_password)
+                user.is_active = True
+                user.is_staff = True
+                user.is_superuser = True
+                user.save()
+                self.log_success(f"Superuser '{superuser_username}' already exists. Password updated.")
+                self.updated += 1
+            else:
+                # Create new superuser
+                user = User.objects.create_superuser(
+                    email=superuser_email,
+                    password=superuser_password,
+                    username=superuser_username,
+                    first_name='System',
+                    last_name='Administrator'
+                )
+                self.log_success(f"Superuser created: {superuser_username}")
+                self.created += 1
+                
+        except Exception as e:
+            self.log_error(f"Failed to create superuser: {e}")
 
     def setup_staff_roles(self):
         """Create default staff roles."""
@@ -1819,7 +1861,19 @@ Phone: [Contact Number]
         print()
 
         try:
+            # Create migrations for all apps first
+            self.log_info("Creating migrations for all apps...")
+            call_command('makemigrations', verbosity=0)
+            self.log_success("Migrations created!")
+            
+            # Run migrations to create all database tables
+            self.log_info("Running database migrations...")
+            call_command('migrate', verbosity=0)
+            self.log_success("Database migrations completed!")
+            print()
+
             # Run setup functions in logical order
+            self.create_superuser()
             self.setup_staff_roles()
             self.assign_role_permissions()
             self.setup_multitenancy()
@@ -1864,23 +1918,23 @@ Phone: [Contact Number]
             'academics.add_classmaterial', 'academics.change_classmaterial', 'academics.delete_classmaterial', 'academics.view_classmaterial',
 
             # Assessment
-            'assessment.add_assessment', 'assessment.change_assessment', 'assessment.delete_assessment', 'assessment.view_assessment',
             'assessment.add_exam', 'assessment.change_exam', 'assessment.delete_exam', 'assessment.view_exam',
             'assessment.add_assignment', 'assessment.change_assignment', 'assessment.delete_assignment', 'assessment.view_assignment',
             'assessment.add_result', 'assessment.change_result', 'assessment.delete_result', 'assessment.view_result',
             'assessment.add_examtype', 'assessment.change_examtype', 'assessment.delete_examtype', 'assessment.view_examtype',
             'assessment.add_reportcard', 'assessment.change_reportcard', 'assessment.delete_reportcard', 'assessment.view_reportcard',
             'assessment.add_mark', 'assessment.change_mark', 'assessment.delete_mark', 'assessment.view_mark',
+            'assessment.add_grade', 'assessment.change_grade', 'assessment.delete_grade', 'assessment.view_grade',
 
             # Attendance
             'attendance.add_dailyattendance', 'attendance.change_dailyattendance', 'attendance.delete_dailyattendance', 'attendance.view_dailyattendance',
             'attendance.add_attendancesession', 'attendance.change_attendancesession', 'attendance.delete_attendancesession', 'attendance.view_attendancesession',
             'attendance.add_periodattendance', 'attendance.change_periodattendance', 'attendance.delete_periodattendance', 'attendance.view_periodattendance',
-            'attendance.add_leave', 'attendance.change_leave', 'attendance.delete_leave', 'attendance.view_leave',
+            'attendance.add_leaveapplication', 'attendance.change_leaveapplication', 'attendance.delete_leaveapplication', 'attendance.view_leaveapplication',
             'attendance.add_attendancesummary', 'attendance.change_attendancesummary', 'attendance.delete_attendancesummary', 'attendance.view_attendancesummary',
 
             # Analytics
-            'analytics.add_analyticsreport', 'analytics.change_analyticsreport', 'analytics.delete_analyticsreport', 'analytics.view_analyticsreport',
+            'analytics.add_report', 'analytics.change_report', 'analytics.delete_report', 'analytics.view_report',
             'analytics.add_kpi', 'analytics.change_kpi', 'analytics.delete_kpi', 'analytics.view_kpi',
         ]
 
@@ -1903,11 +1957,12 @@ Phone: [Contact Number]
             # Hostels
             'hostels.add_hostel', 'hostels.change_hostel', 'hostels.view_hostel',
             'hostels.add_room', 'hostels.change_room', 'hostels.view_room',
-            'hostels.add_allocation', 'hostels.change_allocation', 'hostels.view_allocation',
+            'hostels.add_hostelallocation', 'hostels.change_hostelallocation', 'hostels.view_hostelallocation',
+            'hostels.add_hostelfee', 'hostels.change_hostelfee', 'hostels.view_hostelfee',
 
             # Activities
             'activities.add_activity', 'activities.change_activity', 'activities.view_activity',
-            'activities.add_enrollment', 'activities.change_enrollment', 'activities.view_enrollment',
+            'activities.add_activityenrollment', 'activities.change_activityenrollment', 'activities.view_activityenrollment',
 
             # Communication
             'communication.add_announcement', 'communication.change_announcement', 'communication.view_announcement',
@@ -2012,7 +2067,7 @@ Phone: [Contact Number]
         return [
             'users.view_user',
             'communication.add_message', 'communication.view_message',
-            'support.add_helpcenter', 'support.change_helpcenter', 'support.view_helpcenter',
+            'support.add_helpcenterarticle', 'support.change_helpcenterarticle', 'support.view_helpcenterarticle',
             'support.add_faq', 'support.change_faq', 'support.view_faq',
             'support.add_resource', 'support.change_resource', 'support.view_resource',
         ]
@@ -2038,11 +2093,11 @@ Phone: [Contact Number]
             'hostels.add_hostel', 'hostels.change_hostel', 'hostels.delete_hostel', 'hostels.view_hostel',
             'hostels.add_room', 'hostels.change_room', 'hostels.delete_room', 'hostels.view_room',
             'hostels.add_bed', 'hostels.change_bed', 'hostels.delete_bed', 'hostels.view_bed',
-            'hostels.add_allocation', 'hostels.change_allocation', 'hostels.delete_allocation', 'hostels.view_allocation',
-            'hostels.add_fee', 'hostels.change_fee', 'hostels.delete_fee', 'hostels.view_fee',
-            'hostels.add_visitor', 'hostels.change_visitor', 'hostels.delete_visitor', 'hostels.view_visitor',
-            'hostels.add_maintenance', 'hostels.change_maintenance', 'hostels.delete_maintenance', 'hostels.view_maintenance',
-            'hostels.add_inventory', 'hostels.change_inventory', 'hostels.delete_inventory', 'hostels.view_inventory',
+            'hostels.add_hostelallocation', 'hostels.change_hostelallocation', 'hostels.delete_hostelallocation', 'hostels.view_hostelallocation',
+            'hostels.add_hostelfee', 'hostels.change_hostelfee', 'hostels.delete_hostelfee', 'hostels.view_hostelfee',
+            'hostels.add_visitorlog', 'hostels.change_visitorlog', 'hostels.delete_visitorlog', 'hostels.view_visitorlog',
+            'hostels.add_maintenancerequest', 'hostels.change_maintenancerequest', 'hostels.delete_maintenancerequest', 'hostels.view_maintenancerequest',
+            'hostels.add_inventoryitem', 'hostels.change_inventoryitem', 'hostels.delete_inventoryitem', 'hostels.view_inventoryitem',
         ]
 
 
